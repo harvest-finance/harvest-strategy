@@ -1,0 +1,37 @@
+{
+  "name": "harvest-strategy",
+  "version": "1.0.0",
+  "description": "The Hardhat environment is configured to use Mainnet fork by default and provides templates and utilities for strategy development and testing.",
+  "main": "hardhat.config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: please run tests individually\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harvest-finance/harvest-strategy.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/harvest-finance/harvest-strategy/issues"
+  },
+  "homepage": "https://github.com/harvest-finance/harvest-strategy#readme",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "2.0.1",
+    "@nomiclabs/hardhat-etherscan": "2.1.0",
+    "@nomiclabs/hardhat-waffle": "2.0.1",
+    "@openzeppelin/test-helpers": "0.5.10",
+    "hardhat": "2.0.7",
+    "hardhat-gas-reporter": "1.0.4"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-truffle5": "2.0.0",
+    "@nomiclabs/hardhat-web3": "2.0.0",
+    "@openzeppelin/contracts": "2.5.1",
+    "@openzeppelin/upgrades": "2.8.0",
+    "@openzeppelin/contracts-ethereum-package": "2.5.0"
+  }
+}
