@@ -36,6 +36,7 @@ describe("Mainnet ETH/1INCH", function() {
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0x0EF1B8a0E726Fc3948E15b23993015eB1627f210");
+    console.log("Fetching Underlying at: ", underlying.address);
   }
 
   async function setupBalance(){
@@ -71,7 +72,6 @@ describe("Mainnet ETH/1INCH", function() {
   describe("Happy path", function() {
     it("Farmer should earn money", async function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
-      console.log(farmerOldBalance.toFixed())
       await depositVault(farmer1, underlying, vault, farmerBalance);
 
       // Using half days is to simulate how we doHardwork in the real world
