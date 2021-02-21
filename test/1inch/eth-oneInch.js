@@ -36,7 +36,6 @@ describe("Mainnet ETH/1INCH", function() {
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0x0EF1B8a0E726Fc3948E15b23993015eB1627f210");
-    console.log("Fetching Underlying at: ", underlying.address);
   }
 
   async function setupBalance(){
@@ -45,7 +44,6 @@ describe("Mainnet ETH/1INCH", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
-    console.log(BigNumber(farmerBalance).toFixed());
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
