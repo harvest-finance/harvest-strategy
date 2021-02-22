@@ -69,7 +69,8 @@ async function setupCoreProtocol(config) {
         web3.utils.keccak256(dex),
         config.liquidation[dex][0],
         config.liquidation[dex][config.liquidation[dex].length - 1],
-        config.liquidation[dex]
+        config.liquidation[dex],
+        {from: config.governance }
       );
     }
   }
