@@ -15,7 +15,7 @@ const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher
 //Run test at blockNumber 11907500
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Klondike to FARM: WBTC/KBTC ", function() {
+describe("Klondike to FARM: WBTC/KLON ", function() {
   let accounts;
 
   // external contracts
