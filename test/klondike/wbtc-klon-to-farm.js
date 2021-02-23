@@ -8,12 +8,14 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("KlondikeStrategyMainnet_WBTC_KLON");
+const Strategy = artifacts.require("Klondike2FarmStrategyMainnet_WBTC_KLON");
+const NoMintRewardPool = artifacts.require("NoMintRewardPool");
+const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 //Run test at blockNumber 11907500
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Klondike WBTC/KLON", function() {
+describe("Klondike to FARM: WBTC/KLON ", function() {
   let accounts;
 
   // external contracts
@@ -33,11 +35,8 @@ describe("Klondike WBTC/KLON", function() {
   let controller;
   let vault;
   let strategy;
-
-  let klon = "0xB97D5cF2864FB0D08b34a484FF48d5492B2324A0";
-  let wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
-  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
+  let rewardPool;
+  let farm;
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0x734e48A1FfEA1cdF4F5172210C322f3990d6D760");
@@ -62,23 +61,37 @@ describe("Klondike WBTC/KLON", function() {
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
 
+    rewardDistributionSwitcher = await RewardDistributionSwitcher.new(
+      addresses.Storage
+    );
+
     await setupExternalContracts();
-    [controller, vault, strategy] = await setupCoreProtocol({
+    [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
-      "liquidation": {"uni": [klon, wbtc, weth, farm]},
+      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
+      "rewardPool" : true,
       "underlying": underlying,
       "governance": governance,
     });
 
+    await rewardPool.transferOwnership(rewardDistributionSwitcher.address, {from: governance});
+    await rewardDistributionSwitcher.setSwitcher(strategy.address, true, {from:governance});
     // whale send underlying to farmers
     await setupBalance();
+
+    farm = await IERC20.at(addresses.FARM);
   });
 
   describe("Happy path", function() {
     it("Farmer should earn money", async function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
+
+      let farmerVaultShare = new BigNumber(await vault.balanceOf(farmer1)).toFixed();
+      let vaultERC20 = await IERC20.at(vault.address);
+      await vaultERC20.approve(rewardPool.address, farmerVaultShare, {from: farmer1});
+      await rewardPool.stake(farmerVaultShare, {from: farmer1});
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
@@ -94,13 +107,18 @@ describe("Klondike WBTC/KLON", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-
+        console.log("farm in reward pool: ", (new BigNumber(await farm.balanceOf(rewardPool.address))).toFixed());
         await Utils.advanceNBlock(blocksPerHour);
       }
+      await rewardPool.exit({from: farmer1});
+      let farmerNewFarm = new BigNumber(await farm.balanceOf(farmer1));
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
-      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
 
+      console.log("farmerNewFarm:    ", farmerNewFarm.toFixed());
+      console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
+      console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
+      Utils.assertBNGt(farmerNewFarm, 0);
       console.log("earned!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
