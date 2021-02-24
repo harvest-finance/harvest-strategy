@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interface/IController.sol";
+import "../interface/IFeeRewardForwarderV5.sol";
 import "./Controllable.sol";
 
 contract RewardTokenProfitNotifier is Controllable {
@@ -26,6 +27,7 @@ contract RewardTokenProfitNotifier is Controllable {
   }
 
   event ProfitLogInReward(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
+  event ProfitAndBuybackLog(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
 
   function notifyProfitInRewardToken(uint256 _rewardBalance) internal {
     if( _rewardBalance > 0 ){
@@ -33,7 +35,7 @@ contract RewardTokenProfitNotifier is Controllable {
       emit ProfitLogInReward(_rewardBalance, feeAmount, block.timestamp);
       IERC20(rewardToken).safeApprove(controller(), 0);
       IERC20(rewardToken).safeApprove(controller(), feeAmount);
-      
+
       IController(controller()).notifyFee(
         rewardToken,
         feeAmount
@@ -43,4 +45,21 @@ contract RewardTokenProfitNotifier is Controllable {
     }
   }
 
+  function notifyProfitAndBuybackInRewardToken(uint256 _rewardBalance, address pool) internal {
+    if( _rewardBalance > 0 ){
+      uint256 feeAmount = _rewardBalance.mul(profitSharingNumerator).div(profitSharingDenominator);
+      address forwarder = IController(controller()).feeRewardForwarder();
+      emit ProfitAndBuybackLog(_rewardBalance, feeAmount, block.timestamp);
+      IERC20(rewardToken).safeApprove(forwarder, 0);
+      IERC20(rewardToken).safeApprove(forwarder, _rewardBalance);
+
+      IFeeRewardForwarderV5(forwarder).notifyFeeAndBuybackAmounts(
+        feeAmount,
+        pool,
+        _rewardBalance.sub(feeAmount)
+      );
+    } else {
+      emit ProfitAndBuybackLog(0, 0, block.timestamp);
+    }
+  }
 }
