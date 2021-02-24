@@ -15,8 +15,6 @@ import "../../../base/interface/weth/Weth9.sol";
 
 import "../../../base/StrategyBaseUL.sol";
 
-import "hardhat/console.sol";
-
 /**
 * This strategy is for the mixToken vault, i.e., the underlying token is mixToken. It is not to accept
 * stable coins. It will farm the CRV crop. For liquidation, it swaps CRV into ETH and uses ETH

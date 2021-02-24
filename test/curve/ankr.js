@@ -94,7 +94,7 @@ describe("Mainnet Curve Ankr", function() {
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
