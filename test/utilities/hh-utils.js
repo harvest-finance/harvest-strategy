@@ -64,16 +64,15 @@ async function setupCoreProtocol(config) {
 
   // set liquidation paths
   if(config.liquidation) {
-    for( token in config.liquidation) {
-      for (dex in config.liquidation[token]) {
-        await universalLiquidatorRegistry.setPath(
-          web3.utils.keccak256(dex),
-          config.liquidation[token][dex][0],
-          config.liquidation[token][dex][config.liquidation[token][dex].length - 1],
-          config.liquidation[token][dex],
-          {from: config.governance }
-        );
-      }
+    for (i=0;i<config.liquidation.length;i++) {
+      dex = Object.keys(config.liquidation[i])[0];
+      await universalLiquidatorRegistry.setPath(
+        web3.utils.keccak256(dex),
+        config.liquidation[i][dex][0],
+        config.liquidation[i][dex][config.liquidation[i][dex].length - 1],
+        config.liquidation[i][dex],
+        {from: config.governance}
+      );
     }
   }
 

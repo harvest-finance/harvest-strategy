@@ -65,9 +65,9 @@ describe("Mainnet Curve Ankr", function() {
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": CRVStrategyAnkrETHMainnet,
-      "liquidation": {"onx": {"sushi": [onx, weth]},
-                      "crv": {"uni": [crv, weth]},
-                      "ankr": {"uni": [ankr, weth]}},
+      "liquidation": [{"sushi":[onx, weth]},
+                      {"uni":[crv, weth]},
+                      {"uni":[ankr, weth]}],
       "underlying": underlying,
       "governance": governance,
     });
