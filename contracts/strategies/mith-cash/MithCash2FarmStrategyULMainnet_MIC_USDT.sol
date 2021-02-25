@@ -35,8 +35,8 @@ contract MithCash2FarmStrategyULMainnet_MIC_USDT is SNXReward2FarmStrategyUL {
     __mis,
     _universalLiquidatorRegistry,
     __farm,
-    _distributionPool,
-    _distributionSwitcher
+    _distributionPool
+    /* _distributionSwitcher */
   )
   public {
     require(IVault(_vault).underlying() == __mic_usdt, "Underlying mismatch");
@@ -44,7 +44,7 @@ contract MithCash2FarmStrategyULMainnet_MIC_USDT is SNXReward2FarmStrategyUL {
     liquidationDexes.push(bytes32(uint256(keccak256("sushi"))));
     liquidationDexes.push(bytes32(uint256(keccak256("uni"))));
 
-    autoRevertRewardDistribution = false;
-    defaultRewardDistribution = __notifyHelper;
+    /* autoRevertRewardDistribution = false;
+    defaultRewardDistribution = __notifyHelper; */
   }
 }
