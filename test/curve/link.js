@@ -9,6 +9,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const CRVStrategyLINKMainnet = artifacts.require("CRVStrategyLINKMainnet");
 
+//This test was developed at blockNumber 11925000
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Curve LINK", function() {
@@ -18,7 +19,7 @@ describe("Mainnet Curve LINK", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x9bcBFE550D32DFDD2d047Ca52F497cBA1f564B6B";
+  let underlyingWhale = "0x4254c604A2A6D58f8c94DED9b3Aaff3A2541F388";
 
   // parties in the protocol
   let governance;
@@ -85,7 +86,7 @@ describe("Mainnet Curve LINK", function() {
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
