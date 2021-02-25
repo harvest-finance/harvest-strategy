@@ -10,7 +10,6 @@ import "../interface/IRewardDistributionSwitcher.sol";
 import "../interface/INoMintRewardPool.sol";
 import "./interfaces/SNXRewardInterface.sol";
 
-
 /*
 *   This is a general strategy for yields that are based on the synthetix reward contract
 *   for example, yam, spaghetti, ham, shrimp.
@@ -76,11 +75,6 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   // specifies which DEX is the token liquidated on
   bytes32 [] public liquidationDexes;
 
-  // if the flag is set, then it would read the previous reward distribution from the pool
-  // otherwise, it would read from `setRewardDistributionTo` and ask the distributionSwitcher to set to it.
-  bool public autoRevertRewardDistribution;
-  address public defaultRewardDistribution;
-
   event ProfitsNotCollected();
 
   // This is only used in `investAllUnderlying()`
@@ -98,17 +92,19 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     address _rewardToken,
     address _universalLiquidatorRegistry,
     address _farm,
-    address _distributionPool,
-    address _distributionSwitcher
+    address _distributionPool
   )
   StrategyBaseUL(_storage, _underlying, _vault, _farm, _universalLiquidatorRegistry)
   public {
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
-    require(_farm == INoMintRewardPool(_distributionPool).rewardToken(), "distribution pool's reward must be FARM");
+    require(
+      (_farm == INoMintRewardPool(_distributionPool).rewardToken())
+      || (_farm == IVault(INoMintRewardPool(_distributionPool).rewardToken()).underlying()),
+      "distribution pool's reward must be FARM or iFARM");
+
     farm = _farm;
     distributionPool = _distributionPool;
     rewardToken = _rewardToken;
-    distributionSwitcher = _distributionSwitcher;
     rewardPool = SNXRewardInterface(_rewardPool);
   }
 
@@ -165,25 +161,8 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
 
     uint256 farmAmount = IERC20(farm).balanceOf(address(this));
 
-    // Use farm as profit sharing base, sending it
-    notifyProfitInRewardToken(farmAmount);
-
-    // The remaining farms should be distributed to the distribution pool
-    farmAmount = IERC20(farm).balanceOf(address(this));
-
-    // Switch reward distribution temporarily, notify reward, switch it back
-    address prevRewardDistribution;
-    if(autoRevertRewardDistribution) {
-      prevRewardDistribution = INoMintRewardPool(distributionPool).rewardDistribution();
-    } else {
-      prevRewardDistribution = defaultRewardDistribution;
-    }
-    IRewardDistributionSwitcher(distributionSwitcher).setPoolRewardDistribution(distributionPool, address(this));
-
-    // transfer and notify with the remaining farm amount
-    IERC20(farm).safeTransfer(distributionPool, farmAmount);
-    INoMintRewardPool(distributionPool).notifyRewardAmount(farmAmount);
-    IRewardDistributionSwitcher(distributionSwitcher).setPoolRewardDistribution(distributionPool, prevRewardDistribution);
+    // Share profit + buyback
+    notifyProfitAndBuybackInRewardToken(farmAmount, distributionPool);
   }
 
   /*

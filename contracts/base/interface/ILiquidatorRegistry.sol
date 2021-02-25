@@ -14,7 +14,7 @@ interface ILiquidatorRegistry {
   ) external view returns(address[] memory);
 
   function setPath(
-    string calldata dex,
+    bytes32 dex,
     address inputToken,
     address outputToken,
     address[] calldata path
