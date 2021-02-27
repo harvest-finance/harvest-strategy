@@ -9,8 +9,6 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("MirrorMainnet_mNFLX_UST");
-const NoMintRewardPool = artifacts.require("NoMintRewardPool");
-const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 //This test was developed at blockNumber 11938650
 
