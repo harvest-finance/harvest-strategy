@@ -60,27 +60,26 @@ async function setupCoreProtocol(config) {
   }
 
   // if reward pool is required, then deploy it
- if(config.rewardPotPool != null && config.existingRewardPotPoolAddress == null) {
-   const PotPool = artifacts.require("PotPool");
-   console.log("reward pool needs to be deployed");
-   rewardPool = await PotPool.new(
-     config.rewardPotPool.rewardTokens,
-     vault.address,
-     64800,
-     [config.governance],
-     addresses.Storage,
-     "pfToken",
-     "pfToken",
-     18,
-     {from: config.governance }
-   );
-   console.log("New Reward Pool deployed: ", rewardPool.address);
- } else if(config.existingRewardPotPoolAddress != null) {
-   const PotPool = artifacts.require("PotPool");
-   rewardPool = await PotPool.at(config.existingRewardPotPoolAddress);
-   console.log("Fetching Reward Pool deployed: ", rewardPool.address);
- }
-
+  if(config.rewardPotPool != null && config.existingRewardPotPoolAddress == null) {
+    const PotPool = artifacts.require("PotPool");
+    console.log("reward pool needs to be deployed");
+    rewardPool = await PotPool.new(
+      config.rewardPotPool.rewardTokens,
+      vault.address,
+      64800,
+      [config.governance],
+      addresses.Storage,
+      "pfToken",
+      "pfToken",
+      18,
+      {from: config.governance }
+    );
+    console.log("New Reward Pool deployed: ", rewardPool.address);
+  } else if(config.existingRewardPotPoolAddress != null) {
+    const PotPool = artifacts.require("PotPool");
+    rewardPool = await PotPool.at(config.existingRewardPotPoolAddress);
+    console.log("Fetching Reward Pool deployed: ", rewardPool.address);
+  }
 
   let universalLiquidatorRegistry = await ILiquidatorRegistry.at(addresses.UniversalLiquidatorRegistry);
 
