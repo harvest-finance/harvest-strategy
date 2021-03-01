@@ -36,48 +36,77 @@ async function setupCoreProtocol(config) {
     console.log("New Vault Deployed: ", vault.address);
   }
 
+  controller = await IController.at(addresses.Controller);
+
+  if (config.feeRewardForwarder) {/*
+    const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
+    const feeRewardForwarder = await FeeRewardForwarder.new(
+      addresses.Storage,
+      addresses.FARM,
+      addresses.IFARM,
+      addresses.UniversalLiquidatorRegistry
+    );
+
+    config.feeRewardForwarder = feeRewardForwarder.address;*/
+    console.log("Setting up a custom fee reward forwarder...");
+    await controller.setFeeRewardForwarder(
+      config.feeRewardForwarder,
+      { from: config.governance }
+    );
+
+    const NoMintRewardPool = artifacts.require("NoMintRewardPool");
+    const farmRewardPool = await NoMintRewardPool.at("0x8f5adC58b32D4e5Ca02EAC0E293D35855999436C");
+    await farmRewardPool.setRewardDistribution(config.feeRewardForwarder, {from: config.governance});
+
+    console.log("Done setting up fee reward forwarder!");
+  }
+
   let rewardPool = null;
 
+  if (!config.rewardPoolConfig) {
+    config.rewardPoolConfig = {};
+  }
   // if reward pool is required, then deploy it
   if(config.rewardPool != null && config.existingRewardPoolAddress == null) {
-    const NoMintRewardPool = artifacts.require("NoMintRewardPool");
-    console.log("reward pool needs to be deployed");
-    rewardPool = await NoMintRewardPool.new(
-      addresses.FARM,
-      vault.address,
-      64800,
-      config.governance,
-      addresses.Storage,
-      "0x0000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000",
-      {from: config.governance }
-    );
-    console.log("New Reward Pool deployed: ", rewardPool.address);
+    const rewardTokens = config.rewardPoolConfig.rewardTokens || [addresses.FARM];
+    const rewardDistributions = [config.governance];
+    if (config.feeRewardForwarder) {
+      rewardDistributions.push(config.feeRewardForwarder);
+    }
+
+    if (config.rewardPoolConfig.type === 'PotPool') {
+      const PotPool = artifacts.require("PotPool");
+      console.log("reward pool needs to be deployed");
+      rewardPool = await PotPool.new(
+        rewardTokens,
+        vault.address,
+        64800,
+        rewardDistributions,
+        addresses.Storage,
+        "fPool",
+        "fPool",
+        18,
+        {from: config.governance }
+      );
+      console.log("New PotPool deployed: ", rewardPool.address);
+    } else {
+      const NoMintRewardPool = artifacts.require("NoMintRewardPool");
+      console.log("reward pool needs to be deployed");
+      rewardPool = await NoMintRewardPool.new(
+        rewardTokens[0],
+        vault.address,
+        64800,
+        rewardDistributions,
+        addresses.Storage,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        {from: config.governance }
+      );
+      console.log("New NoMintRewardPool deployed: ", rewardPool.address);
+    }
   } else if(config.existingRewardPoolAddress != null) {
     const NoMintRewardPool = artifacts.require("NoMintRewardPool");
     rewardPool = await NoMintRewardPool.at(config.existingRewardPoolAddress);
-    console.log("Fetching Reward Pool deployed: ", rewardPool.address);
-  }
-
-  // if reward pool is required, then deploy it
-  if(config.rewardPotPool != null && config.existingRewardPotPoolAddress == null) {
-    const PotPool = artifacts.require("PotPool");
-    console.log("reward pool needs to be deployed");
-    rewardPool = await PotPool.new(
-      config.rewardPotPool.rewardTokens,
-      vault.address,
-      64800,
-      [config.governance],
-      addresses.Storage,
-      "pfToken",
-      "pfToken",
-      18,
-      {from: config.governance }
-    );
-    console.log("New Reward Pool deployed: ", rewardPool.address);
-  } else if(config.existingRewardPotPoolAddress != null) {
-    const PotPool = artifacts.require("PotPool");
-    rewardPool = await PotPool.at(config.existingRewardPotPoolAddress);
     console.log("Fetching Reward Pool deployed: ", rewardPool.address);
   }
 
@@ -113,7 +142,7 @@ async function setupCoreProtocol(config) {
     }
   }
 
-  if (config.strategyArtifactIsUpgradable == null) {
+  if (!config.strategyArtifactIsUpgradable) {
     strategy = await config.strategyArtifact.new(
       ...config.strategyArgs,
       { from: config.governance }
@@ -142,8 +171,6 @@ async function setupCoreProtocol(config) {
       path
     );
   }
-
-  controller = await IController.at(addresses.Controller);
 
   if (config.announceStrategy === true) {
     // Announce switch, time pass, switch to strategy

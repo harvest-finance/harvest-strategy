@@ -67,7 +67,11 @@ describe("MIR to FARM: mTWTR", function() {
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
       "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr"],
-      "rewardPotPool": {"rewardTokens": ["0x1571eD0bed4D987fe2b498DdBaE7DFA19519F651"]},
+      "rewardPool" : true,
+      "rewardPoolConfig": {
+        type: 'PotPool',
+        rewardTokens: [addresses.IFARM]
+      },
       "liquidation": [{"uni": [mir, weth, farm]}],
       "underlying": underlying,
       "governance": governance,
