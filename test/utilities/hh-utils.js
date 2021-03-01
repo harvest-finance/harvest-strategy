@@ -81,7 +81,6 @@ async function setupCoreProtocol(config) {
     console.log("Fetching Reward Pool deployed: ", rewardPool.address);
   }
 
-
   let universalLiquidatorRegistry = await ILiquidatorRegistry.at(addresses.UniversalLiquidatorRegistry);
 
   // set liquidation paths
