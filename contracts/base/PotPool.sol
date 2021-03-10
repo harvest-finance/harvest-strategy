@@ -160,6 +160,10 @@ contract PotPool is IRewardDistributionRecipient, Controllable, ERC20, ERC20Deta
         return Math.min(block.timestamp, periodFinishForToken[rt]);
     }
 
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return lastTimeRewardApplicable(rewardTokens[0]);
+    }
+
     function rewardPerToken(uint256 i) public view returns (uint256) {
         return rewardPerToken(rewardTokens[i]);
     }
@@ -180,6 +184,10 @@ contract PotPool is IRewardDistributionRecipient, Controllable, ERC20, ERC20Deta
 
     function earned(uint256 i, address account) public view returns (uint256) {
         return earned(rewardTokens[i], account);
+    }
+
+    function earned(address account) public view returns (uint256) {
+        return earned(rewardTokens[0], account);
     }
 
     function earned(address rt, address account) public view returns (uint256) {
@@ -331,6 +339,10 @@ contract PotPool is IRewardDistributionRecipient, Controllable, ERC20, ERC20Deta
         updateRewards(address(0))
     {
       notifyTargetRewardAmount(rewardTokens[0], reward);
+    }
+
+    function rewardTokensLength() public view returns(uint256){
+      return rewardTokens.length;
     }
 
     // Harvest Smart Contract recording
