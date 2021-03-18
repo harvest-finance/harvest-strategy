@@ -158,11 +158,11 @@ contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategy {
       return;
     }
 
-    notifyProfitAndBuybackInRewardToken(
+    /* notifyProfitAndBuybackInRewardToken(
       rewardBalance,
       distributionPool(),
       buybackRatio()
-    );
+    ); */
 
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 

@@ -8,4 +8,5 @@ interface IFarmingRewards {
     function withdraw(uint256 amount) external;
     function exit() external;
     function getReward() external;
+    function getAllRewards() external;
 }
