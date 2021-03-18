@@ -19,8 +19,8 @@ describe("Mainnet ETH/1INCH", function() {
   let underlying;
 
   // external setup
-  // use block 11807770
-  let underlyingWhale = "0x5e73cB1ba8a0bdC566696b95bc17415EB4b2a1b5";
+  // use block 12058049
+  let underlyingWhale = "0x170A435515ebEA952d15F5Bc79806E53055C75ee";
 
   // parties in the protocol
   let governance;

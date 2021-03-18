@@ -5,7 +5,7 @@ const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/
 const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
-const IERC20 = artifacts.require("IERC20");
+const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("NarwhaleStrategyMainnet_ESD");

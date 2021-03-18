@@ -10,7 +10,6 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("Klondike2FarmStrategyMainnet_WBTC_KLON");
 const NoMintRewardPool = artifacts.require("NoMintRewardPool");
-const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 //Run test at blockNumber 11907500
 
@@ -22,7 +21,8 @@ describe("Klondike to FARM: WBTC/KLON ", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x22C0259870aAc800347D8E20870b9EcF40665959";
+  // block number: 11920986
+  let underlyingWhale = "0x248e9d4Fca4C1f833C8a203E9E00ae9f2263616F";
 
   // parties in the protocol
   let governance;
@@ -36,7 +36,7 @@ describe("Klondike to FARM: WBTC/KLON ", function() {
   let vault;
   let strategy;
   let rewardPool;
-  let farm;
+  let farm, iFarm;
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0x734e48A1FfEA1cdF4F5172210C322f3990d6D760");
@@ -61,26 +61,30 @@ describe("Klondike to FARM: WBTC/KLON ", function() {
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
 
-    rewardDistributionSwitcher = await RewardDistributionSwitcher.new(
-      addresses.Storage
-    );
-
     await setupExternalContracts();
     [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
-      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
+      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr"],
       "rewardPool" : true,
+      "rewardPoolConfig": {
+        type: 'PotPool',
+        rewardTokens: [addresses.IFARM]
+      },
+      "liquidation": {
+        // klon -> wbtc -> weth -> farm
+        "uni": ["0xB97D5cF2864FB0D08b34a484FF48d5492B2324A0", "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+          "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", addresses.FARM]
+      },
       "underlying": underlying,
       "governance": governance,
     });
 
-    await rewardPool.transferOwnership(rewardDistributionSwitcher.address, {from: governance});
-    await rewardDistributionSwitcher.setSwitcher(strategy.address, true, {from:governance});
     // whale send underlying to farmers
     await setupBalance();
 
     farm = await IERC20.at(addresses.FARM);
+    iFarm = await IERC20.at(addresses.IFARM);
   });
 
   describe("Happy path", function() {
@@ -107,18 +111,18 @@ describe("Klondike to FARM: WBTC/KLON ", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-        console.log("farm in reward pool: ", (new BigNumber(await farm.balanceOf(rewardPool.address))).toFixed());
+        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
         await Utils.advanceNBlock(blocksPerHour);
       }
       await rewardPool.exit({from: farmer1});
-      let farmerNewFarm = new BigNumber(await farm.balanceOf(farmer1));
+      let farmerNewIFarm = new BigNumber(await iFarm.balanceOf(farmer1));
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewFarm:    ", farmerNewFarm.toFixed());
+      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
-      Utils.assertBNGt(farmerNewFarm, 0);
+      Utils.assertBNGt(farmerNewIFarm, 0);
       console.log("earned!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch

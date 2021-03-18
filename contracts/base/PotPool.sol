@@ -22,7 +22,7 @@ contract IRewardDistributionRecipient is Ownable {
         rewardDistribution[0xE20c31e3d08027F5AfACe84A3A46B7b3B165053c] = true;
 
         // FeeRewardForwarderV5
-        rewardDistribution[0x3D135252D366111cf0621eB0e846243CBb962061] = true;
+        rewardDistribution[0x153C544f72329c1ba521DDf5086cf2fA98C86676] = true;
 
         for(uint256 i = 0; i < _rewardDistributions.length; i++) {
           rewardDistribution[_rewardDistributions[i]] = true;

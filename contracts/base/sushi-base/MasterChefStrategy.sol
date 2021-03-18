@@ -203,15 +203,15 @@ contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategy {
       }
 
       // provide token1 and token2 to SUSHI
-      IERC20(uniLPComponentToken0).safeApprove(sushiswapRouterV2, 0);
-      IERC20(uniLPComponentToken0).safeApprove(sushiswapRouterV2, token0Amount);
+      IERC20(uniLPComponentToken0).safeApprove(routerV2, 0);
+      IERC20(uniLPComponentToken0).safeApprove(routerV2, token0Amount);
 
-      IERC20(uniLPComponentToken1).safeApprove(sushiswapRouterV2, 0);
-      IERC20(uniLPComponentToken1).safeApprove(sushiswapRouterV2, token1Amount);
+      IERC20(uniLPComponentToken1).safeApprove(routerV2, 0);
+      IERC20(uniLPComponentToken1).safeApprove(routerV2, token1Amount);
 
       // we provide liquidity to sushi
       uint256 liquidity;
-      (,,liquidity) = IUniswapV2Router02(sushiswapRouterV2).addLiquidity(
+      (,,liquidity) = IUniswapV2Router02(routerV2).addLiquidity(
         uniLPComponentToken0,
         uniLPComponentToken1,
         token0Amount,

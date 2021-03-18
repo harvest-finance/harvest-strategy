@@ -162,7 +162,7 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     uint256 farmAmount = IERC20(farm).balanceOf(address(this));
 
     // Share profit + buyback
-    notifyProfitAndBuybackInRewardToken(farmAmount, distributionPool);
+    notifyProfitAndBuybackInRewardToken(farmAmount, distributionPool, 10000);
   }
 
   /*

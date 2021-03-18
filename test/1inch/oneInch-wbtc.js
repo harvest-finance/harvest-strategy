@@ -2,25 +2,24 @@
 const Utils = require("../utilities/Utils.js");
 const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("KlondikeStrategyMainnet_WBTC_KLON");
+const OneInchStrategy_1INCH_WBTC = artifacts.require("OneInchStrategy_1INCH_WBTC");
 
-//Run test at blockNumber 11907500
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Klondike WBTC/KLON", function() {
+describe("Mainnet 1INCH/WBTC", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x22C0259870aAc800347D8E20870b9EcF40665959";
+  // use block 12060747
+  let underlyingWhale = "0xdC1f6Fd4e237d86d30ae62EF0fbf6412eB07ec36";
 
   // parties in the protocol
   let governance;
@@ -34,13 +33,8 @@ describe("Klondike WBTC/KLON", function() {
   let vault;
   let strategy;
 
-  let klon = "0xB97D5cF2864FB0D08b34a484FF48d5492B2324A0";
-  let wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
-  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
-
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x734e48A1FfEA1cdF4F5172210C322f3990d6D760");
+    underlying = await IERC20.at("0xE179d801E6882e628d6ce58b94b3C41E35C8518A");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -62,13 +56,17 @@ describe("Klondike WBTC/KLON", function() {
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
 
+    let oneInch = "0x111111111117dC0aa78b770fA6A738034120C302";
+    let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    let farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
+
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": null,
-      "strategyArtifact": Strategy,
-      "liquidation": {"uni": [klon, wbtc, weth, farm]},
+      "strategyArtifact": OneInchStrategy_1INCH_WBTC,
       "underlying": underlying,
       "governance": governance,
+      "liquidation": [{"uni": [oneInch, weth, farm]}],
     });
 
     // whale send underlying to farmers
@@ -97,13 +95,12 @@ describe("Klondike WBTC/KLON", function() {
 
         await Utils.advanceNBlock(blocksPerHour);
       }
-      await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
+      await vault.withdraw(farmerBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
 
       console.log("earned!");
 
-      await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });
   });
 });

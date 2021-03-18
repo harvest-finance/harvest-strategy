@@ -4,6 +4,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./BaseUpgradeableStrategyStorage.sol";
 import "../inheritance/ControllableInit.sol";
 import "../interface/IController.sol";
+import "../interface/IFeeRewardForwarderV6.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -14,6 +15,7 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
 
   event ProfitsNotCollected(bool sell, bool floor);
   event ProfitLogInReward(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
+  event ProfitAndBuybackLog(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
 
   modifier restricted() {
     require(msg.sender == vault() || msg.sender == controller()
@@ -97,6 +99,28 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
       );
     } else {
       emit ProfitLogInReward(0, 0, block.timestamp);
+    }
+  }
+
+  function notifyProfitAndBuybackInRewardToken(uint256 _rewardBalance, address pool, uint256 _buybackRatio) internal {
+    if( _rewardBalance > 0 ){
+      uint256 feeAmount = _rewardBalance.mul(profitSharingNumerator()).div(profitSharingDenominator());
+      uint256 buybackAmount = _rewardBalance.sub(feeAmount).mul(_buybackRatio).div(10000);
+
+      address forwarder = IController(controller()).feeRewardForwarder();
+      emit ProfitAndBuybackLog(_rewardBalance, feeAmount, block.timestamp);
+
+      IERC20(rewardToken()).safeApprove(forwarder, 0);
+      IERC20(rewardToken()).safeApprove(forwarder, _rewardBalance);
+
+      IFeeRewardForwarderV6(forwarder).notifyFeeAndBuybackAmounts(
+        rewardToken(),
+        feeAmount,
+        pool,
+        buybackAmount
+      );
+    } else {
+      emit ProfitAndBuybackLog(0, 0, block.timestamp);
     }
   }
 }
