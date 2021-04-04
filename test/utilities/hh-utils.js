@@ -1,3 +1,4 @@
+const fs = require('fs');
 const makeVault = require("./make-vault.js");
 const addresses = require("../test-config.js");
 const IController = artifacts.require("IController");
@@ -8,6 +9,8 @@ const INoMintRewardPool = artifacts.require("INoMintRewardPool");
 
 const IVault = artifacts.require("IVault");
 const Utils = require("./Utils.js");
+const { ethers } = require("hardhat");
+const { log } = require('console');
 
 async function impersonates(targetAccounts){
   console.log("Impersonating...");
@@ -23,6 +26,15 @@ async function impersonates(targetAccounts){
 }
 
 async function setupCoreProtocol(config) {
+  // Deploy nexus sushiswap
+  accounts = await ethers.getSigners();
+  let deployer = accounts[0];
+  const rawdata = fs.readFileSync("./tmpNexus/contracts/LiquidityNexusSushiLP.sol/LiquidityNexusSushiLP.json");
+  const sushiContractData = JSON.parse(rawdata);
+  let factory = new ethers.ContractFactory(sushiContractData.abi, sushiContractData.bytecode, deployer);
+  nexusSushi = await factory.deploy();
+  await nexusSushi.deployed();
+
   // Set vault (or Deploy new vault), underlying, underlying Whale,
   // amount the underlying whale should send to farmers
   if(config.existingVaultAddress != null){
@@ -153,6 +165,8 @@ async function setupCoreProtocol(config) {
 
     const strategyProxy = await StrategyProxy.new(strategyImpl.address);
     strategy = await config.strategyArtifact.at(strategyProxy.address);
+    console.log(...config.strategyArgs,
+      { from: config.governance });
     await strategy.initializeStrategy(
       ...config.strategyArgs,
       { from: config.governance }
@@ -189,7 +203,7 @@ async function setupCoreProtocol(config) {
     console.log("Strategy and vault added to Controller.");
   }
 
-  return [controller, vault, strategy, rewardPool];
+  return [controller, vault, strategy, rewardPool, nexusSushi];
 }
 
 async function depositVault(_farmer, _underlying, _vault, _amount) {
