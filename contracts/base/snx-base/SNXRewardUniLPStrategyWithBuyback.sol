@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../StrategyBase.sol";
 import "../interface/uniswap/IUniswapV2Router02.sol";
 import "../interface/IVault.sol";
+import "../interface/IRewardPool.sol";
 import "./interfaces/SNXRewardInterface.sol";
 import "../interface/uniswap/IUniswapV2Pair.sol";
 
@@ -43,13 +44,15 @@ import "../interface/uniswap/IUniswapV2Pair.sol";
 *
 */
 
-contract SNXRewardUniLPStrategy is StrategyBase {
+contract SNXRewardUniLPStrategyWithBuyback is StrategyBase {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
   address public uniLPComponentToken0;
   address public uniLPComponentToken1;
+  address public distributionPool;
+  uint256 public buybackRatio;
 
   bool public pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
 
@@ -76,13 +79,21 @@ contract SNXRewardUniLPStrategy is StrategyBase {
     address _vault,
     address _rewardPool,
     address _rewardToken,
-    address _uniswapRouterV2
+    address _uniswapRouterV2,
+    address _distributionPool,
+    uint256 _buybackRatio
   )
   StrategyBase(_storage, _underlying, _vault, _rewardToken, _uniswapRouterV2)
   public {
+    require(IRewardPool(_distributionPool).lpToken() == _vault, "Incompatible pool");
+    require(_buybackRatio <= 10000, "Buyback ratio too high");
+
     uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
     uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
     rewardPool = SNXRewardInterface(_rewardPool);
+
+    distributionPool = _distributionPool;
+    buybackRatio = _buybackRatio;
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -122,7 +133,12 @@ contract SNXRewardUniLPStrategy is StrategyBase {
       return;
     }
 
-    notifyProfitInRewardToken(rewardBalance);
+    notifyProfitAndBuybackInRewardToken(
+      rewardBalance,
+      distributionPool,
+      buybackRatio
+    );
+
     uint256 remainingRewardBalance = IERC20(rewardToken).balanceOf(address(this));
 
     if (remainingRewardBalance > 0 // we have tokens to swap
@@ -178,7 +194,6 @@ contract SNXRewardUniLPStrategy is StrategyBase {
       uint256 token1Amount = IERC20(uniLPComponentToken1).balanceOf(address(this));
 
       // provide token1 and token2 to UniLPToken
-
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, 0);
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, token0Amount);
 
