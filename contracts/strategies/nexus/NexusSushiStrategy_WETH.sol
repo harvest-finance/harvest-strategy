@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 // import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./ISushiswapRouter.sol";
 import "./IStrategy.sol";
-import "./interface/ILiquidityNexusSushiLP.sol";
+import "./interface/INexusLP_SushiUSDC.sol";
 
 pragma solidity ^0.5.16;
 
@@ -299,13 +299,13 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
      *   when the investing is being paused by governance.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        ILiquidityNexusSushiLP(sushiSingleEth).claimRewards();
+        INexusLP_SushiUSDC(sushiSingleEth).claimRewards();
         _liquidateReward();
         uint256 entireBalance = IERC20(weth).balanceOf(address(this));
         IERC20(weth).safeApprove(sushiSingleEth, 0);
         IERC20(weth).safeApprove(sushiSingleEth, entireBalance);
         if (entireBalance > 0)
-            ILiquidityNexusSushiLP(sushiSingleEth).compoundProfits(entireBalance); // TODO: transfer eth checks
+            INexusLP_SushiUSDC(sushiSingleEth).compoundProfits(entireBalance); // TODO: transfer eth checks
     }
 
     /**
