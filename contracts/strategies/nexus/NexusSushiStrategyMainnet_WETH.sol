@@ -1,8 +1,8 @@
 pragma solidity 0.5.16;
 
-import "./NexusSushiMasterChefLPStrategy.sol";
+import "./NexusSushiStrategy_WETH.sol";
 
-contract NexusSushiMasterChefLPStrategyMainnet is NexusSushiMasterChefLPStrategy {
+contract NexusSushiStrategyMainnet_WETH is NexusSushiStrategy_WETH {
 
   address public sushi_weth_unused; // just a differentiator for the bytecode
 
@@ -16,7 +16,7 @@ contract NexusSushiMasterChefLPStrategyMainnet is NexusSushiMasterChefLPStrategy
     uint _nexusTmp // TODO remove unused
   ) public initializer {
     address underlying = _nexusSushi;
-    NexusSushiMasterChefLPStrategy.initializeStrategy(
+    NexusSushiStrategy_WETH.initializeStrategy(
       _storage,
       underlying,
       _vault,

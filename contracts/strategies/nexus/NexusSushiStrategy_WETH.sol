@@ -73,7 +73,7 @@ library Math {
  *
  */
 
-contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
+contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

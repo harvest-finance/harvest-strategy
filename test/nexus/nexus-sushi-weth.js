@@ -6,10 +6,10 @@ const addresses = require("../test-config.js");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-const Strategy = artifacts.require("NexusSushiMasterChefLPStrategyMainnet");
+const Strategy = artifacts.require("NexusSushiStrategyMainnet_WETH");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Nexus: SUSHI:ETH", function() {
+describe("Nexus: SUSHI:WETH", function() {
   let accounts;
 
   // external contracts
