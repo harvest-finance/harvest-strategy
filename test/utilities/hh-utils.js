@@ -42,7 +42,7 @@ async function setupCoreProtocol(config) {
     console.log("Fetching Vault at: ", vault.address);
   } else {
     const implAddress = config.vaultImplementationOverride || addresses.VaultImplementationV1;
-    vault = await makeVault(implAddress, addresses.Storage, config.underlying.address, 100, 100, {
+    vault = await makeVault(implAddress, addresses.Storage, nexusSushi.address, 100, 100, { // TODO underlying address
       from: config.governance,
     });
     console.log("New Vault Deployed: ", vault.address);
@@ -151,6 +151,8 @@ async function setupCoreProtocol(config) {
       config.strategyArgs[i] = rewardPool.address;
     } else if(config.strategyArgs[i] == "universalLiquidatorRegistryAddr"){
       config.strategyArgs[i] = universalLiquidatorRegistry.address;
+    } else if(config.strategyArgs[i] == "nexusSushi"){
+      config.strategyArgs[i] = nexusSushi.address;
     }
   }
 
@@ -164,7 +166,7 @@ async function setupCoreProtocol(config) {
     const StrategyProxy = artifacts.require("StrategyProxy");
 
     const strategyProxy = await StrategyProxy.new(strategyImpl.address);
-    strategy = await config.strategyArtifact.at(strategyProxy.address);
+    strategy = await config.strategyArtifact.at(strategyProxy.address)
     console.log(...config.strategyArgs,
       { from: config.governance });
     await strategy.initializeStrategy(
@@ -174,6 +176,8 @@ async function setupCoreProtocol(config) {
   }
 
   console.log("Strategy Deployed: ", strategy.address);
+
+  await nexusSushi.setGovernance(strategy.address);
 
   if (config.feeRewardForwarderLiquidationPath) {
     // legacy path support

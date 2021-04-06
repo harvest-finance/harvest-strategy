@@ -8,8 +8,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 // import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./ISushiswapRouter.sol";
 import "./IStrategy.sol";
-import "./interface/INexusSushiSingleEthUSDC.sol";
-import "hardhat/console.sol";
+import "./interface/ILiquidityNexusSushiLP.sol";
 
 pragma solidity ^0.5.16;
 
@@ -84,8 +83,9 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
     uint256 public orbsRewardsSharingNumerator;
     uint256 public orbsRewardsSharingDenominator;
 
-    address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant sushi = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);
 
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
     bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -106,10 +106,9 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
         address _vault,
         address _rewardPool,
         address _rewardToken,
-        uint256 _poolID,
-        address _sushiSingleEth,
+        uint256 _poolID, // TODO
+        address _sushiSingleEth, 
         address _orbsInsurance
-        address _orbsInsurance2
     ) public initializer {
         BaseUpgradeableStrategy.initialize(
             _storage,
@@ -126,7 +125,7 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
 
         address _lpt;
         (_lpt, , , ) = IMasterChef(rewardPool()).poolInfo(_poolID);
-        require(_lpt == underlying(), "Pool Info does not match underlying");
+        // require(_lpt == underlying(), "Pool Info does not match underlying"); // TODO
         _setPoolId(_poolID);
 
         require(_sushiSingleEth != address(0), "Single side must be set");
@@ -134,17 +133,6 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
 
         sushiSingleEth = _sushiSingleEth;
         orbsInsurance = _orbsInsurance;
-
-        address uniLPComponentToken0 = IUniswapV2Pair(underlying()).token0();
-        address uniLPComponentToken1 = IUniswapV2Pair(underlying()).token1();
-
-        // these would be required to be initialized separately by governance
-        uniswapRoutes[uniLPComponentToken0] = new address[](0);
-        uniswapRoutes[uniLPComponentToken1] = new address[](0);
-        sushiswapRoutes[uniLPComponentToken0] = new address[](0);
-        sushiswapRoutes[uniLPComponentToken1] = new address[](0);
-
-        setBoolean(_USE_UNI_SLOT, true);
     }
 
     function depositArbCheck() public view returns (bool) {
@@ -192,26 +180,6 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
         _setPausedInvesting(false);
     }
 
-    function setLiquidationPathsOnUni(address[] memory _uniswapRouteToToken0, address[] memory _uniswapRouteToToken1)
-        public
-        onlyGovernance
-    {
-        address uniLPComponentToken0 = IUniswapV2Pair(underlying()).token0();
-        address uniLPComponentToken1 = IUniswapV2Pair(underlying()).token1();
-        uniswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
-        uniswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
-    }
-
-    function setLiquidationPathsOnSushi(address[] memory _uniswapRouteToToken0, address[] memory _uniswapRouteToToken1)
-        public
-        onlyGovernance
-    {
-        address uniLPComponentToken0 = IUniswapV2Pair(underlying()).token0();
-        address uniLPComponentToken1 = IUniswapV2Pair(underlying()).token1();
-        sushiswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
-        sushiswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
-    }
-
     // We assume that all the tradings can be done on Uniswap
     function _liquidateReward() internal {
         uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
@@ -224,22 +192,15 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
         notifyProfitInRewardToken(rewardBalance);
         uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 
-        address uniLPComponentToken0 = IUniswapV2Pair(underlying()).token0(); // WETH side
-
-        address[] memory routesToken0;
+        address[] memory routesToken = new address[](2);
         address routerV2;
 
-        if (useUni()) {
-            routerV2 = uniswapRouterV2;
-            routesToken0 = uniswapRoutes[address(uniLPComponentToken0)];
-        } else {
-            routerV2 = sushiswapRouterV2;
-            routesToken0 = sushiswapRoutes[address(uniLPComponentToken0)];
-        }
+        routerV2 = sushiswapRouterV2;
+        routesToken[0] = sushi;
+        routesToken[1] = weth;
 
         if (
-            remainingRewardBalance > 0 && // we have tokens to swap
-            routesToken0.length > 1 // and we have a route to do the swap
+            remainingRewardBalance > 0 // we have tokens to swap
         ) {
             // allow Uniswap to sell our reward
             uint256 amountOutMin = 1;
@@ -247,14 +208,12 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
             IERC20(rewardToken()).safeApprove(routerV2, 0);
             IERC20(rewardToken()).safeApprove(routerV2, remainingRewardBalance);
 
-            // we sell to uni
-
-            // sell Uni to ETH
+            // sell Sushi to ETH
             // we can accept 1 as minimum because this is called only by a trusted role
-            IUniswapV2Router02(routerV2).swapExactTokensForETH(
+            IUniswapV2Router02(routerV2).swapExactTokensForTokens(
                 remainingRewardBalance,
                 amountOutMin,
-                routesToken0, // SUSHI > WETH
+                routesToken, // SUSHI > WETH
                 address(this),
                 block.timestamp
             );
@@ -340,9 +299,13 @@ contract NexusSushiMasterChefLPStrategy is IStrategy, BaseUpgradeableStrategy {
      *   when the investing is being paused by governance.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        INexusSushiSingleEthUSDC(sushiSingleEth).claimRewards();
+        ILiquidityNexusSushiLP(sushiSingleEth).claimRewards();
         _liquidateReward();
-        INexusSushiSingleEthUSDC(sushiSingleEth).compoundProfits.value(address(this).balance)(); // TODO: transfer eth checks
+        uint256 entireBalance = IERC20(weth).balanceOf(address(this));
+        IERC20(weth).safeApprove(sushiSingleEth, 0);
+        IERC20(weth).safeApprove(sushiSingleEth, entireBalance);
+        if (entireBalance > 0)
+            ILiquidityNexusSushiLP(sushiSingleEth).compoundProfits(entireBalance); // TODO: transfer eth checks
     }
 
     /**

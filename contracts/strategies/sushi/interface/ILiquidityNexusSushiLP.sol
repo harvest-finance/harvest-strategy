@@ -3,13 +3,12 @@
 
 pragma solidity ^0.5.0;
 
-contract INexusSushiSingleEthUSDC {
-    function compoundProfits()
+contract ILiquidityNexusSushiLP {
+    function compoundProfits(uint256 amountETH)
         external
-        payable
         returns (
-            uint256 usd,
-            uint256 eth,
+            uint256 addedUSDC,
+            uint256 addedETH,
             uint256 liquidity
         );
 
