@@ -66,7 +66,7 @@ describe("Nexus: SUSHI:WETH", function() {
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "governance": governance,
-      "strategyArgs": [addresses.Storage, "vaultAddr", "nexusSushi", addresses.orbsInsurance, 0]
+      "strategyArgs": [addresses.Storage, "vaultAddr", "nexusSushi"]
     });
 
     await supplyCapitalAsDeployer(farmer, nexusSushi, "100000000" + "000000");

@@ -11,11 +11,9 @@ contract NexusSushiStrategyMainnet_WETH is NexusSushiStrategy_WETH {
   function initializeStrategy(
     address _storage,
     address _vault,
-    address _nexusSushi,
-    address _orbsInsurance,
-    uint _nexusTmp // TODO remove unused
+    address _nexusLPSushi
   ) public initializer {
-    address underlying = _nexusSushi;
+    address underlying = _nexusLPSushi;
     NexusSushiStrategy_WETH.initializeStrategy(
       _storage,
       underlying,
@@ -23,8 +21,7 @@ contract NexusSushiStrategyMainnet_WETH is NexusSushiStrategy_WETH {
       address(0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd), // master chef contract TODO remove
       sushi,
       12,  // Pool id TODO remove
-      _nexusSushi, // sushiSingleEth
-      _orbsInsurance
+      _nexusLPSushi
     );
     // sushi is token0, weth is token1
     uniswapRoutes[sushi] = [sushi];
