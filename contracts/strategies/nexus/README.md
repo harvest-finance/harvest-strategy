@@ -16,7 +16,7 @@ This vault allows participants to deposit ETH only and produces higher APY than 
 
 * ETH-only strategies are rare, and usually have poor APY.
 
-    The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (28.29% today not including FARM emissions).
+    The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (28.29% today, not including FARM emissions).
 
 * Many participants are long on ETH and hold a lot of ETH. For them, acquiring USDC for farming has disadvantages (it lowers their ETH holdings). Normally they have to do so anyways in order to get the higher APY of Sushi ETH/USDC. By using this vault they can take advantage of all of their ETH without needing USDC.
 
@@ -36,11 +36,11 @@ npx hardhat test test/nexus/nexus-sushi-weth.js
 
 The flow in the test is:
 
-1. User takes ETH and deposits it in [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap) contract to mint nexus lp tokens
+1. User takes ETH and deposits it in [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap) contract to mint nexus lp tokens
 2. User takes the nexus lp tokens and deposits them in the proposed harvest vault
 3. Initiate the vault's doHardWork
 4. User withdraws from the harvest vault their nexus lp tokens
-5. User takes the nexus lp tokens and removes liquidity (burn) from [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap) contract
+5. User takes the nexus lp tokens and removes liquidity (burn) from [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap) contract
 6. User gets back more ETH than they originally put in (due to SUSHI rewards)
 
 ## Architecture
@@ -55,35 +55,35 @@ The contract in blue is the proposed vault. Its source code is in this repo - [N
 
 ### Nexus LP tokens wrap Sushi LP tokens
 
-In the traditional Sushi ETH/USDC vault, users deposit Sushi LP tokens. In our case, Nexus LP tokens replace the Sushi LP tokens. Implementation wise, Nexus LP is a very thin wrapper around Sushi LP. This wrapper provides the pairing with USDC that is waiting in the Nexus LP contract. The contract implementing the Nexus LP wrapper is [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap).
+In the traditional Sushi ETH/USDC vault, users deposit Sushi LP tokens. In our case, Nexus LP tokens replace the Sushi LP tokens. Implementation wise, Nexus LP is a very thin wrapper around Sushi LP. This wrapper provides the pairing with USDC that is waiting in the Nexus LP contract. The contract implementing the Nexus LP wrapper is [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap).
 
 ### Detailed step by step flow
 
-This flow assumes that there is already a large amount of USDC waiting in [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap). This USDC is deployed in advance.
+This flow assumes that there is already a large amount of USDC waiting in [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap). This USDC is deployed in advance.
 
-1. User takes ETH and deposits it in [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap) contract to mint nexus lp tokens:
+1. User takes ETH and deposits it in [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap) contract to mint nexus lp tokens:
 
-    * User sends ETH to `NexusLP_SushiUSDC.addLiquidityETH` and receives in return `NexusLP_SushiUSDC` ERC20 tokens.
+    * User sends ETH to `NexusLP_Sushi.addLiquidityETH` and receives in return `NexusLP_Sushi` ERC20 tokens.
     
 2. User takes the nexus lp tokens and deposits them in the proposed harvest vault:
 
-    * User calls `NexusLP_SushiUSDC.approve` with the vault address.
-    * User calls `Vault.deposit` to transfer the `NexusLP_SushiUSDC` tokens to the vault.
+    * User calls `NexusLP_Sushi.approve` with the vault address.
+    * User calls `Vault.deposit` to transfer the `NexusLP_Sushi` tokens to the vault.
 
 4. Initiate the vault's doHardWork:
 
-    * `NexusLP_SushiUSDC` tokens move from the vault to the `NexusSushiStrategyMainnet_WETH` strategy.
-    * The strategy calls `NexusLP_SushiUSDC.claimRewards` to receive all pending SUSHI rewards.
+    * `NexusLP_Sushi` tokens move from the vault to the `NexusSushiStrategyMainnet_WETH` strategy.
+    * The strategy calls `NexusLP_Sushi.claimRewards` to receive all pending SUSHI rewards.
     * The strategy liquidates SUSHI rewards to ETH after taking profit sharing fee.
-    * The strategy compounds the ETH by calling `NexusLP_SushiUSDC.compoundProfits` to increase the value of `NexusLP_SushiUSDC`.
+    * The strategy compounds the ETH by calling `NexusLP_Sushi.compoundProfits` to increase the value of `NexusLP_Sushi`.
 
 5. User withdraws from the harvest vault their nexus lp tokens:
 
-    * User calls `Vault.withdraw` to receive their `NexusLP_SushiUSDC` tokens back.
+    * User calls `Vault.withdraw` to receive their `NexusLP_Sushi` tokens back.
 
-6. User takes the nexus lp tokens and removes liquidity (burn) from [NexusLP_SushiUSDC](https://github.com/orbs-network/nexus-sushiswap) contract:
+6. User takes the nexus lp tokens and removes liquidity (burn) from [NexusLP_Sushi](https://github.com/orbs-network/nexus-sushiswap) contract:
 
-    * User calls `NexusLP_SushiUSDC.removeLiquidityETH` which burns their `NexusLP_SushiUSDC` tokens in return for ETH.
+    * User calls `NexusLP_Sushi.removeLiquidityETH` which burns their `NexusLP_Sushi` tokens in return for ETH.
 
 7. User gets back more ETH than they originally put in (due to SUSHI rewards)
 
