@@ -49,7 +49,7 @@ The flow in the test is:
 
 One party, marked *DeFi player*, deposits ETH. These are harvest users that deposit into the ETH-only harvest vault. The other party, marked *CeFi player*, deposits the USDC directly in the Nexus contract. This USDC is waiting in the contract for the ETH depositor, and once ETH is deposited, they will be paired together so they can farm together.
 
-![diagram-harvest-readme1](https://user-images.githubusercontent.com/6762255/113769400-a2759400-9729-11eb-884a-7b1d5689d6a5.png)
+![diagram-harvest-readme](https://user-images.githubusercontent.com/6762255/113876704-a7d1ed80-97c0-11eb-9c40-512960f46f59.png)
 
 The contract in blue is the proposed vault. Its source code is in this repo - [NexusSushiStrategyMainnet_WETH](NexusSushiStrategyMainnet_WETH.sol). The contract in yellow is pre-existing (not deployed by harvest) and is part of Orbs Liquidity Nexus. Its source code is available [here](https://github.com/orbs-network/nexus-sushiswap).
 
