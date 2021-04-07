@@ -93,10 +93,11 @@ describe("Nexus: SUSHI:WETH", function() {
         await controller.doHardWork(vault.address, { from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
-        // TODO
-        // console.log("old shareprice: ", oldSharePrice.toFixed());
-        // console.log("new shareprice: ", newSharePrice.toFixed());
-        // console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
+        newSharePrice = newSharePrice.multipliedBy(await nexusSushi.pricePerFullShare()).div(1e18);
+
+        console.log("old shareprice: ", oldSharePrice.toFixed());
+        console.log("new shareprice: ", newSharePrice.toFixed());
+        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }

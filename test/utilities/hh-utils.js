@@ -29,7 +29,7 @@ async function setupCoreProtocol(config) {
   // Deploy nexus sushiswap
   accounts = await ethers.getSigners();
   let deployer = accounts[0];
-  const rawdata = fs.readFileSync("./tmpNexus/contracts/LiquidityNexusSushiLP.sol/LiquidityNexusSushiLP.json");
+  const rawdata = fs.readFileSync("./tmpNexus/contracts/NexusLPSushi.sol/NexusLPSushi.json");
   const sushiContractData = JSON.parse(rawdata);
   let factory = new ethers.ContractFactory(sushiContractData.abi, sushiContractData.bytecode, deployer);
   nexusSushi = await factory.deploy();
