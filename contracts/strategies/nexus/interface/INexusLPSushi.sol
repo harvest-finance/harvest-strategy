@@ -3,7 +3,7 @@
 
 pragma solidity ^0.5.0;
 
-contract INexusLP_SushiUSDC {
+contract INexusLPSushi {
     function compoundProfits(uint256 amountETH)
         external
         returns (

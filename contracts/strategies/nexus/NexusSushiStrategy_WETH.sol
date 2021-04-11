@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 // import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./ISushiswapRouter.sol";
 import "./IStrategy.sol";
-import "./interface/INexusLP_SushiUSDC.sol";
+import "./interface/INexusLPSushi.sol";
 
 pragma solidity ^0.5.16;
 
@@ -77,11 +77,7 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public sushiSingleEth;
-    address public orbsInsurance;
-
-    uint256 public orbsRewardsSharingNumerator;
-    uint256 public orbsRewardsSharingDenominator;
+    address public nexusLPSushi;
 
     address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -107,8 +103,7 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         address _rewardPool,
         address _rewardToken,
         uint256 _poolID, // TODO
-        address _sushiSingleEth, 
-        address _orbsInsurance
+        address _nexusLPSushi
     ) public initializer {
         BaseUpgradeableStrategy.initialize(
             _storage,
@@ -128,11 +123,9 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         // require(_lpt == underlying(), "Pool Info does not match underlying"); // TODO
         _setPoolId(_poolID);
 
-        require(_sushiSingleEth != address(0), "Single side must be set");
-        require(_orbsInsurance != address(0), "orbs insurance must be set");
+        require(_nexusLPSushi != address(0), "Single side must be set");
 
-        sushiSingleEth = _sushiSingleEth;
-        orbsInsurance = _orbsInsurance;
+        nexusLPSushi = _nexusLPSushi;
     }
 
     function depositArbCheck() public view returns (bool) {
@@ -299,13 +292,13 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
      *   when the investing is being paused by governance.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        INexusLP_SushiUSDC(sushiSingleEth).claimRewards();
+        INexusLPSushi(nexusLPSushi).claimRewards();
         _liquidateReward();
         uint256 entireBalance = IERC20(weth).balanceOf(address(this));
-        IERC20(weth).safeApprove(sushiSingleEth, 0);
-        IERC20(weth).safeApprove(sushiSingleEth, entireBalance);
+        IERC20(weth).safeApprove(nexusLPSushi, 0);
+        IERC20(weth).safeApprove(nexusLPSushi, entireBalance);
         if (entireBalance > 0)
-            INexusLP_SushiUSDC(sushiSingleEth).compoundProfits(entireBalance); // TODO: transfer eth checks
+            INexusLPSushi(nexusLPSushi).compoundProfits(entireBalance); // TODO: transfer eth checks
     }
 
     /**
