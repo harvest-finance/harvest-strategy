@@ -1,4 +1,3 @@
-const fs = require('fs');
 const makeVault = require("./make-vault.js");
 const addresses = require("../test-config.js");
 const IController = artifacts.require("IController");
@@ -9,8 +8,6 @@ const INoMintRewardPool = artifacts.require("INoMintRewardPool");
 
 const IVault = artifacts.require("IVault");
 const Utils = require("./Utils.js");
-const { ethers } = require("hardhat");
-const { log } = require('console');
 
 async function impersonates(targetAccounts){
   console.log("Impersonating...");
@@ -26,15 +23,6 @@ async function impersonates(targetAccounts){
 }
 
 async function setupCoreProtocol(config) {
-  // Deploy nexus sushiswap
-  accounts = await ethers.getSigners();
-  let deployer = accounts[0];
-  const rawdata = fs.readFileSync("./tmpNexus/contracts/NexusLPSushi.sol/NexusLPSushi.json");
-  const sushiContractData = JSON.parse(rawdata);
-  let factory = new ethers.ContractFactory(sushiContractData.abi, sushiContractData.bytecode, deployer);
-  nexusSushi = await factory.deploy();
-  await nexusSushi.deployed();
-
   // Set vault (or Deploy new vault), underlying, underlying Whale,
   // amount the underlying whale should send to farmers
   if(config.existingVaultAddress != null){
@@ -42,7 +30,7 @@ async function setupCoreProtocol(config) {
     console.log("Fetching Vault at: ", vault.address);
   } else {
     const implAddress = config.vaultImplementationOverride || addresses.VaultImplementationV1;
-    vault = await makeVault(implAddress, addresses.Storage, nexusSushi.address, 100, 100, { // TODO underlying address
+    vault = await makeVault(implAddress, addresses.Storage, config.underlying.address, 100, 100, {
       from: config.governance,
     });
     console.log("New Vault Deployed: ", vault.address);
@@ -62,8 +50,8 @@ async function setupCoreProtocol(config) {
     config.feeRewardForwarder = feeRewardForwarder.address;*/
     console.log("Setting up a custom fee reward forwarder...");
     await controller.setFeeRewardForwarder(
-      config.feeRewardForwarder,
-      { from: config.governance }
+        config.feeRewardForwarder,
+        { from: config.governance }
     );
 
     const NoMintRewardPool = artifacts.require("NoMintRewardPool");
@@ -90,29 +78,29 @@ async function setupCoreProtocol(config) {
       const PotPool = artifacts.require("PotPool");
       console.log("reward pool needs to be deployed");
       rewardPool = await PotPool.new(
-        rewardTokens,
-        vault.address,
-        64800,
-        rewardDistributions,
-        addresses.Storage,
-        "fPool",
-        "fPool",
-        18,
-        {from: config.governance }
+          rewardTokens,
+          vault.address,
+          64800,
+          rewardDistributions,
+          addresses.Storage,
+          "fPool",
+          "fPool",
+          18,
+          {from: config.governance }
       );
       console.log("New PotPool deployed: ", rewardPool.address);
     } else {
       const NoMintRewardPool = artifacts.require("NoMintRewardPool");
       console.log("reward pool needs to be deployed");
       rewardPool = await NoMintRewardPool.new(
-        rewardTokens[0],
-        vault.address,
-        64800,
-        rewardDistributions,
-        addresses.Storage,
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
-        {from: config.governance }
+          rewardTokens[0],
+          vault.address,
+          64800,
+          rewardDistributions,
+          addresses.Storage,
+          "0x0000000000000000000000000000000000000000",
+          "0x0000000000000000000000000000000000000000",
+          {from: config.governance }
       );
       console.log("New NoMintRewardPool deployed: ", rewardPool.address);
     }
@@ -129,11 +117,11 @@ async function setupCoreProtocol(config) {
     for (i=0;i<config.liquidation.length;i++) {
       dex = Object.keys(config.liquidation[i])[0];
       await universalLiquidatorRegistry.setPath(
-        web3.utils.keccak256(dex),
-        config.liquidation[i][dex][0],
-        config.liquidation[i][dex][config.liquidation[i][dex].length - 1],
-        config.liquidation[i][dex],
-        {from: config.governance}
+          web3.utils.keccak256(dex),
+          config.liquidation[i][dex][0],
+          config.liquidation[i][dex][config.liquidation[i][dex].length - 1],
+          config.liquidation[i][dex],
+          {from: config.governance}
       );
     }
   }
@@ -151,42 +139,36 @@ async function setupCoreProtocol(config) {
       config.strategyArgs[i] = rewardPool.address;
     } else if(config.strategyArgs[i] == "universalLiquidatorRegistryAddr"){
       config.strategyArgs[i] = universalLiquidatorRegistry.address;
-    } else if(config.strategyArgs[i] == "nexusSushi"){
-      config.strategyArgs[i] = nexusSushi.address;
     }
   }
 
   if (!config.strategyArtifactIsUpgradable) {
     strategy = await config.strategyArtifact.new(
-      ...config.strategyArgs,
-      { from: config.governance }
+        ...config.strategyArgs,
+        { from: config.governance }
     );
   } else {
     const strategyImpl = await config.strategyArtifact.new();
     const StrategyProxy = artifacts.require("StrategyProxy");
 
     const strategyProxy = await StrategyProxy.new(strategyImpl.address);
-    strategy = await config.strategyArtifact.at(strategyProxy.address)
-    console.log(...config.strategyArgs,
-      { from: config.governance });
+    strategy = await config.strategyArtifact.at(strategyProxy.address);
     await strategy.initializeStrategy(
-      ...config.strategyArgs,
-      { from: config.governance }
+        ...config.strategyArgs,
+        { from: config.governance }
     );
   }
 
   console.log("Strategy Deployed: ", strategy.address);
 
-  await nexusSushi.setGovernance(strategy.address);
-
   if (config.feeRewardForwarderLiquidationPath) {
     // legacy path support
     const path = config.feeRewardForwarderLiquidationPath;
     await universalLiquidatorRegistry.setPath(
-      web3.utils.keccak256("uni"),
-      path[0],
-      path[path.length - 1],
-      path
+        web3.utils.keccak256("uni"),
+        path[0],
+        path[path.length - 1],
+        path
     );
   }
 
@@ -200,14 +182,14 @@ async function setupCoreProtocol(config) {
     console.log("Strategy switch completed.");
   } else {
     await controller.addVaultAndStrategy(
-      vault.address,
-      strategy.address,
-      { from: config.governance }
+        vault.address,
+        strategy.address,
+        { from: config.governance }
     );
     console.log("Strategy and vault added to Controller.");
   }
 
-  return [controller, vault, strategy, rewardPool, nexusSushi];
+  return [controller, vault, strategy, rewardPool];
 }
 
 async function depositVault(_farmer, _underlying, _vault, _amount) {
