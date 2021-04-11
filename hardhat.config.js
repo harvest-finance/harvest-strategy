@@ -1,7 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-truffle5");
-require("@nomiclabs/hardhat-ethers");
 require("hardhat-gas-reporter");
 
 const keys = require('./dev-keys.json');
