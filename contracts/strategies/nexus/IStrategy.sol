@@ -26,7 +26,10 @@ contract Initializable {
     modifier initializer() {
         // TODO: fix isConstructor
         // require(initializing || isConstructor() || !initialized, "Contract instance has already been initialized");
-        require(initializing || !initialized, "Contract instance has already been initialized");
+        require(
+            initializing || !initialized,
+            "Contract instance has already been initialized"
+        );
 
         bool isTopLevelCall = !initializing;
         if (isTopLevelCall) {
@@ -140,15 +143,20 @@ interface IStrategy {
     function depositArbCheck() external view returns (bool);
 }
 
-
 contract BaseUpgradeableStrategyStorage {
-    bytes32 internal constant _UNDERLYING_SLOT = 0xa1709211eeccf8f4ad5b6700d52a1a9525b5f5ae1e9e5f9e5a0c2fc23c86e530;
-    bytes32 internal constant _VAULT_SLOT = 0xefd7c7d9ef1040fc87e7ad11fe15f86e1d11e1df03c6d7c87f7e1f4041f08d41;
+    bytes32 internal constant _UNDERLYING_SLOT =
+        0xa1709211eeccf8f4ad5b6700d52a1a9525b5f5ae1e9e5f9e5a0c2fc23c86e530;
+    bytes32 internal constant _VAULT_SLOT =
+        0xefd7c7d9ef1040fc87e7ad11fe15f86e1d11e1df03c6d7c87f7e1f4041f08d41;
 
-    bytes32 internal constant _REWARD_TOKEN_SLOT = 0xdae0aafd977983cb1e78d8f638900ff361dc3c48c43118ca1dd77d1af3f47bbf;
-    bytes32 internal constant _REWARD_POOL_SLOT = 0x3d9bb16e77837e25cada0cf894835418b38e8e18fbec6cfd192eb344bebfa6b8;
-    bytes32 internal constant _SELL_FLOOR_SLOT = 0xc403216a7704d160f6a3b5c3b149a1226a6080f0a5dd27b27d9ba9c022fa0afc;
-    bytes32 internal constant _SELL_SLOT = 0x656de32df98753b07482576beb0d00a6b949ebf84c066c765f54f26725221bb6;
+    bytes32 internal constant _REWARD_TOKEN_SLOT =
+        0xdae0aafd977983cb1e78d8f638900ff361dc3c48c43118ca1dd77d1af3f47bbf;
+    bytes32 internal constant _REWARD_POOL_SLOT =
+        0x3d9bb16e77837e25cada0cf894835418b38e8e18fbec6cfd192eb344bebfa6b8;
+    bytes32 internal constant _SELL_FLOOR_SLOT =
+        0xc403216a7704d160f6a3b5c3b149a1226a6080f0a5dd27b27d9ba9c022fa0afc;
+    bytes32 internal constant _SELL_SLOT =
+        0x656de32df98753b07482576beb0d00a6b949ebf84c066c765f54f26725221bb6;
     bytes32 internal constant _PAUSED_INVESTING_SLOT =
         0xa07a20a2d463a602c2b891eb35f244624d9068572811f63d0e094072fb54591a;
 
@@ -165,33 +173,96 @@ contract BaseUpgradeableStrategyStorage {
         0x82b330ca72bcd6db11a26f10ce47ebcfe574a9c646bccbc6f1cd4478eae16b31;
 
     constructor() public {
-        assert(_UNDERLYING_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.underlying")) - 1));
-        assert(_VAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.vault")) - 1));
-        assert(_REWARD_TOKEN_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.rewardToken")) - 1));
-        assert(_REWARD_POOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.rewardPool")) - 1));
-        assert(_SELL_FLOOR_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.sellFloor")) - 1));
-        assert(_SELL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.sell")) - 1));
-        assert(_PAUSED_INVESTING_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.pausedInvesting")) - 1));
+        assert(
+            _UNDERLYING_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.underlying")) - 1
+                )
+        );
+        assert(
+            _VAULT_SLOT ==
+                bytes32(uint256(keccak256("eip1967.strategyStorage.vault")) - 1)
+        );
+        assert(
+            _REWARD_TOKEN_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.rewardToken")) -
+                        1
+                )
+        );
+        assert(
+            _REWARD_POOL_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.rewardPool")) - 1
+                )
+        );
+        assert(
+            _SELL_FLOOR_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.sellFloor")) - 1
+                )
+        );
+        assert(
+            _SELL_SLOT ==
+                bytes32(uint256(keccak256("eip1967.strategyStorage.sell")) - 1)
+        );
+        assert(
+            _PAUSED_INVESTING_SLOT ==
+                bytes32(
+                    uint256(
+                        keccak256("eip1967.strategyStorage.pausedInvesting")
+                    ) - 1
+                )
+        );
 
         assert(
             _PROFIT_SHARING_NUMERATOR_SLOT ==
-                bytes32(uint256(keccak256("eip1967.strategyStorage.profitSharingNumerator")) - 1)
+                bytes32(
+                    uint256(
+                        keccak256(
+                            "eip1967.strategyStorage.profitSharingNumerator"
+                        )
+                    ) - 1
+                )
         );
         assert(
             _PROFIT_SHARING_DENOMINATOR_SLOT ==
-                bytes32(uint256(keccak256("eip1967.strategyStorage.profitSharingDenominator")) - 1)
+                bytes32(
+                    uint256(
+                        keccak256(
+                            "eip1967.strategyStorage.profitSharingDenominator"
+                        )
+                    ) - 1
+                )
         );
 
         assert(
-            _NEXT_IMPLEMENTATION_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.nextImplementation")) - 1)
+            _NEXT_IMPLEMENTATION_SLOT ==
+                bytes32(
+                    uint256(
+                        keccak256("eip1967.strategyStorage.nextImplementation")
+                    ) - 1
+                )
         );
         assert(
             _NEXT_IMPLEMENTATION_TIMESTAMP_SLOT ==
-                bytes32(uint256(keccak256("eip1967.strategyStorage.nextImplementationTimestamp")) - 1)
+                bytes32(
+                    uint256(
+                        keccak256(
+                            "eip1967.strategyStorage.nextImplementationTimestamp"
+                        )
+                    ) - 1
+                )
         );
         assert(
             _NEXT_IMPLEMENTATION_DELAY_SLOT ==
-                bytes32(uint256(keccak256("eip1967.strategyStorage.nextImplementationDelay")) - 1)
+                bytes32(
+                    uint256(
+                        keccak256(
+                            "eip1967.strategyStorage.nextImplementationDelay"
+                        )
+                    ) - 1
+                )
         );
     }
 
@@ -387,7 +458,8 @@ contract Governable {
 }
 
 contract GovernableInit is Initializable {
-    bytes32 internal constant _STORAGE_SLOT = 0xa7ec62784904ff31cbcc32d09932a58e7f1e4476e1d041995b37c917990b16dc;
+    bytes32 internal constant _STORAGE_SLOT =
+        0xa7ec62784904ff31cbcc32d09932a58e7f1e4476e1d041995b37c917990b16dc;
 
     modifier onlyGovernance() {
         require(Storage(_storage()).isGovernance(msg.sender), "Not governance");
@@ -395,7 +467,12 @@ contract GovernableInit is Initializable {
     }
 
     constructor() public {
-        assert(_STORAGE_SLOT == bytes32(uint256(keccak256("eip1967.governableInit.storage")) - 1));
+        assert(
+            _STORAGE_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.governableInit.storage")) - 1
+                )
+        );
     }
 
     function initialize(address _store) public initializer {
@@ -457,13 +534,17 @@ contract ControllableInit is GovernableInit {
     }
 
     modifier onlyController() {
-        require(Storage(_storage()).isController(msg.sender), "Not a controller");
+        require(
+            Storage(_storage()).isController(msg.sender),
+            "Not a controller"
+        );
         _;
     }
 
     modifier onlyControllerOrGovernance() {
         require(
-            (Storage(_storage()).isController(msg.sender) || Storage(_storage()).isGovernance(msg.sender)),
+            (Storage(_storage()).isController(msg.sender) ||
+                Storage(_storage()).isGovernance(msg.sender)),
             "The caller must be controller or governance"
         );
         _;
@@ -474,17 +555,26 @@ contract ControllableInit is GovernableInit {
     }
 }
 
-
-contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgradeableStrategyStorage {
+contract BaseUpgradeableStrategy is
+    Initializable,
+    ControllableInit,
+    BaseUpgradeableStrategyStorage
+{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     event ProfitsNotCollected(bool sell, bool floor);
-    event ProfitLogInReward(uint256 profitAmount, uint256 feeAmount, uint256 timestamp);
+    event ProfitLogInReward(
+        uint256 profitAmount,
+        uint256 feeAmount,
+        uint256 timestamp
+    );
 
     modifier restricted() {
         require(
-            msg.sender == vault() || msg.sender == controller() || msg.sender == governance(),
+            msg.sender == vault() ||
+                msg.sender == controller() ||
+                msg.sender == governance(),
             "The sender has to be the controller, governance, or vault"
         );
         _;
@@ -493,7 +583,10 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
     // This is only used in `investAllUnderlying()`
     // The user can still freely withdraw from the strategy
     modifier onlyNotPausedInvesting() {
-        require(!pausedInvesting(), "Action blocked as the strategy is in emergency state");
+        require(
+            !pausedInvesting(),
+            "Action blocked as the strategy is in emergency state"
+        );
         _;
     }
 
@@ -530,7 +623,9 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
      */
     function scheduleUpgrade(address impl) public onlyGovernance {
         _setNextImplementation(impl);
-        _setNextImplementationTimestamp(block.timestamp.add(nextImplementationDelay()));
+        _setNextImplementationTimestamp(
+            block.timestamp.add(nextImplementationDelay())
+        );
     }
 
     function _finalizeUpgrade() internal {
@@ -551,7 +646,10 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
 
     function notifyProfitInRewardToken(uint256 _rewardBalance) internal {
         if (_rewardBalance > 0) {
-            uint256 feeAmount = _rewardBalance.mul(profitSharingNumerator()).div(profitSharingDenominator());
+            uint256 feeAmount =
+                _rewardBalance.mul(profitSharingNumerator()).div(
+                    profitSharingDenominator()
+                );
             emit ProfitLogInReward(_rewardBalance, feeAmount, block.timestamp);
             IERC20(rewardToken()).safeApprove(controller(), 0);
             IERC20(rewardToken()).safeApprove(controller(), feeAmount);
@@ -568,7 +666,10 @@ interface IMasterChef {
 
     function withdraw(uint256 _pid, uint256 _amount) external;
 
-    function userInfo(uint256 _pid, address _user) external view returns (uint256 amount, uint256 rewardDebt);
+    function userInfo(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256 amount, uint256 rewardDebt);
 
     function poolInfo(uint256 _pid)
         external
@@ -582,8 +683,14 @@ interface IMasterChef {
 
     function massUpdatePools() external;
 
-    function pendingSushi(uint256 _pid, address _user) external view returns (uint256 amount);
+    function pendingSushi(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256 amount);
 
     // interface reused for pickle
-    function pendingPickle(uint256 _pid, address _user) external view returns (uint256 amount);
+    function pendingPickle(uint256 _pid, address _user)
+        external
+        view
+        returns (uint256 amount);
 }

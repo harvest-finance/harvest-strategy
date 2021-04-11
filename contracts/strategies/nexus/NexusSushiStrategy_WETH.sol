@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity ^0.5.16;
+
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,36 +11,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "./ISushiswapRouter.sol";
 import "./IStrategy.sol";
 import "./interface/INexusLPSushi.sol";
-
-pragma solidity ^0.5.16;
-
-/**
- * @dev Standard math utilities missing in the Solidity language.
- */
-library Math {
-    /**
-     * @dev Returns the largest of two numbers.
-     */
-    function max(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
-    }
-
-    /**
-     * @dev Returns the smallest of two numbers.
-     */
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
-
-    /**
-     * @dev Returns the average of two numbers. The result is rounded towards
-     * zero.
-     */
-    function average(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b) / 2 can overflow, so we distribute
-        return (a / 2) + (b / 2) + (((a % 2) + (b % 2)) / 2);
-    }
-}
 
 /*
  *   This is a general strategy for yields that are based on the synthetix reward contract
@@ -79,21 +51,36 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
 
     address public nexusLPSushi;
 
-    address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
-    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant sushi = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);
+    address public constant sushiswapRouterV2 =
+        address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+    address public constant weth =
+        address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant sushi =
+        address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);
 
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
-    bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
-    bytes32 internal constant _USE_UNI_SLOT = 0x1132c1de5e5b6f1c4c7726265ddcf1f4ae2a9ecf258a0002de174248ecbf2c7a;
+    bytes32 internal constant _POOLID_SLOT =
+        0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
+    bytes32 internal constant _USE_UNI_SLOT =
+        0x1132c1de5e5b6f1c4c7726265ddcf1f4ae2a9ecf258a0002de174248ecbf2c7a;
 
     // this would be reset on each upgrade
     mapping(address => address[]) public uniswapRoutes;
     mapping(address => address[]) public sushiswapRoutes;
 
     constructor() public BaseUpgradeableStrategy() {
-        assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
-        assert(_USE_UNI_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.useUni")) - 1));
+        assert(
+            _POOLID_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.poolId")) - 1
+                )
+        );
+        assert(
+            _USE_UNI_SLOT ==
+                bytes32(
+                    uint256(keccak256("eip1967.strategyStorage.useUni")) - 1
+                )
+        );
     }
 
     function initializeStrategy(
@@ -183,7 +170,8 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         }
 
         notifyProfitInRewardToken(rewardBalance);
-        uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+        uint256 remainingRewardBalance =
+            IERC20(rewardToken()).balanceOf(address(this));
 
         address[] memory routesToken = new address[](2);
         address routerV2;
@@ -232,7 +220,10 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
             exitRewardPool();
         }
         _liquidateReward();
-        IERC20(underlying()).safeTransfer(vault(), IERC20(underlying()).balanceOf(address(this)));
+        IERC20(underlying()).safeTransfer(
+            vault(),
+            IERC20(underlying()).balanceOf(address(this))
+        );
     }
 
     /*
@@ -266,7 +257,10 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         // both are in the units of "underlying"
         // The second part is needed because there is the emergency exit mechanism
         // which would break the assumption that all the funds are always inside of the reward pool
-        return rewardPoolBalance().add(IERC20(underlying()).balanceOf(address(this)));
+        return
+            rewardPoolBalance().add(
+                IERC20(underlying()).balanceOf(address(this))
+            );
     }
 
     /*
@@ -279,7 +273,10 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         uint256 amount
     ) external onlyControllerOrGovernance {
         // To make sure that governance cannot come in and take away the coins
-        require(!unsalvagableTokens(token), "token is defined as not salvagable");
+        require(
+            !unsalvagableTokens(token),
+            "token is defined as not salvagable"
+        );
         IERC20(token).safeTransfer(recipient, amount);
     }
 
@@ -298,7 +295,8 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
         IERC20(weth).safeApprove(nexusLPSushi, 0);
         IERC20(weth).safeApprove(nexusLPSushi, entireBalance);
         if (entireBalance > 0)
-            INexusLPSushi(nexusLPSushi).compoundProfits(entireBalance); // TODO: transfer eth checks
+            INexusLPSushi(nexusLPSushi).compoundProfits(entireBalance);
+        // TODO: transfer eth checks
     }
 
     /**
