@@ -22,8 +22,6 @@ describe("Sushi: SUSHI:WETH", function() {
   // external setup
   let underlyingWhale = "0x4f76ff660dc5e37b098de28e6ec32978e4b5beb6";
 
-  const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
-
   // parties in the protocol
   let governance;
   let farmer1;
