@@ -80,7 +80,7 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
       newSharePrice = new BigNumber(await vault.getPricePerFullShare());
       console.log(newSharePrice);
 
-      newSharePrice = newSharePrice.multipliedBy(await nexus.pricePerFullShare()).div(1e18);
+      newSharePrice = newSharePrice.multipliedBy(await nexus.methods.pricePerFullShare().call()).div(1e18);
 
       console.log("old shareprice: ", oldSharePrice.toFixed());
       console.log("new shareprice: ", newSharePrice.toFixed());
@@ -92,9 +92,9 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
     console.log("vaultBalance: ", vaultBalance.toFixed());
 
     await vault.withdraw(vaultBalance.toFixed(), { from: farmer });
-    let farmerNewLPBalance = await nexus.balanceOf(farmer);
+    let farmerNewLPBalance = await nexus.methods.balanceOf(farmer).call();
 
-    await nexus.removeLiquidityETH(farmerNewLPBalance, "2617551005");
+    await nexus.methods.removeAllLiquidityETH(farmer,deadline).send({from: farmer});
 
     let farmerNewEthBalance = await web3.eth.getBalance(farmer);
 

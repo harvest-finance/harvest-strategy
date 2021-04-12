@@ -20,16 +20,9 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant ROUTER = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F); // Sushiswap Router2
+    address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
-    address[] internal REWARD_ROUTE = new address[](2);
-
-    constructor() public BaseUpgradeableStrategy() {
-        REWARD_ROUTE[0] = REWARD;
-        REWARD_ROUTE[1] = WETH;
-    }
 
     function initializeStrategy(
         address _storage,
@@ -149,7 +142,10 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
             IERC20(rewardToken()).safeApprove(ROUTER, remainingRewardBalance);
 
             uint256 amountOutMin = 1; // we can accept 1 as minimum because this is called only by a trusted role
-            IUniswapV2Router02(ROUTER).swapExactTokensForTokens(remainingRewardBalance, amountOutMin, REWARD_ROUTE, address(this), block.timestamp);
+            address[] memory path = new address[](2);
+            path[0] = REWARD;
+            path[1] = WETH;
+            IUniswapV2Router02(ROUTER).swapExactTokensForTokens(remainingRewardBalance, amountOutMin, path, address(this), block.timestamp);
         }
     }
 }
