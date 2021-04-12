@@ -8,37 +8,39 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./interface/INexusLPSushi.sol";
 import "../../base/interface/IStrategy.sol";
 import "../../base/upgradability/BaseUpgradeableStrategy.sol";
+import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 
 /**
  * Strategy implementing NexusLPSushi auto compounding with reward distribuion
  * Deposit your ETH to make more ETH
  * NexusLP tokens are kept here and not sent to the underlying pool
- * // TODO @talkol do your magic
+ * // TODO talkol do your magic
  */
-
-contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
+contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    address public UNDERLYING; // NexusLPSushi TODO replace with constant deployed NexusLPSushi address
 
     address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant ROUTER = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F); // Sushiswap Router2
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-    address[] internal constant REWARD_ROUTE = new address[](2);
+    address[] internal REWARD_ROUTE = new address[](2);
 
     constructor() public BaseUpgradeableStrategy() {
         REWARD_ROUTE[0] = REWARD;
         REWARD_ROUTE[1] = WETH;
     }
 
-    function initializeStrategy(address _storage, address _vault) public initializer {
+    function initializeStrategy(
+        address _storage,
+        address _underlying,
+        address _vault
+    ) public initializer {
         BaseUpgradeableStrategy.initialize(
             _storage,
-            UNDERLYING,
+            _underlying,
             _vault,
-            UNDERLYING,
+            _underlying,
             REWARD,
             300, // profit sharing numerator
             1000, // profit sharing denominator
@@ -67,7 +69,6 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
      * As we keep all NexusLP tokens here, we just send them back to the vault
      */
     function withdrawAllToVault() external restricted {
-        doHardWork(); // TODO not sure if needed
         uint256 balance = IERC20(underlying()).balanceOf(address(this));
         if (balance > 0) {
             IERC20(underlying()).safeTransfer(vault(), balance);
@@ -137,8 +138,9 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
             return;
         }
 
-        notifyProfitInRewardToken(rewardBalance);
-        // handles all fees
+        notifyProfitInRewardToken(rewardBalance); // handles all fees
+
+        // TODO buy back
 
         uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 
@@ -146,15 +148,8 @@ contract NexusSushiStrategy_WETH is IStrategy, BaseUpgradeableStrategy {
             IERC20(rewardToken()).safeApprove(ROUTER, 0);
             IERC20(rewardToken()).safeApprove(ROUTER, remainingRewardBalance);
 
-            uint256 amountOutMin = 1;
-            // we can accept 1 as minimum because this is called only by a trusted role
-            IUniswapV2Router02(routerV2).swapExactTokensForTokens(
-                remainingRewardBalance,
-                amountOutMin,
-                REWARD_ROUTE,
-                address(this),
-                block.timestamp
-            );
+            uint256 amountOutMin = 1; // we can accept 1 as minimum because this is called only by a trusted role
+            IUniswapV2Router02(ROUTER).swapExactTokensForTokens(remainingRewardBalance, amountOutMin, REWARD_ROUTE, address(this), block.timestamp);
         }
     }
 }

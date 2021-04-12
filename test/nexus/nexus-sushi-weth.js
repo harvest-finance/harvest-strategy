@@ -1,125 +1,111 @@
-// Utilities
 const Utils = require("../utilities/Utils.js");
 const { impersonates, setupCoreProtocol } = require("../utilities/hh-utils.js");
 
 const addresses = require("../test-config.js");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
+const Strategy = artifacts.require("NexusLPSushiStrategy");
 
-const Strategy = artifacts.require("NexusSushiStrategyMainnet_WETH");
-
-// Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Nexus: SUSHI:WETH", function() {
-  let accounts;
-
-  // external contracts
-  let usdc;
-
-  // external setup
-  let usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
+describe("LiquidityNexus: SUSHI:WETH", () => {
+  const deadline = "99999999999";
+  const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
 
   // parties in the protocol
-  let governance;
+  const governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f"; // Harvest.finance deployer
+  let nexusOwner;
   let farmer;
-  
+
   // Core protocol contracts
   let controller;
   let vault;
   let strategy;
-  let nexusSushi;
 
-  let ethToDeposit = ethers.utils.parseEther("2000.0");
+  let nexus;
 
-  async function usdcBalance(address) {
-    return BigNumber(await usdc.balanceOf(address));
-  }
+  const ethToDeposit = ethers.utils.parseEther("2000.0");
 
-  async function ensureUsdBalance(address, amount) {
-    if ((await usdcBalance(address)).lt(amount)) {
-      await usdc.transfer(address, amount, { from: usdcWhale });
-    }
-  }
-
-  async function supplyCapitalAsDeployer(deployer, nexus, amount) {
-    await ensureUsdBalance(deployer, amount);
-    await usdc.approve(nexus.address, amount);
-    await nexus.depositAllCapital();
-  }  
-
-  async function setupExternalContracts() {
-    usdc = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-    console.log("Fetching Underlying at: ", usdc.address);
-  }
-
-  before(async function() {
-    governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
-    accounts = await web3.eth.getAccounts();
-
-    farmer = accounts[0];
-    
-    // impersonate accounts
+  before(async function () {
+    const accounts = await web3.eth.getAccounts();
+    nexusOwner = accounts[0];
+    farmer = accounts[1];
     await impersonates([governance, usdcWhale]);
 
-    await setupExternalContracts();
-    [controller, vault, strategy,, nexusSushi] = await setupCoreProtocol({
-      "existingVaultAddress": null,
-      "strategyArtifact": Strategy,
-      "strategyArtifactIsUpgradable": true,
-      "governance": governance,
-      "strategyArgs": [addresses.Storage, "vaultAddr", "nexusSushi"]
-    });
+    const NexusLPSushi = require("../../temp_delete_before_deployment/contracts/NexusLPSushi.sol/NexusLPSushi.json");
+    const NexusLPSushiContract = new web3.eth.Contract(NexusLPSushi.abi, "", { from: nexusOwner });
+    nexus = await NexusLPSushiContract.deploy({ data: NexusLPSushi.bytecode, arguments: [] }).send();
 
-    await supplyCapitalAsDeployer(farmer, nexusSushi, "100000000" + "000000");
+    [controller, vault, strategy] = await setupCoreProtocol({
+      existingVaultAddress: null,
+      strategyArtifact: Strategy,
+      strategyArtifactIsUpgradable: true,
+      governance: governance,
+      strategyArgs: [addresses.Storage, nexus.options.address, "vaultAddr"],
+      underlying: { address: nexus.options.address },
+    });
+    nexus.methods.setGovernance(strategy.address).send();
+
+    await supplyCapitalAsDeployer();
   });
 
-  describe("Happy path", function() {
-    it("Farmer should earn money", async function() {
-      let farmerOldEthBalance = await web3.eth.getBalance(farmer);
+  async function supplyCapitalAsDeployer() {
+    const amount = "100000000" + "000000";
+    const USDC = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    await USDC.transfer(nexusOwner, amount, { from: usdcWhale });
 
-      await nexusSushi.addLiquidityETH("2617551005", { value: ethToDeposit });
+    await USDC.approve(nexus.options.address, amount, { from: nexusOwner });
+    await nexus.methods.depositAllCapital().send();
+  }
 
-      let farmerOldLPBalance = await nexusSushi.balanceOf(farmer);
-      await nexusSushi.approve(vault.address, farmerOldLPBalance);
-      await vault.deposit(farmerOldLPBalance);
+  it("Farmer should earn money", async () => {
+    const farmerOldEthBalance = await web3.eth.getBalance(farmer);
 
-      // Using half days is to simulate how we doHardwork in the real world
-      let hours = 10;
-      let oldSharePrice;
-      let newSharePrice;
-      for (let i = 0; i < hours; i++) {
-        console.log("loop ", i);
-        let blocksPerHour = 2400;
-        oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
-        await controller.doHardWork(vault.address, { from: governance });
-        newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+    Utils.assertBNGt(farmerOldEthBalance, ethToDeposit);
+    Utils.assertBNGt(await nexus.methods.availableSpaceToDepositETH().call(), ethToDeposit);
+    await nexus.methods.addLiquidityETH(farmer, deadline).send({ value: ethToDeposit, from: farmer });
 
-        newSharePrice = newSharePrice.multipliedBy(await nexusSushi.pricePerFullShare()).div(1e18);
+    const farmerOldLPBalance = await nexus.methods.balanceOf(farmer).call();
+    await nexus.methods.approve(vault.address, farmerOldLPBalance).send({from:farmer});
+    await vault.deposit(farmerOldLPBalance, {from: farmer});
 
-        console.log("old shareprice: ", oldSharePrice.toFixed());
-        console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
+    // Using half days is to simulate how we doHardwork in the real world
+    let hours = 10;
+    let oldSharePrice;
+    let newSharePrice;
 
-        await Utils.advanceNBlock(blocksPerHour);
-      }
-      const vaultBalance = new BigNumber(await vault.balanceOf(farmer));
-      console.log("vaultBalance: ", vaultBalance.toFixed());
+    for (let i = 0; i < hours; i++) {
+      console.log("loop ", i);
+      let blocksPerHour = 2400;
+      oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
+      await controller.doHardWork(vault.address, { from: governance });
+      newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+      console.log(newSharePrice);
 
-      await vault.withdraw(vaultBalance.toFixed(), { from: farmer });
-      let farmerNewLPBalance = await nexusSushi.balanceOf(farmer);
+      newSharePrice = newSharePrice.multipliedBy(await nexus.pricePerFullShare()).div(1e18);
 
-      await nexusSushi.removeLiquidityETH(farmerNewLPBalance, "2617551005");
+      console.log("old shareprice: ", oldSharePrice.toFixed());
+      console.log("new shareprice: ", newSharePrice.toFixed());
+      console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
 
-      let farmerNewEthBalance = await web3.eth.getBalance(farmer);
+      await Utils.advanceNBlock(blocksPerHour);
+    }
+    const vaultBalance = new BigNumber(await vault.balanceOf(farmer));
+    console.log("vaultBalance: ", vaultBalance.toFixed());
 
-      console.log('a.toString()!!!!');
-      console.log(farmerNewEthBalance.toString());
-      console.log(farmerOldEthBalance.toString());
+    await vault.withdraw(vaultBalance.toFixed(), { from: farmer });
+    let farmerNewLPBalance = await nexus.balanceOf(farmer);
 
-      Utils.assertBNGt(farmerNewEthBalance, farmerOldEthBalance);
+    await nexus.removeLiquidityETH(farmerNewLPBalance, "2617551005");
 
-      console.log("earned!");
+    let farmerNewEthBalance = await web3.eth.getBalance(farmer);
 
-      await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
-    });
+    console.log("a.toString()!!!!");
+    console.log(farmerNewEthBalance.toString());
+    console.log(farmerOldEthBalance.toString());
+
+    Utils.assertBNGt(farmerNewEthBalance, farmerOldEthBalance);
+
+    console.log("earned!");
+
+    await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
   });
 });
