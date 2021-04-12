@@ -9,6 +9,7 @@ import "./interface/INexusLPSushi.sol";
 import "../../base/interface/IStrategy.sol";
 import "../../base/upgradability/BaseUpgradeableStrategy.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
+import "hardhat/console.sol";
 
 /**
  * Strategy implementing NexusLPSushi auto compounding with reward distribuion
@@ -23,6 +24,7 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     address public constant ROUTER = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F); // Sushiswap Router2
     address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    uint256 public constant CAPITAL_PROVIDER_REWARD_PERCENTMIL = 20_000; // 20% of rewards to USDC provider
 
     function initializeStrategy(
         address _storage,
@@ -94,16 +96,27 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
      *   It's not much, but it's honest work.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
+        console.log("doHardWork");
+        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
         INexusLPSushi(underlying()).claimRewards();
 
+        console.log("claimed");
+        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
+
         _liquidateReward();
+
+        console.log("liquidated");
+        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
 
         uint256 entireBalance = IERC20(WETH).balanceOf(address(this));
         if (entireBalance > 0) {
             IERC20(WETH).safeApprove(underlying(), 0);
             IERC20(WETH).safeApprove(underlying(), entireBalance);
-            INexusLPSushi(underlying()).compoundProfits(entireBalance);
+            INexusLPSushi(underlying()).compoundProfits(entireBalance, CAPITAL_PROVIDER_REWARD_PERCENTMIL);
         }
+
+        console.log("end");
+        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
     }
 
     /*
@@ -132,8 +145,6 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
         }
 
         notifyProfitInRewardToken(rewardBalance); // handles all fees
-
-        // TODO buy back
 
         uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 

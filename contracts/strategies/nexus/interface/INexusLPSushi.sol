@@ -6,7 +6,7 @@ pragma solidity ^0.5.0;
 interface INexusLPSushi {
     function claimRewards() external;
 
-    function compoundProfits(uint256 amountETH)
+    function compoundProfits(uint256 amountETH, uint256 capitalProviderRewardPercentmil)
         external
         returns (
             uint256 addedUSDC,
