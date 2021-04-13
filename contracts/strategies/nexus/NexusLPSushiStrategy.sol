@@ -11,10 +11,13 @@ import "../../base/upgradability/BaseUpgradeableStrategy.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 
 /**
- * Strategy implementing NexusLPSushi auto compounding with reward distribuion
- * Deposit your ETH to make more ETH
- * NexusLP tokens are kept here and not sent to the underlying pool
- * // TODO talkol do your magic
+ * ETH-only strategy doing single-sided farming on Sushi ETH/USDC.
+ * Deposit your ETH to make more ETH - you provide the ETH side of farming.
+ * The USDC side is sourced from Orbs Liquidity Nexus and originates from CeFi.
+ * 
+ * ETH goes into Nexus LP wrapper for Sushi LP tokens. The Nexus LP is deposited in the vault.
+ * Nexus LP tokens remain in the strategy and not deposited in MasterChef or anywhere else.
+ * Sushi LP held by Nexus LP contract is deposited in MasterChef and generates SUSHI rewards.
  */
 contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
@@ -52,7 +55,7 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
         return (token == rewardToken() || token == underlying());
     }
 
-    /*
+    /**
      * Returns NexusLP token balance of this
      */
     function investedUnderlyingBalance() external view returns (uint256) {
@@ -69,16 +72,16 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
         }
     }
 
-    /*
+    /**
      * As we keep all NexusLP tokens here, we just send them back to the vault
      */
     function withdrawToVault(uint256 amount) external restricted {
         IERC20(underlying()).safeTransfer(vault(), amount);
     }
 
-    /*
-     *   Governance or Controller can claim coins that are somehow transferred into the contract
-     *   Note that they cannot come in take away coins that are used and defined in the strategy itself
+    /**
+     * Governance or Controller can claim coins that are somehow transferred into the contract
+     * Note that they cannot come in take away coins that are used and defined in the strategy itself
      */
     function salvage(
         address recipient,
@@ -90,9 +93,9 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
         IERC20(token).safeTransfer(recipient, amount);
     }
 
-    /*
-     *   Get the reward, sell it in exchange for underlying, invest what you got.
-     *   It's not much, but it's honest work.
+    /**
+     * Get the reward, sell it in exchange for underlying, invest what you got.
+     * It's not much, but it's honest work.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
         INexusLPSushi(underlying()).claimRewards();
@@ -107,17 +110,17 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
         }
     }
 
-    /*
-     *   In case there are some issues discovered about the pool or underlying asset
-     *   Governance can exit the pool properly
-     *   The function is only used for emergency to exit the pool
+    /**
+     * In case there are some issues discovered about the pool or underlying asset
+     * Governance can exit the pool properly
+     * The function is only used for emergency to exit the pool
      */
     function emergencyExit() public onlyGovernance {
         _setPausedInvesting(true);
     }
 
-    /*
-     *   Resumes the ability to invest into the underlying reward pools
+    /**
+     * Resumes the ability to invest into the underlying reward pools
      */
     function continueInvesting() public onlyGovernance {
         _setPausedInvesting(false);
