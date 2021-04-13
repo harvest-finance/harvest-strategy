@@ -9,8 +9,6 @@ const Strategy = artifacts.require("NexusLPSushiStrategy");
 const deadline = "100000000000";
 
 describe("LiquidityNexus: SUSHI:WETH", () => {
-  let USDC;
-
   // parties in the protocol
   const governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f"; // Harvest.finance deployer
   let nexusOwner;
@@ -30,8 +28,6 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
     const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
     await impersonates([governance, usdcWhale]);
 
-    USDC = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-
     nexus = await TEMP_DELETE_BEFORE_DEPLOYMENT(nexusOwner);
 
     [controller, vault, strategy] = await setupCoreProtocol({
@@ -49,14 +45,15 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
   });
 
   async function prepareNexusWithUSDC(usdcWhale) {
-    const amount = web3.utils.toWei(10_000_000 + "", "lovelace");
+    const amount = 10_000_000 + "000000";
+    const USDC = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
     await USDC.transfer(nexusOwner, amount, { from: usdcWhale });
     await USDC.approve(nexus.options.address, amount, { from: nexusOwner });
     await nexus.methods.depositAllCapital().send({ from: nexusOwner });
   }
 
   it("Farmer should earn", async () => {
-    const depositETH = web3.utils.toWei("500", "ether");
+    const depositETH = web3.utils.toWei("1000", "ether");
 
     const farmerStartBalanceETH = bn(await web3.eth.getBalance(farmer));
 
@@ -121,7 +118,7 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
     const testDuration = doHardWorkWaitHours * iterations;
     console.log("Test duration", testDuration, "hours");
 
-    const profitPercent = parseFloat(fmt(profit)) / parseFloat(fmt(depositETH));
+    const profitPercent = profit.toFixed() / bn(depositETH).toFixed();
     console.log("profit percent", profitPercent * 100, "%");
 
     const dailyYield = (profitPercent / testDuration) * 24;
@@ -129,11 +126,6 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
 
     const APR = dailyYield * 365;
     console.log("APR", APR * 100, "%");
-
-    const APY = ((1 + dailyYield) ^ 365) - 1;
-    console.log("APY", APY * 100, "%");
-
-    console.log("LiquidityNexus USDC end balance", fmt(await USDC.balanceOf(nexus.options.address)));
 
     console.log("earned!");
 

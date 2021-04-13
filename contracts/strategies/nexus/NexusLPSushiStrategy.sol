@@ -9,7 +9,6 @@ import "./interface/INexusLPSushi.sol";
 import "../../base/interface/IStrategy.sol";
 import "../../base/upgradability/BaseUpgradeableStrategy.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
-import "hardhat/console.sol";
 
 /**
  * Strategy implementing NexusLPSushi auto compounding with reward distribuion
@@ -96,17 +95,9 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
      *   It's not much, but it's honest work.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        console.log("doHardWork");
-        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
         INexusLPSushi(underlying()).claimRewards();
 
-        console.log("claimed");
-        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
-
         _liquidateReward();
-
-        console.log("liquidated");
-        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
 
         uint256 entireBalance = IERC20(WETH).balanceOf(address(this));
         if (entireBalance > 0) {
@@ -114,9 +105,6 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
             IERC20(WETH).safeApprove(underlying(), entireBalance);
             INexusLPSushi(underlying()).compoundProfits(entireBalance, CAPITAL_PROVIDER_REWARD_PERCENTMIL);
         }
-
-        console.log("end");
-        console.log(address(this).balance, IERC20(WETH).balanceOf(address(this)), IERC20(underlying()).balanceOf(address(this)), IERC20(rewardToken()).balanceOf(address(this)));
     }
 
     /*
