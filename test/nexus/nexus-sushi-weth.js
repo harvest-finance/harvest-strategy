@@ -127,6 +127,9 @@ describe("LiquidityNexus: SUSHI:WETH", () => {
     const APR = dailyYield * 365;
     console.log("APR", APR * 100, "%");
 
+    const APY = (1 + dailyYield/2) ** (365 * 2) - 1; // compounding twice a day
+    console.log("APY", APY * 100, "%");
+
     console.log("earned!");
 
     await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
