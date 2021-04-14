@@ -26,7 +26,11 @@ This strategy still does Sushi ETH/USDC farming under the hood so it produces th
 
 ### E2E test
 
-The repo contains an end-to-end test (running on mainnet fork with Hardhat) that shows the entire flow. Run it with:
+The repo contains an end-to-end test (running on mainnet fork with Hardhat) that shows the entire flow. Run it from the project root.
+
+First, in `hardhat.config.js`, under `networks/hardhat/forking` make sure `blockNumber: 12233644`
+
+Run the test with:
 
 ```
 export NODE_OPTIONS=--max_old_space_size=8192
