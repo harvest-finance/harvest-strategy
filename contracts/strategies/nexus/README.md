@@ -55,7 +55,7 @@ One party, marked _DeFi player_, deposits ETH. These are harvest users that depo
 
 ![diagram-harvest-readme](https://user-images.githubusercontent.com/6762255/113876704-a7d1ed80-97c0-11eb-9c40-512960f46f59.png)
 
-The contract in blue is the proposed vault. Its source code is in this repo - [NexusSushiStrategyMainnet_WETH](NexusSushiStrategyMainnet_WETH.sol). The contract in yellow is pre-existing (not deployed by harvest) and is part of Orbs Liquidity Nexus. Its source code is available [here](https://github.com/orbs-network/nexus-sushiswap).
+The contract in blue is the proposed vault. Its source code is in this repo - [NexusLPSushiStrategy](NexusLPSushiStrategy.sol.sol). The contract in yellow is pre-existing (not deployed by harvest) and is part of Orbs Liquidity Nexus. Its source code is available [here](https://github.com/orbs-network/nexus-sushiswap).
 
 ### Nexus LP tokens wrap Sushi LP tokens
 
@@ -76,7 +76,7 @@ This flow assumes that there is already a large amount of USDC waiting in [Nexus
 
 3. Initiate the vault's doHardWork:
 
-   - `NexusLPSushi` tokens move from the vault to the `NexusSushiStrategyMainnet_WETH` strategy.
+   - `NexusLPSushi` tokens move from the vault to the `NexusLPSushiStrategy` strategy.
    - The strategy calls `NexusLPSushi.claimRewards` to receive all pending SUSHI rewards.
    - The strategy liquidates SUSHI rewards to ETH after taking profit sharing fee.
    - The strategy compounds the ETH by calling `NexusLPSushi.compoundProfits` to increase the value of `NexusLPSushi`.
