@@ -8,7 +8,7 @@ const Strategy = artifacts.require("NexusLPSushiStrategy");
 
 const deadline = "100000000000";
 
-describe("LiquidityNexus: SUSHI:WETH", () => {
+describe("LiquidityNexus SushiSwap: WETH", () => {
   // parties in the protocol
   const governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f"; // Harvest.finance deployer
   let nexusOwner;
