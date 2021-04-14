@@ -16,7 +16,7 @@ This vault allows participants to deposit ETH only and produces higher APY than 
 
 - ETH-only strategies are rare, and usually have poor APY.
 
-  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (28.29% today, not including FARM emissions).
+  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (44.68% today, not including FARM emissions).
 
 - Many participants are long on ETH and hold a lot of ETH. For them, acquiring USDC for farming has disadvantages (it lowers their ETH holdings). Normally they have to do so anyways in order to get the higher APY of Sushi ETH/USDC. By using this vault they can take advantage of all of their ETH without needing USDC.
 
