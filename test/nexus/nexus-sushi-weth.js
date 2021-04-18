@@ -48,7 +48,7 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
       strategyArtifact: Strategy,
       strategyArtifactIsUpgradable: true,
       governance: governance,
-      strategyArgs: [addresses.Storage, NEXUS_ADDRESS, "vaultAddr"],
+      strategyArgs: [addresses.Storage, "vaultAddr"],
       underlying: { address: NEXUS_ADDRESS },
     });
 
