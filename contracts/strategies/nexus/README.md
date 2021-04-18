@@ -125,7 +125,7 @@ One party, marked _DeFi player_, deposits ETH. These are harvest users that depo
 
 ![diagram-harvest-readme](https://user-images.githubusercontent.com/6762255/113876704-a7d1ed80-97c0-11eb-9c40-512960f46f59.png)
 
-The contract in blue is the proposed vault. Its source code is in this repo - [NexusLPSushiStrategy](NexusLPSushiStrategy.sol). The contract in yellow is pre-existing (not deployed by harvest) and is part of Orbs Liquidity Nexus. Its source code is available [here](https://github.com/orbs-network/nexus-sushiswap).
+The contract in blue is the proposed vault. Its source code is in this repo - [NexusLPSushiStrategy](NexusLPSushiStrategy.sol). The contract in yellow is pre-existing (not deployed by harvest) and is part of Orbs Liquidity Nexus. Its source code is available [here](https://github.com/orbs-network/nexus-sushiswap) and the deployed mainnet instance paired with this strategy is [here](https://etherscan.io/address/0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a#code).
 
 ### Nexus LP tokens wrap Sushi LP tokens
 
