@@ -14,7 +14,7 @@ import "../../base/interface/uniswap/IUniswapV2Router02.sol";
  * ETH-only strategy doing single-sided farming on Sushi ETH/USDC.
  * Deposit your ETH to make more ETH - you provide the ETH side of farming.
  * The USDC side is sourced from Orbs Liquidity Nexus and originates from CeFi.
- * 
+ *
  * ETH goes into Nexus LP wrapper for Sushi LP tokens. The Nexus LP is deposited in the vault.
  * Nexus LP tokens remain in the strategy and not deposited in MasterChef or anywhere else.
  * Sushi LP held by Nexus LP contract is deposited in MasterChef and generates SUSHI rewards.

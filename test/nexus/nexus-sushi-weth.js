@@ -22,6 +22,7 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
   let nexus;
 
   before(async function () {
+    console.log("using block number", await web3.eth.getBlockNumber());
     const accounts = await web3.eth.getAccounts();
     nexusOwner = accounts[0];
     farmer = accounts[1];
@@ -127,7 +128,7 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
     const APR = dailyYield * 365;
     console.log("APR", APR * 100, "%");
 
-    const APY = (1 + dailyYield/2) ** (365 * 2) - 1; // compounding twice a day
+    const APY = Math.pow(1 + dailyYield / 2, 365 * 2) - 1; // compounding twice a day
     console.log("APY", APY * 100, "%");
 
     console.log("earned!");
