@@ -6,7 +6,7 @@ Single-sided farming on SushiSwap!
 
 ### What is this vault?
 
-This vault allows participants to deposit ETH only and produces higher APY than received in the Sushi ETH/USDC vault.
+This vault allows participants to deposit ETH only and produces higher APY than received in the Sushi LP ETH/USDC vault.
 
 - The regular ETH/USDC Sushi vault accepts deposits in Sushi ETH/USDC LP which means participants provide equal value of both USDC and ETH.
 
@@ -16,13 +16,13 @@ This vault allows participants to deposit ETH only and produces higher APY than 
 
 - ETH-only strategies are rare, and usually have poor APY.
 
-  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (56.31% at the time of writing, not including FARM emissions).
+  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi LP ETH/USDC farming (56.31% at the time of writing, not including FARM emissions).
 
-- Many participants are long on ETH and hold a lot of ETH. For them, acquiring USDC for farming has disadvantages (it lowers their ETH holdings). Normally they have to do so anyways in order to get the higher APY of Sushi ETH/USDC. By using this vault they can take advantage of all of their ETH without needing USDC.
+- Many participants are long on ETH and hold a lot of ETH. For them, acquiring USDC for farming has disadvantages (it lowers their ETH holdings). Normally they have to do so anyways in order to get the higher APY of Sushi LP ETH/USDC. By using this vault they can take advantage of all of their ETH without needing USDC.
 
 ### How does it work?
 
-This strategy still does Sushi ETH/USDC farming under the hood so it produces the same APY. The ETH and the USDC are sourced from two different parties. ETH is sourced from Harvest participants. USDC is sourced from Orbs Liquidity Nexus (which originates from CeFi). The rewards are not divided equally. Most of the rewards go to the ETH side - giving it higher APY than ETH/USDC since it only provides half of the liquidity but receives more than half of the rewards. The party providing the USDC (external to Harvest) is still happy because the lower APY it receives is still significantly higher than returns available in CeFi.
+This strategy still does Sushi LP ETH/USDC farming under the hood so it produces the same APY. The ETH and the USDC are sourced from two different parties. ETH is sourced from Harvest participants. USDC is sourced from Orbs Liquidity Nexus (which originates from CeFi). The rewards are not divided equally. Most of the rewards go to the ETH side - giving it higher APY than ETH/USDC since it only provides half of the liquidity but receives more than half of the rewards. The party providing the USDC (external to Harvest) is still happy because the lower APY it receives is still significantly higher than returns available in CeFi.
 
 ### E2E test
 
@@ -129,7 +129,7 @@ The contract in blue is the proposed vault. Its source code is in this repo - [N
 
 ### Nexus LP tokens wrap Sushi LP tokens
 
-In the traditional Sushi ETH/USDC vault, users deposit Sushi LP tokens. In our case, Nexus LP tokens replace the Sushi LP tokens. Implementation wise, Nexus LP is a very thin wrapper around Sushi LP. This wrapper provides the pairing with USDC that is waiting in the Nexus LP contract. The contract implementing the Nexus LP wrapper is [NexusLPSushi](https://github.com/orbs-network/nexus-sushiswap).
+In the traditional Sushi LP ETH/USDC vault, users deposit Sushi LP tokens. In our case, Nexus LP tokens replace the Sushi LP tokens. Implementation wise, Nexus LP is a very thin wrapper around Sushi LP. This wrapper provides the pairing with USDC that is waiting in the Nexus LP contract. The contract implementing the Nexus LP wrapper is [NexusLPSushi](https://github.com/orbs-network/nexus-sushiswap).
 
 ### Detailed step by step flow
 
