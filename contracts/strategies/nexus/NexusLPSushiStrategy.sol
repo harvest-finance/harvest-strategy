@@ -27,12 +27,15 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address public constant NEXUS_LP = address(0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a);
-    uint256 public constant CAPITAL_PROVIDER_REWARD_PERCENTMIL = 20_000; // 20% of rewards to USDC provider
 
-    function initializeStrategy(
-        address _storage,
-        address _vault
-    ) public initializer {
+    /**
+     * Rewards split between ETH provider and USDC provider is set by this strategy to be 80/20.
+     * In traditional Sushi ETH/USDC LP double sided farming the reward split is 50/50 between ETH and USDC.
+     * Here USDC provider receives less rewards for taking less IL risk.
+     */
+    uint256 public constant CAPITAL_PROVIDER_REWARD_PERCENTMIL = 20_000;
+
+    function initializeStrategy(address _storage, address _vault) public initializer {
         BaseUpgradeableStrategy.initialize(
             _storage,
             NEXUS_LP,

@@ -68,7 +68,7 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
   }
 
   it("Farmer should earn", async () => {
-    const availableSpaceETH = await nexus.availableSpaceToDepositETH();  // how much ETH can be deposited to be paired with USDC
+    const availableSpaceETH = await nexus.availableSpaceToDepositETH(); // how much ETH can be deposited to be paired with USDC
     Utils.assertBNGt(availableSpaceETH, depositETH);
 
     console.log(`farmer enters LiquidityNexus with ${fmt(depositETH)} ETH`);
