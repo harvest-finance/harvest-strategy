@@ -6,9 +6,11 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const Strategy = artifacts.require("NexusLPSushiStrategy");
 
+const NexusLP = artifacts.require("contracts/strategies/nexus/interface/INexusLPSushi.sol:INexusLPSushi");
+
 const deadline = "100000000000";
 
-describe("LiquidityNexus SushiSwap: WETH", () => {
+describe("LiquidityNexus SushiSwap: ETH", () => {
   // parties in the protocol
   const governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f"; // Harvest.finance deployer
   let nexusOwner;
@@ -22,52 +24,54 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
   let nexus;
 
   before(async function () {
-    console.log("using block number", await web3.eth.getBlockNumber());
-    const accounts = await web3.eth.getAccounts();
-    nexusOwner = accounts[0];
-    farmer = accounts[1];
-    const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
-    await impersonates([governance, usdcWhale]);
+    console.log("on block number", await web3.eth.getBlockNumber());
 
-    nexus = ""; // TODO
+    nexus = await NexusLP.at("0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a");
+    nexusOwner = await nexus.owner();
+
+    const accounts = await web3.eth.getAccounts();
+    farmer = accounts[1];
+
+    const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
+    await impersonates([nexusOwner, governance, usdcWhale]);
 
     [controller, vault, strategy] = await setupCoreProtocol({
       existingVaultAddress: null,
       strategyArtifact: Strategy,
       strategyArtifactIsUpgradable: true,
       governance: governance,
-      strategyArgs: [addresses.Storage, nexus.options.address, "vaultAddr"],
-      underlying: { address: nexus.options.address },
+      strategyArgs: [addresses.Storage, nexus.address, "vaultAddr"],
+      underlying: { address: nexus.address },
     });
 
-    nexus.methods.setGovernance(strategy.address).send({ from: nexusOwner });
+    nexus.setGovernance(strategy.address, { from: nexusOwner });
 
     await prepareNexusWithUSDC(usdcWhale);
   });
 
   async function prepareNexusWithUSDC(usdcWhale) {
-    const amount = 10_000_000 + "000000";
+    const amount = "10000000000000"; // $10M
     const USDC = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
     await USDC.transfer(nexusOwner, amount, { from: usdcWhale });
-    await USDC.approve(nexus.options.address, amount, { from: nexusOwner });
-    await nexus.methods.depositAllCapital().send({ from: nexusOwner });
+    await USDC.approve(nexus.address, amount, { from: nexusOwner });
+    await nexus.depositCapital(amount, { from: nexusOwner });
   }
 
   it("Farmer should earn", async () => {
-    const depositETH = web3.utils.toWei("1000", "ether");
+    const depositETH = bn(web3.utils.toWei("1000", "ether"));
 
     const farmerStartBalanceETH = bn(await web3.eth.getBalance(farmer));
 
     Utils.assertBNGt(farmerStartBalanceETH, depositETH);
-    Utils.assertBNGt(await nexus.methods.availableSpaceToDepositETH().call(), depositETH);
+    Utils.assertBNGt(await nexus.availableSpaceToDepositETH(), depositETH);
 
     console.log(`farmer enters LiquidityNexus with ${fmt(depositETH)} ETH`);
-    await nexus.methods.addLiquidityETH(farmer, deadline).send({ value: bn(depositETH), from: farmer });
+    await nexus.addLiquidityETH(farmer, deadline, { value: bn(depositETH), from: farmer });
 
-    const farmerStartBalanceLP = bn(await nexus.methods.balanceOf(farmer).call());
+    const farmerStartBalanceLP = bn(await nexus.balanceOf(farmer));
 
     console.log("farmer deposits NexusLP to Vault");
-    await nexus.methods.approve(vault.address, farmerStartBalanceLP).send({ from: farmer });
+    await nexus.approve(vault.address, farmerStartBalanceLP, { from: farmer });
     await vault.deposit(farmerStartBalanceLP, { from: farmer });
 
     // Using half days is to simulate how we doHardwork in the real world
@@ -88,38 +92,38 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
       newSharePrice = bn(await vault.getPricePerFullShare());
 
       Utils.assertBNEq(newSharePrice, oldSharePrice); // 1:1 ratio Nexus:Vault
-      newSharePrice = newSharePrice.multipliedBy(await nexus.methods.pricePerFullShare().call()).div(1e18); // price increases on LiquidityNexus side
+      newSharePrice = newSharePrice.multipliedBy(await nexus.pricePerFullShare()).div(1e18); // price increases on LiquidityNexus side
 
-      console.log("old shareprice: ", oldSharePrice.toFixed());
-      console.log("new shareprice: ", newSharePrice.toFixed());
+      console.log("old shareprice: ", fmt(oldSharePrice));
+      console.log("new shareprice: ", fmt(newSharePrice));
       console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
     }
 
     const vaultBalance = bn(await vault.balanceOf(farmer));
-    console.log("vaultBalance: ", vaultBalance.toFixed());
+    console.log("vaultBalance: ", fmt(vaultBalance));
     Utils.assertBNEq(vaultBalance, farmerStartBalanceLP); // 1:1 ratio Nexus:Vault
 
     console.log("farmer withdraws from Vault");
-    await vault.withdraw(vaultBalance.toFixed(), { from: farmer });
-    const farmerEndBalanceLP = await nexus.methods.balanceOf(farmer).call();
+    await vault.withdraw(vaultBalance, { from: farmer });
+    const farmerEndBalanceLP = await nexus.balanceOf(farmer);
     Utils.assertBNEq(farmerEndBalanceLP, farmerStartBalanceLP); // 1:1 ratio Nexus:Vault
 
     console.log("farmer exits LiquidityNexus...");
-    await nexus.methods.removeAllLiquidityETH(farmer, deadline).send({ from: farmer });
+    await nexus.removeAllLiquidityETH(farmer, deadline, { from: farmer });
 
-    const farmerEndBalanceETH = await web3.eth.getBalance(farmer);
+    const farmerEndBalanceETH = bn(await web3.eth.getBalance(farmer));
     Utils.assertBNGt(farmerEndBalanceETH, farmerStartBalanceETH);
     console.log("start ETH balance", fmt(farmerStartBalanceETH));
     console.log("end ETH balance", fmt(farmerEndBalanceETH));
     console.log("principal", fmt(depositETH), "ETH");
 
-    const profit = bn(farmerEndBalanceETH).minus(farmerStartBalanceETH);
+    const profit = farmerEndBalanceETH.minus(farmerStartBalanceETH);
     console.log("profit", fmt(profit), "ETH");
 
     const testDuration = doHardWorkWaitHours * iterations;
     console.log("Test duration", testDuration, "hours");
 
-    const profitPercent = profit.toFixed() / bn(depositETH).toFixed();
+    const profitPercent = profit / depositETH.toFixed();
     console.log("profit percent", profitPercent * 100, "%");
 
     const dailyYield = (profitPercent / testDuration) * 24;
