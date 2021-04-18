@@ -16,7 +16,7 @@ This vault allows participants to deposit ETH only and produces higher APY than 
 
 - ETH-only strategies are rare, and usually have poor APY.
 
-  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (44.68% today, not including FARM emissions).
+  The current ETH strategy on Harvest farms supply on Compound which produces pretty low APY (0.27% today, not including FARM emissions). The APY in the proposed vault is even higher than Sushi ETH/USDC farming (56.31% at the time of writing, not including FARM emissions).
 
 - Many participants are long on ETH and hold a lot of ETH. For them, acquiring USDC for farming has disadvantages (it lowers their ETH holdings). Normally they have to do so anyways in order to get the higher APY of Sushi ETH/USDC. By using this vault they can take advantage of all of their ETH without needing USDC.
 
@@ -28,7 +28,7 @@ This strategy still does Sushi ETH/USDC farming under the hood so it produces th
 
 The repo contains an end-to-end test (running on mainnet fork with Hardhat) that shows the entire flow. Run it from the project root.
 
-First, in `hardhat.config.js`, under `networks/hardhat/forking` make sure `blockNumber: 12233644`
+First, in `hardhat.config.js`, under `networks/hardhat/forking` make sure `blockNumber: 12265000`
 
 Run the test with:
 
@@ -46,6 +46,76 @@ The flow in the test is:
 4. User withdraws from the harvest vault their nexus lp tokens
 5. User takes the nexus lp tokens and removes liquidity (burn) from [NexusLPSushi](https://github.com/orbs-network/nexus-sushiswap) contract
 6. User gets back more ETH than they originally put in (due to SUSHI rewards)
+
+Test output:
+
+```
+  LiquidityNexus SushiSwap: WETH
+on block number 12265000
+Impersonating...
+0xf1fD5233E60E7Ef797025FE9DD066d60d59BcB92
+0xf00dD244228F51547f0563e60bCa65a30FBF5f7f
+0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8
+New Vault Deployed:  0xd88E80f91a1F5ffC0b86f65C88b70dCaa492C557
+Strategy Deployed:  0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+Strategy and vault added to Controller.
+farmer enters LiquidityNexus with 1000 ETH
+farmer deposits NexusLP to Vault
+loop  0
+old shareprice:  1000000000000000000
+new shareprice:  1000227950034590539
+growth:  1.0002279500345905
+loop  1
+old shareprice:  1000000000000000000
+new shareprice:  1000455807966494308
+growth:  1.0004558079664942
+loop  2
+old shareprice:  1000000000000000000
+new shareprice:  1000683712978325047
+growth:  1.000683712978325
+loop  3
+old shareprice:  1000000000000000000
+new shareprice:  1000911665077608434
+growth:  1.0009116650776084
+loop  4
+old shareprice:  1000000000000000000
+new shareprice:  1001139664272337340
+growth:  1.0011396642723374
+loop  5
+old shareprice:  1000000000000000000
+new shareprice:  1001367710570037846
+growth:  1.0013677105700378
+loop  6
+old shareprice:  1000000000000000000
+new shareprice:  1001595803978236287
+growth:  1.0015958039782362
+loop  7
+old shareprice:  1000000000000000000
+new shareprice:  1001823944504459229
+growth:  1.0018239445044592
+loop  8
+old shareprice:  1000000000000000000
+new shareprice:  1002052132156233410
+growth:  1.0020521321562335
+loop  9
+old shareprice:  1000000000000000000
+new shareprice:  1002280366941085797
+growth:  1.0022803669410858
+vaultBalance:  0.034947014553915009
+farmer withdraws from Vault
+farmer exits LiquidityNexus...
+start ETH balance 10000
+end ETH balance 10004.547874314234330043
+principal 1000 ETH
+profit 4.547874314234330043 ETH
+Test duration 120 hours
+profit percent 0.454787431423433 %
+daily percent yield 0.0909574862846866 %
+APR 33.1994824939106 %
+APY 39.36404528474766 %
+earned!
+    ✓ Farmer should earn (40336ms)
+```
 
 ## Architecture
 
