@@ -16,8 +16,6 @@ interface INexusLPSushi {
 
     function depositCapital(uint256 amount) external;
 
-//    function withdrawFreeCapital() external;
-
     function addLiquidityETH(address beneficiary, uint256 deadline) external;
 
     function removeLiquidityETH(
