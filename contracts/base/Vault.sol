@@ -309,7 +309,6 @@ contract Vault is ERC20, ERC20Detailed, IUpgradeSource, ControllableInit, VaultS
         : amount.mul(totalSupply()).div(underlyingBalanceWithInvestment());
     _mint(beneficiary, toMint);
 
-
     IERC20(underlying()).safeTransferFrom(sender, address(this), amount);
 
     // update the contribution amount for the beneficiary
