@@ -29,7 +29,7 @@ describe("LiquidityNexus SushiSwap: WETH", () => {
     const usdcWhale = "0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8"; // binance7
     await impersonates([governance, usdcWhale]);
 
-    nexus = await TEMP_DELETE_BEFORE_DEPLOYMENT(nexusOwner);
+    nexus = ""; // TODO
 
     [controller, vault, strategy] = await setupCoreProtocol({
       existingVaultAddress: null,
@@ -143,10 +143,4 @@ function bn(n) {
 
 function fmt(ether) {
   return web3.utils.fromWei(bn(ether).toFixed(), "ether");
-}
-
-async function TEMP_DELETE_BEFORE_DEPLOYMENT(nexusOwner) {
-  const NexusLPSushi = require("../../temp_delete_before_deployment/contracts/NexusLPSushi.sol/NexusLPSushi.json");
-  const NexusLPSushiContract = new web3.eth.Contract(NexusLPSushi.abi, "");
-  return NexusLPSushiContract.deploy({ data: NexusLPSushi.bytecode, arguments: [] }).send({ from: nexusOwner });
 }
