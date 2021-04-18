@@ -5,10 +5,9 @@ const addresses = require("../test-config.js");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const Strategy = artifacts.require("NexusLPSushiStrategy");
-
 const NexusLP = artifacts.require("contracts/strategies/nexus/interface/INexusLPSushi.sol:INexusLPSushi");
 
-const deadline = "100000000000";
+const NEXUS_ADDRESS = "0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a";
 
 describe("LiquidityNexus SushiSwap: ETH", () => {
   // parties in the protocol
@@ -26,7 +25,7 @@ describe("LiquidityNexus SushiSwap: ETH", () => {
   before(async function () {
     console.log("on block number", await web3.eth.getBlockNumber());
 
-    nexus = await NexusLP.at("0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a");
+    nexus = await NexusLP.at(NEXUS_ADDRESS);
     nexusOwner = await nexus.owner();
 
     const accounts = await web3.eth.getAccounts();
@@ -63,10 +62,10 @@ describe("LiquidityNexus SushiSwap: ETH", () => {
     const farmerStartBalanceETH = bn(await web3.eth.getBalance(farmer));
 
     Utils.assertBNGt(farmerStartBalanceETH, depositETH);
-    Utils.assertBNGt(await nexus.availableSpaceToDepositETH(), depositETH);
+    Utils.assertBNGt(await nexus.availableSpaceToDepositETH(), depositETH); // how much ETH can be deposited to be paired with USDC
 
     console.log(`farmer enters LiquidityNexus with ${fmt(depositETH)} ETH`);
-    await nexus.addLiquidityETH(farmer, deadline, { value: bn(depositETH), from: farmer });
+    await nexus.addLiquidityETH(farmer, deadline, { value: bn(depositETH), from: farmer }); // deposit accepts ETH or WETH
 
     const farmerStartBalanceLP = bn(await nexus.balanceOf(farmer));
 
@@ -76,8 +75,8 @@ describe("LiquidityNexus SushiSwap: ETH", () => {
 
     // Using half days is to simulate how we doHardwork in the real world
     const doHardWorkWaitHours = 12;
-    const avgBlockDuration = 13.03;
-    const blocksPerHour = (60 * 60) / avgBlockDuration;
+    const avgBlockDurationSeconds = 13.2;
+    const blocksPerHour = (60 * 60) / avgBlockDurationSeconds;
     const iterations = 10;
 
     let oldSharePrice;
@@ -92,7 +91,7 @@ describe("LiquidityNexus SushiSwap: ETH", () => {
       newSharePrice = bn(await vault.getPricePerFullShare());
 
       Utils.assertBNEq(newSharePrice, oldSharePrice); // 1:1 ratio Nexus:Vault
-      newSharePrice = newSharePrice.multipliedBy(await nexus.pricePerFullShare()).div(1e18); // price increases on LiquidityNexus side
+      newSharePrice = newSharePrice.multipliedBy(await nexus.pricePerFullShare()).div(1e18); // NexusLP price increase
 
       console.log("old shareprice: ", fmt(oldSharePrice));
       console.log("new shareprice: ", fmt(newSharePrice));
@@ -148,3 +147,5 @@ function bn(n) {
 function fmt(ether) {
   return web3.utils.fromWei(bn(ether).toFixed(), "ether");
 }
+
+const deadline = "100000000000";
