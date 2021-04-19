@@ -8,12 +8,10 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorMainnet_mGOOG_UST");
-const NoMintRewardPool = artifacts.require("NoMintRewardPool");
-const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
+const Strategy = artifacts.require("MirrorMainnet_mAAPL_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MIR to FARM: mGOOG", function() {
+describe("MAPPLE-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
@@ -34,10 +32,10 @@ describe("MIR to FARM: mGOOG", function() {
   let vault;
   let strategy;
   let rewardPool;
-  let farm;
+  let iFarm;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x4b70ccD1Cf9905BE1FaEd025EADbD3Ab124efe9a");
+    underlying = await IERC20.at("0xB022e08aDc8bA2dE6bA4fECb59C6D502f66e953B");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -59,26 +57,23 @@ describe("MIR to FARM: mGOOG", function() {
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
 
-    rewardDistributionSwitcher = await RewardDistributionSwitcher.new(
-      addresses.Storage
-    );
-
     await setupExternalContracts();
     [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
-      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
+      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr"],
       "rewardPool" : true,
+      "rewardPoolConfig": {
+        type: 'PotPool',
+        rewardTokens: [addresses.IFARM]
+      },
       "underlying": underlying,
       "governance": governance,
     });
-
-    await rewardPool.transferOwnership(rewardDistributionSwitcher.address, {from: governance});
-    await rewardDistributionSwitcher.setSwitcher(strategy.address, true, {from:governance});
     // whale send underlying to farmers
     await setupBalance();
 
-    farm = await IERC20.at(addresses.FARM);
+    iFarm = await IERC20.at(addresses.IFARM);
   });
 
   describe("Happy path", function() {
@@ -105,19 +100,21 @@ describe("MIR to FARM: mGOOG", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-        console.log("farm in reward pool: ", (new BigNumber(await farm.balanceOf(rewardPool.address))).toFixed());
+        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
         await Utils.advanceNBlock(blocksPerHour);
       }
       await rewardPool.exit({from: farmer1});
-      let farmerNewFarm = new BigNumber(await farm.balanceOf(farmer1));
+      let farmerNewIFarm = new BigNumber(await iFarm.balanceOf(farmer1));
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewFarm:    ", farmerNewFarm.toFixed());
+      console.log("farmerNewFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
-      Utils.assertBNGt(farmerNewFarm, 0);
-      console.log("earned!");
+      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
+      console.log("earned underlying!");
+      Utils.assertBNGt(farmerNewIFarm, 0);
+      console.log("earned iFarm!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });
