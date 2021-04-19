@@ -12,7 +12,7 @@ const Strategy = artifacts.require("MirrorMainnet_mAAPL_UST");
 const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MIR to FARM: mAAPL", function() {
+describe("MAPPLE-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts

@@ -92,7 +92,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
   StrategyBase(_storage, _underlying, _vault, _rewardToken, _uniswapRouterV2)
   public {
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
-    // require(_farm == INoMintRewardPool(_distributionPool).rewardToken(), "distribution pool's reward must be FARM");
     farm = _farm;
     distributionPool = _distributionPool;
     rewardToken = _rewardToken;
