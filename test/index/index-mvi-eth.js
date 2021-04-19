@@ -20,7 +20,7 @@ describe("Index MVI/ETH", function() {
 
   // external setup
   // blockNumber 12199065
-  let underlyingWhale = "0x82703281e7ff09cd2492ddb6b8c5fa645efda819";
+  let underlyingWhale = "0x52d81d4a8b18d6ba0b2c01dd2f9927eaf755dd0a";
   let rewardDistribution = "0x9467cfADC9DE245010dF95Ec6a585A506A8ad5FC";
   let rewardPoolAddr = "0x5bC4249641B4bf4E37EF513F3Fa5C63ECAB34881";
   let index = "0x0954906da0Bf32d5479e25f46056d22f08464cab";
