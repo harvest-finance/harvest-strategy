@@ -8,7 +8,7 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorMainnet_mTSLA_UST");
+const Strategy = artifacts.require("MirrorV2Mainnet_mTSLA_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("MTSLA-UST pair reward and buyback test", function() {

@@ -8,7 +8,7 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorMainnet_mGOOG_UST");
+const Strategy = artifacts.require("MirrorV2Mainnet_mGOOG_UST");
 const NoMintRewardPool = artifacts.require("NoMintRewardPool");
 const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
