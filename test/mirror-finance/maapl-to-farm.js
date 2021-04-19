@@ -9,7 +9,6 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("MirrorMainnet_mAAPL_UST");
-const NoMintRewardPool = artifacts.require("NoMintRewardPool");
 const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
@@ -35,6 +34,7 @@ describe("MIR to FARM: mAAPL", function() {
   let strategy;
   let rewardPool;
   let farm;
+  let iFarm;
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0xB022e08aDc8bA2dE6bA4fECb59C6D502f66e953B");
@@ -69,6 +69,10 @@ describe("MIR to FARM: mAAPL", function() {
       "strategyArtifact": Strategy,
       "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
       "rewardPool" : true,
+      "rewardPoolConfig": {
+        type: 'PotPool',
+        rewardTokens: [addresses.IFARM]
+      },
       "underlying": underlying,
       "governance": governance,
     });
@@ -79,6 +83,7 @@ describe("MIR to FARM: mAAPL", function() {
     await setupBalance();
 
     farm = await IERC20.at(addresses.FARM);
+    iFarm = await IERC20.at(addresses.IFARM);
   });
 
   describe("Happy path", function() {
@@ -105,19 +110,21 @@ describe("MIR to FARM: mAAPL", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-        console.log("farm in reward pool: ", (new BigNumber(await farm.balanceOf(rewardPool.address))).toFixed());
+        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
         await Utils.advanceNBlock(blocksPerHour);
       }
       await rewardPool.exit({from: farmer1});
-      let farmerNewFarm = new BigNumber(await farm.balanceOf(farmer1));
+      let farmerNewIFarm = new BigNumber(await iFarm.balanceOf(farmer1));
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewFarm:    ", farmerNewFarm.toFixed());
+      console.log("farmerNewFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
-      Utils.assertBNGt(farmerNewFarm, 0);
-      console.log("earned!");
+      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
+      console.log("earned underlying!");
+      Utils.assertBNGt(farmerNewIFarm, 0);
+      console.log("earned iFarm!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

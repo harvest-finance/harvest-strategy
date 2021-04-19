@@ -19,7 +19,7 @@ describe("Mainnet ETH/DAI", function() {
 
   // external setup
   // use block 11807770
-  let underlyingWhale = "0x9681319f4e60dD165CA2432f30D91Bb4DcFdFaa2";
+  let underlyingWhale = "0x728c6a47c6a61241cb1266fd19bc73e740268e35";
 
   // parties in the protocol
   let governance;
@@ -44,6 +44,7 @@ describe("Mainnet ETH/DAI", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
+    console.log('farmerBalance: \n', farmerBalance.toString());
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
