@@ -9,7 +9,6 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("MirrorMainnet_mAAPL_UST");
-const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("MAPPLE-UST pair reward and buyback test", function() {
@@ -59,15 +58,11 @@ describe("MAPPLE-UST pair reward and buyback test", function() {
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
 
-    rewardDistributionSwitcher = await RewardDistributionSwitcher.new(
-      addresses.Storage
-    );
-
     await setupExternalContracts();
     [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
-      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
+      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr"],
       "rewardPool" : true,
       "rewardPoolConfig": {
         type: 'PotPool',
@@ -76,9 +71,6 @@ describe("MAPPLE-UST pair reward and buyback test", function() {
       "underlying": underlying,
       "governance": governance,
     });
-
-    await rewardPool.transferOwnership(rewardDistributionSwitcher.address, {from: governance});
-    await rewardDistributionSwitcher.setSwitcher(strategy.address, true, {from:governance});
     // whale send underlying to farmers
     await setupBalance();
 

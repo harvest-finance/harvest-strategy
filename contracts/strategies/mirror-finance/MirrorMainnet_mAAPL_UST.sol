@@ -17,10 +17,9 @@ contract MirrorMainnet_mAAPL_UST is SNXRewardStrategyWithBuyback {
   constructor(
     address _storage,
     address _vault,
-    address _distributionPool,
-    address _distributionSwitcher
+    address _distributionPool
   )
-  SNXRewardStrategyWithBuyback(_storage, mAAPL_USTu, _vault, rewardPool, mir, uniswapRouterAddress, farm, _distributionPool, _distributionSwitcher, 5000)
+  SNXRewardStrategyWithBuyback(_storage, mAAPL_USTu, _vault, rewardPool, mir, uniswapRouterAddress, farm, _distributionPool, 5000)
   public {
     require(IVault(_vault).underlying() == mAAPL_USTu, "Underlying mismatch");
     uniswapRoutes[farm] = [mir, weth, farm];

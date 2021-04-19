@@ -8,7 +8,6 @@ import "hardhat/console.sol";
 import "../StrategyBase.sol";
 import "../interface/uniswap/IUniswapV2Router02.sol";
 import "../interface/IVault.sol";
-import "../interface/IRewardDistributionSwitcher.sol";
 import "../interface/uniswap/IUniswapV2Pair.sol";
 import "../interface/INoMintRewardPool.sol";
 import "./interfaces/SNXRewardInterface.sol";
@@ -55,7 +54,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
 
   address public farm;
   address public distributionPool;
-  address public distributionSwitcher;
   address public rewardToken;
   bool public pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
   uint256 public buybackRatio;
@@ -86,7 +84,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
     address _uniswapRouterV2, 
     address _farm,
     address _distributionPool,
-    address _distributionSwitcher,
     uint256 _buybackRatio
   )
   StrategyBase(_storage, _underlying, _vault, _rewardToken, _uniswapRouterV2)
@@ -95,7 +92,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
     farm = _farm;
     distributionPool = _distributionPool;
     rewardToken = _rewardToken;
-    distributionSwitcher = _distributionSwitcher;
     rewardPool = SNXRewardInterface(_rewardPool);
     buybackRatio = _buybackRatio;
   }
