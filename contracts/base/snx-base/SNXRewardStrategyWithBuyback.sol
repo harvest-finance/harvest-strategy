@@ -52,7 +52,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  address public farm;
   address public distributionPool;
   address public rewardToken;
   bool public pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
@@ -81,15 +80,13 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
     address _vault,
     address _rewardPool,
     address _rewardToken,
-    address _uniswapRouterV2, 
-    address _farm,
+    address _uniswapRouterV2,
     address _distributionPool,
     uint256 _buybackRatio
   )
   StrategyBase(_storage, _underlying, _vault, _rewardToken, _uniswapRouterV2)
   public {
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
-    farm = _farm;
     distributionPool = _distributionPool;
     rewardToken = _rewardToken;
     rewardPool = SNXRewardInterface(_rewardPool);
@@ -122,7 +119,7 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
   function setLiquidationPaths(address [] memory _uniswapRouteToToken0, address [] memory _uniswapRouteToToken1) public onlyGovernance {
     address uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
     address uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
-    
+
     uniswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
     uniswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
   }

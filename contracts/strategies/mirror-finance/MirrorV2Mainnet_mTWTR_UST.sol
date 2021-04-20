@@ -9,10 +9,7 @@ contract MirrorV2Mainnet_mTWTR_UST is SNXRewardStrategyWithBuyback {
   address public mtwtr_ust = address(0x34856be886A2dBa5F7c38c4df7FD86869aB08040);
   address public mtwtr = address(0xEdb0414627E6f1e3F082DE65cD4F9C693D78CCA9);
   address public mir = address(0x09a3EcAFa817268f77BE1283176B946C4ff2E608);
-  address public weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
   address public mTWTRUSTRewardPool = address(0x99d737ab0df10cdC99c6f64D0384ACd5C03AEF7F);
-  address public constant universalLiquidatorRegistry = address(0x7882172921E99d590E097cD600554339fBDBc480);
-  address public constant farm = address(0xa0246c9032bC3A600820415aE600c6388619A14D);
   address public constant uniswapRouterAddress = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
   constructor(
@@ -20,14 +17,10 @@ contract MirrorV2Mainnet_mTWTR_UST is SNXRewardStrategyWithBuyback {
     address _vault,
     address _distributionPool
   )
-  SNXRewardStrategyWithBuyback(_storage, mtwtr_ust, _vault, mTWTRUSTRewardPool, mir, uniswapRouterAddress, farm, _distributionPool, 5000)
+  SNXRewardStrategyWithBuyback(_storage, mtwtr_ust, _vault, mTWTRUSTRewardPool, mir, uniswapRouterAddress, _distributionPool, 5000)
   public {
-    uniswapRoutes[farm] = [mir, weth, farm];
     uniswapRoutes[mtwtr] = [mir, ust, mtwtr];
     uniswapRoutes[ust] = [mir, ust];
     require(IVault(_vault).underlying() == mtwtr_ust, "Underlying mismatch");
-
-    // adding ability to liquidate reward tokens manually if there is no liquidity
-    unsalvagableTokens[mir] = false;
   }
 }
