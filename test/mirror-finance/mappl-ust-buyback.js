@@ -45,6 +45,7 @@ describe("MAPPLE-UST pair reward and buyback test", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
+    Utils.assertBNGt(farmerBalance, 0);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -79,6 +80,7 @@ describe("MAPPLE-UST pair reward and buyback test", function() {
   describe("Happy path", function() {
     it("Farmer should earn money", async function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
+      console.log('famerBalance: ', farmerBalance.toString());
       await depositVault(farmer1, underlying, vault, farmerBalance);
 
       let farmerVaultShare = new BigNumber(await vault.balanceOf(farmer1)).toFixed();

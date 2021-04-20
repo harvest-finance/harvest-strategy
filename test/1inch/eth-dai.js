@@ -44,7 +44,6 @@ describe("Mainnet ETH/DAI", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
-    console.log('farmerBalance: \n', farmerBalance.toString());
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 

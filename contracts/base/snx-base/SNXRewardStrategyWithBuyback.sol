@@ -119,8 +119,12 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
   }
 
 
-  function setLiquidationPaths(address [] memory _uniswapRouteFarm) public onlyGovernance {
-    uniswapRoutes[farm] = _uniswapRouteFarm;
+  function setLiquidationPaths(address [] memory _uniswapRouteToToken0, address [] memory _uniswapRouteToToken1) public onlyGovernance {
+    address uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
+    address uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
+    
+    uniswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
+    uniswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
   }
 
   // We assume that all the tradings can be done on Uniswap
