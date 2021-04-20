@@ -56,6 +56,8 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
   address public rewardToken;
   bool public pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
   uint256 public buybackRatio;
+  address public uniLPComponentToken0;
+  address public uniLPComponentToken1;
 
   SNXRewardInterface public rewardPool;
 
@@ -91,6 +93,8 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
     rewardToken = _rewardToken;
     rewardPool = SNXRewardInterface(_rewardPool);
     buybackRatio = _buybackRatio;
+    uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
+    uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -117,9 +121,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
 
 
   function setLiquidationPaths(address [] memory _uniswapRouteToToken0, address [] memory _uniswapRouteToToken1) public onlyGovernance {
-    address uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
-    address uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
-
     uniswapRoutes[uniLPComponentToken0] = _uniswapRouteToToken0;
     uniswapRoutes[uniLPComponentToken1] = _uniswapRouteToToken1;
   }
@@ -146,9 +147,6 @@ contract SNXRewardStrategyWithBuyback is StrategyBase {
     IERC20(rewardToken).safeApprove(uniswapRouterV2, remainingRewardBalance);
 
     uint256 amountOutMin = 1;
-
-    address uniLPComponentToken0 = IUniswapV2Pair(underlying).token0();
-    address uniLPComponentToken1 = IUniswapV2Pair(underlying).token1();
 
     uint256 toToken0 = remainingRewardBalance.div(2);
     uint256 toToken1 = remainingRewardBalance.sub(toToken0);
