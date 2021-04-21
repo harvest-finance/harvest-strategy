@@ -8,12 +8,12 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorV2Mainnet_mGOOG_UST");
+const Strategy = artifacts.require("MirrorV2Mainnet_mGOOGL_UST");
 const NoMintRewardPool = artifacts.require("NoMintRewardPool");
 const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MGOOG-UST pair reward and buyback test", function() {
+describe("MGOOGL-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
