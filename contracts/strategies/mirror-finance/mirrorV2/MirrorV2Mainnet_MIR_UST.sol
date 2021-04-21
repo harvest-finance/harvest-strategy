@@ -1,7 +1,7 @@
 pragma solidity 0.5.16;
 
-import "../../base/snx-base/interfaces/SNXRewardInterface.sol";
-import "../../base/snx-base/SNXRewardStrategyWithBuyback.sol";
+import "../../../base/snx-base/interfaces/SNXRewardInterface.sol";
+import "../../../base/snx-base/SNXRewardStrategyWithBuyback.sol";
 
 contract MirrorV2Mainnet_MIR_UST is SNXRewardStrategyWithBuyback {
 

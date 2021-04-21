@@ -1,24 +1,27 @@
 // Utilities
-const Utils = require("../utilities/Utils.js");
-const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
+const Utils = require("../../utilities/Utils.js");
+const { impersonates, setupCoreProtocol, depositVault } = require("../../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
+const addresses = require("../../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorV2Mainnet_MIR_UST");
+const Strategy = artifacts.require("MirrorV2Mainnet_mGOOG_UST");
+const NoMintRewardPool = artifacts.require("NoMintRewardPool");
+const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MIR-UST pair reward and buyback test", function() {
+describe("MGOOG-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x447f95026107aaed7472A0470931e689f51e0e42";
+  //blockNumber 12282415
+  let underlyingWhale = "0x4317c9d3fdc7df6040a3894d30e2c5325791fd0c";
 
   // parties in the protocol
   let governance;
@@ -35,7 +38,7 @@ describe("MIR-UST pair reward and buyback test", function() {
   let iFarm;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x87dA823B6fC8EB8575a235A824690fda94674c88");
+    underlying = await IERC20.at("0x4b70ccD1Cf9905BE1FaEd025EADbD3Ab124efe9a");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -70,6 +73,7 @@ describe("MIR-UST pair reward and buyback test", function() {
       "underlying": underlying,
       "governance": governance,
     });
+
     // whale send underlying to farmers
     await setupBalance();
 
@@ -108,7 +112,7 @@ describe("MIR-UST pair reward and buyback test", function() {
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewFarm:    ", farmerNewIFarm.toFixed());
+      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);

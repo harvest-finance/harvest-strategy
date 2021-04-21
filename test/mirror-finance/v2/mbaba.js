@@ -1,26 +1,25 @@
 // Utilities
-const Utils = require("../utilities/Utils.js");
-const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
+const Utils = require("../../utilities/Utils.js");
+const { impersonates, setupCoreProtocol, depositVault } = require("../../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
+const addresses = require("../../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorV2Mainnet_mTWTR_UST");
-
-//This test was developed at blockNumber 11938650
+const Strategy = artifacts.require("MirrorV2Mainnet_mBABA_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MTWTR-UST pair reward and buyback test", function() {
+describe("MBABA-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xB4865AA43A0F32ede7e2Fcb5bcCe1190da5De72E";
+  //blockNumber 12282415
+  let underlyingWhale = "0xe985a1a1248b995266869258cd965f1de11111ec";
 
   // parties in the protocol
   let governance;
@@ -34,9 +33,10 @@ describe("MTWTR-UST pair reward and buyback test", function() {
   let vault;
   let strategy;
   let rewardPool;
+  let iFarm;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x34856be886A2dBa5F7c38c4df7FD86869aB08040");
+    underlying = await IERC20.at("0x676Ce85f66aDB8D7b8323AeEfe17087A3b8CB363");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -46,6 +46,7 @@ describe("MTWTR-UST pair reward and buyback test", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
+    Utils.assertBNGt(farmerBalance, 0);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -71,7 +72,6 @@ describe("MTWTR-UST pair reward and buyback test", function() {
       "underlying": underlying,
       "governance": governance,
     });
-
     // whale send underlying to farmers
     await setupBalance();
 
@@ -110,13 +110,13 @@ describe("MTWTR-UST pair reward and buyback test", function() {
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
+      console.log("farmerNewFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
       console.log("earned underlying!");
       Utils.assertBNGt(farmerNewIFarm, 0);
-      console.log("earned!");
+      console.log("earned iFarm!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

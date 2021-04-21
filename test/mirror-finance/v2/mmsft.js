@@ -1,24 +1,25 @@
 // Utilities
-const Utils = require("../utilities/Utils.js");
-const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
+const Utils = require("../../utilities/Utils.js");
+const { impersonates, setupCoreProtocol, depositVault } = require("../../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
+const addresses = require("../../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorV2Mainnet_mAMZN_UST");
+const Strategy = artifacts.require("MirrorV2Mainnet_mMSFT_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MAMZN-UST pair reward and buyback test", function() {
+describe("MMSFT-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x447f95026107aaed7472A0470931e689f51e0e42";
+  //blockNumber 12282415
+  let underlyingWhale = "0x5071af77f17050477d21350e6dbeac13b5e7928f";
 
   // parties in the protocol
   let governance;
@@ -35,7 +36,7 @@ describe("MAMZN-UST pair reward and buyback test", function() {
   let iFarm;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x0Ae8cB1f57e3b1b7f4f5048743710084AA69E796");
+    underlying = await IERC20.at("0xeAfAD3065de347b910bb88f09A5abE580a09D655");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -45,6 +46,7 @@ describe("MAMZN-UST pair reward and buyback test", function() {
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
+    Utils.assertBNGt(farmerBalance, 0);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -70,7 +72,6 @@ describe("MAMZN-UST pair reward and buyback test", function() {
       "underlying": underlying,
       "governance": governance,
     });
-
     // whale send underlying to farmers
     await setupBalance();
 
@@ -109,7 +110,7 @@ describe("MAMZN-UST pair reward and buyback test", function() {
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
 
-      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
+      console.log("farmerNewFarm:    ", farmerNewIFarm.toFixed());
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);

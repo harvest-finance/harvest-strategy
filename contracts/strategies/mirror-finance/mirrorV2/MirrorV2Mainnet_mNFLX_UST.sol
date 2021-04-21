@@ -1,7 +1,7 @@
 pragma solidity 0.5.16;
 
-import "../../base/snx-base/interfaces/SNXRewardInterface.sol";
-import "../../base/snx-base/SNXRewardStrategyWithBuyback.sol";
+import "../../../base/snx-base/interfaces/SNXRewardInterface.sol";
+import "../../../base/snx-base/SNXRewardStrategyWithBuyback.sol";
 
 contract MirrorV2Mainnet_mNFLX_UST is SNXRewardStrategyWithBuyback {
 
@@ -19,8 +19,8 @@ contract MirrorV2Mainnet_mNFLX_UST is SNXRewardStrategyWithBuyback {
   )
   SNXRewardStrategyWithBuyback(_storage, mnflx_ust, _vault, mNFLXUSTRewardPool, mir, uniswapRouterAddress, _distributionPool, 5000)
   public {
+    require(IVault(_vault).underlying() == mnflx_ust, "Underlying mismatch");
     uniswapRoutes[mnflx] = [mir, ust, mnflx];
     uniswapRoutes[ust] = [mir, ust];
-    require(IVault(_vault).underlying() == mnflx_ust, "Underlying mismatch");
   }
 }

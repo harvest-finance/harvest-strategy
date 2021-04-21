@@ -1,26 +1,25 @@
 // Utilities
-const Utils = require("../utilities/Utils.js");
-const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
+const Utils = require("../../utilities/Utils.js");
+const { impersonates, setupCoreProtocol, depositVault } = require("../../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
+const addresses = require("../../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("MirrorV2Mainnet_mGOOG_UST");
-const NoMintRewardPool = artifacts.require("NoMintRewardPool");
-const RewardDistributionSwitcher = artifacts.require("RewardDistributionSwitcher");
+const Strategy = artifacts.require("MirrorV2Mainnet_mAMZN_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("MGOOG-UST pair reward and buyback test", function() {
+describe("MAMZN-UST pair reward and buyback test", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x447f95026107aaed7472A0470931e689f51e0e42";
+  //blockNumber 12282415
+  let underlyingWhale = "0x7a48f0fc1dbe237e0073a2dc745e4c9f756509cd";
 
   // parties in the protocol
   let governance;
@@ -37,7 +36,7 @@ describe("MGOOG-UST pair reward and buyback test", function() {
   let iFarm;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x4b70ccD1Cf9905BE1FaEd025EADbD3Ab124efe9a");
+    underlying = await IERC20.at("0x0Ae8cB1f57e3b1b7f4f5048743710084AA69E796");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
