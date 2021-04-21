@@ -96,7 +96,7 @@ async function setupCoreProtocol(config) {
         rewardTokens[0],
         vault.address,
         64800,
-        rewardDistributions,
+        rewardDistributions[0],
         addresses.Storage,
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
