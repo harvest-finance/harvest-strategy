@@ -68,7 +68,7 @@ describe("Basis DAI_BASV2", function() {
       "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr", rewardDistributionSwitcher.address],
       "underlying": underlying,
       "governance": governance,
-      "rewardPool" : true
+      "announceStrategy": true
     });
     await rewardDistributionSwitcher.setSwitcher(strategy.address, true, {from:governance});
 
