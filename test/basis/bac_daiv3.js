@@ -18,8 +18,8 @@ describe("Basis BAC_DAI", function() {
   // external contracts
   let underlying;
 
-  // external setup, block: 11926812
-  let underlyingWhale = "0xc6af628071cfb5d378df6f6f3b5e1abfe5bff2d7";
+  // external setup, block: 12314670
+  let underlyingWhale = "0x1f295ff3ea09d8eac8a39e3617bd4646d4df7c9a";
 
   // parties in the protocol
   let governance;

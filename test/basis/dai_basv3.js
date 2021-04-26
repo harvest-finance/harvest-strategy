@@ -18,8 +18,8 @@ describe("Basis DAI_BASV2", function() {
   // external contracts
   let underlying;
 
-  // external setup, block: 11872900
-  let underlyingWhale = "0x9986da4443f5C8A9055C0adfca8d7a4a001B0311";
+  // external setup, block: 12314670
+  let underlyingWhale = "0xacfe4511ce883c14c4ea40563f176c3c09b4c47c";
 
   // parties in the protocol
   let governance;
