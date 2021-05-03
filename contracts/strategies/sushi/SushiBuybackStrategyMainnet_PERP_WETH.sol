@@ -4,6 +4,7 @@ import "../../base/sushi-base/MasterChefStrategyWithBuyback.sol";
 
 contract SushiBuybackStrategyMainnet_PERP_WETH is MasterChefStrategyWithBuyback {
 
+  // to differentiate the bytecode
   address public constant perpEthLp = address(0x8486c538DcBD6A707c5b3f730B6413286FE8c854);
   address public constant masterChef = address(0xc2EdaD668740f1aA35E4D8f227fB8E17dcA888Cd);
   address public constant sushi = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);

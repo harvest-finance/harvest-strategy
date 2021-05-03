@@ -7,19 +7,19 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const IdleStrategyUSDCMainnet = artifacts.require("IdleStrategyUSDCMainnet");
+const IdleStrategyWBTCMainnet = artifacts.require("IdleStrategyWBTCMainnet");
 const IVault = artifacts.require("IVault");
 
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet IDLE USDC", function() {
+describe("Mainnet IDLE WBTC", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup, block number: 12323239
-  let underlyingWhale = "0xAe2D4617c862309A3d75A0fFB358c7a5009c673F";
+  let underlyingWhale = "0x701bd63938518d7db7e0f00945110c80c67df532";
 
   // parties in the protocol
   let governance;
@@ -34,7 +34,7 @@ describe("Mainnet IDLE USDC", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    underlying = await IERC20.at("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -58,8 +58,8 @@ describe("Mainnet IDLE USDC", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE",
-      "strategyArtifact": IdleStrategyUSDCMainnet,
+      "existingVaultAddress": "0x5d9d25c7C457dD82fc8668FFC6B9746b674d4EcB",
+      "strategyArtifact": IdleStrategyWBTCMainnet,
       "announceStrategy": true,
       "underlying": underlying,
       "governance": governance,

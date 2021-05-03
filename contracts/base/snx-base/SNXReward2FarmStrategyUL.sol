@@ -58,7 +58,7 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
 
   // a flag for disabling selling for simplified emergency exit
   bool public sell = true;
-  uint256 public sellFloor = 1e6;
+  uint256 public sellFloor = 1;
 
 
   //  Instead of trying to pass in the detailed liquidation path and different dexes to the liquidator,

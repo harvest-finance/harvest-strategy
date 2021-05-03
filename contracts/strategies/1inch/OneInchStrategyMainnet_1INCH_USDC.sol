@@ -18,7 +18,8 @@ contract OneInchStrategy_1INCH_USDC is OneInchStrategy_1INCH_X {
     _storage,
     _vault,
     address(0x69AB07348F51c639eF81d7991692f0049b10D522), // underlying
-    address(0x1055f60Bbf27D233C4E34D2E03e35567427415Fa) // pool
+    address(0x1055f60Bbf27D233C4E34D2E03e35567427415Fa), // pool
+    address(0x0EF1B8a0E726Fc3948E15b23993015eB1627f210)  // oneInchEthLP
   ) public {
     require(token1 == usdc, "token1 mismatch");
   }

@@ -18,7 +18,7 @@ describe("Sushiswap PERP-WETH buyback test", function() {
   let underlying;
 
   // external setup
-  // block: 12043941
+  // block: 12316889
   let underlyingWhale = "0x32388335cb1381d7e192a875ec1267fcdc8474a1"; // unstake
 
   // parties in the protocol

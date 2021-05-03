@@ -21,6 +21,8 @@ import "../../base/StrategyBase.sol";
 */
 contract OneInchStrategy_1INCH_X is StrategyBase {
 
+  // 1inch / ETH reward pool: 0x9070832CF729A5150BB26825c2927e7D343EabD9
+
   using SafeERC20 for IERC20;
   using Address for address;
   using SafeMath for uint256;
@@ -34,10 +36,13 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
   address public weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
   address public uni = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
+  address public oneInchCaller = address(0xe069CB01D06bA617bCDf789bf2ff0D5E5ca20C71);
+
   uint256 maxUint = uint256(~0);
   address public oneInchEthLP;
+  address[] public uniswap_WETH2Token1;
 
-  // token0 is ONEINCH
+  // token0 is ETH
   address public token1;
 
   uint256 slippageNumerator = 9;
@@ -52,14 +57,17 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
     address _storage,
     address _vault,
     address _underlying,
-    address _pool
+    address _pool,
+    address _oneInchEthLP
   )
-  StrategyBase(_storage, _underlying, _vault, oneInch, address(0)) public {
+  StrategyBase(_storage, _underlying, _vault, weth, address(0)) public {
     require(IVault(_vault).underlying() == _underlying, "vault does not support the required LP token");
     token1 = IMooniswap(_underlying).token1();
     pool = _pool;
     require(token1 != address(0), "token1 must be non-zero");
-    require(IMooniswap(_underlying).token0() == oneInch, "token0 must be 0x0 (Ether)");
+    require(IMooniswap(_underlying).token0() == oneInch, "token0 must be 1INCH");
+    oneInchEthLP = _oneInchEthLP;
+    uniswap_WETH2Token1 = [weth, token1];
 
     // making 1inch reward token salvagable to be able to
     // liquidate externally
@@ -120,6 +128,8 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
     }
   }
 
+  function() external payable {}
+
   /**
   * Claims the 1Inch crop, converts it accordingly
   */
@@ -137,27 +147,58 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
       return;
     }
 
-    // share 30% of the 1INCH as a profit sharing reward
-    notifyProfitInRewardToken(oneInchBalance);
+    // converting the reward token (1inch) into Ether
+    uint256 amountOutMin = 1;
 
-    uint256 remainingBalance = IERC20(oneInch).balanceOf(address(this));
+    IERC20(oneInch).safeApprove(oneInchEthLP, 0);
+    IERC20(oneInch).safeApprove(oneInchEthLP, oneInchBalance);
 
-    IERC20(oneInch).safeApprove(underlying, 0);
-    IERC20(oneInch).safeApprove(underlying, remainingBalance.div(2));
+    IMooniswap(oneInchEthLP).swap(oneInch, address(0), oneInchBalance, amountOutMin, address(0));
+
+    // convert the received Ether into wrapped Ether
+    WETH9(weth).deposit.value(address(this).balance)();
+    uint256 wethBalance = IERC20(weth).balanceOf(address(this));
+    if( wethBalance == 0 ) {
+      emit ProfitsNotCollected(weth);
+      return;
+    }
+
+    // share 30% of the wrapped Ether as a profit sharing reward
+    notifyProfitInRewardToken(wethBalance);
+
+    uint256 remainingWethBalance = IERC20(weth).balanceOf(address(this));
+
+    IERC20(weth).safeApprove(uni, 0);
+    IERC20(weth).safeApprove(uni, remainingWethBalance.div(2));
 
     // with the remaining, half would be converted into the second token
-    uint256 amountOutMin = 1;
-    IMooniswap(underlying).swap(oneInch, token1, remainingBalance.div(2), amountOutMin, address(0));
-
-    uint256 oneInchAmount = IERC20(oneInch).balanceOf(address(this));
+    IUniswapV2Router02(uni).swapExactTokensForTokens(
+      remainingWethBalance.div(2),
+      amountOutMin,
+      uniswap_WETH2Token1,
+      address(this),
+      block.timestamp
+    );
     uint256 token1Amount = IERC20(token1).balanceOf(address(this));
 
-    IERC20(oneInch).safeApprove(underlying, 0);
-    IERC20(oneInch).safeApprove(underlying, oneInchAmount);
+    // and the other half - unwrapped
+    remainingWethBalance = IERC20(weth).balanceOf(address(this));
+    IERC20(weth).safeApprove(weth, 0);
+    IERC20(weth).safeApprove(weth, remainingWethBalance);
+    WETH9(weth).withdraw(remainingWethBalance);
+    uint256 remainingEthBalance = address(this).balance;
+
+    // and now swapping this ETH back into 1inch
+    IMooniswap(oneInchEthLP).swap.value(remainingEthBalance)(address(0), oneInch, remainingEthBalance, amountOutMin, address(0));
+    uint256 oneInchAmount = IERC20(oneInch).balanceOf(address(this));
+
     IERC20(token1).safeApprove(underlying, 0);
     IERC20(token1).safeApprove(underlying, token1Amount);
 
-    // adding liquidity: ETH + token1
+    IERC20(oneInch).safeApprove(underlying, 0);
+    IERC20(oneInch).safeApprove(underlying, oneInchAmount);
+
+    // adding liquidity: 1INCH + token1
     IMooniswap(underlying).deposit(
       [oneInchAmount, token1Amount],
       [oneInchAmount.mul(slippageNumerator).div(slippageDenominator),
