@@ -5,13 +5,13 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../base/inheritance/RewardTokenProfitNotifier.sol";
-import "../../base/interface/IStrategy.sol";
+import "../../base/interface/IStrategyV3.sol";
 import "../../base/interface/IVault.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "./interface/IdleToken.sol";
 import "./interface/IIdleTokenHelper.sol";
 
-contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
+contract IdleFinanceStrategyV3 is IStrategyV3, RewardTokenProfitNotifier {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -19,7 +19,6 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   event ProfitsNotCollected(address);
   event Liquidating(address, uint256);
 
-  address public referral;
   IERC20 public underlying;
   address public idleUnderlying;
   uint256 public virtualPrice;
@@ -38,6 +37,8 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   bool public sellIdle;
   bool public claimAllowed;
   bool public protected;
+
+  address public referral;
 
   // These tokens cannot be claimed by the controller
   mapping (address => bool) public unsalvagableTokens;
@@ -82,11 +83,8 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
 
     uniswapComp = [_comp, _weth, _idle];
     uniswapIdle = [_idle, _weth, _underlying];
-    referral = address(0xf00dD244228F51547f0563e60bCa65a30FBF5f7f);
-    sellComp = true;
-    sellIdle = true;
-    claimAllowed = true;
 
+    referral = address(0xf00dD244228F51547f0563e60bCa65a30FBF5f7f);
     idleTokenHelper = IIdleTokenHelper(0x04Ce60ed10F6D2CfF3AA015fc7b950D13c113be5);
     virtualPrice = idleTokenHelper.getRedeemPrice(idleUnderlying);
   }
@@ -130,18 +128,17 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     liquidateIdle();
   }
 
-  function withdrawToVault(uint256 amountUnderlying) public restricted {
+  function withdrawToVault(uint256 correspondingShares, uint256 totalShares) public restricted {
     // this method is called when the vault is missing funds
-    // we will calculate the proportion of idle LP tokens that matches
-    // the underlying amount requested
+    // we will calculate the proportion of idle LP tokens in
+    // accordance with correspondingShares and totalShares
     uint256 balanceBefore = underlying.balanceOf(address(this));
     uint256 totalIdleLpTokens = IERC20(idleUnderlying).balanceOf(address(this));
-    uint256 totalUnderlyingBalance = totalIdleLpTokens.mul(virtualPrice).div(1e18);
-    uint256 ratio = amountUnderlying.mul(1e18).div(totalUnderlyingBalance);
-    uint256 toRedeem = totalIdleLpTokens.mul(ratio).div(1e18);
+    uint256 toRedeem = totalIdleLpTokens.mul(correspondingShares).div(totalShares);
     IIdleTokenV3_1(idleUnderlying).redeemIdleToken(toRedeem);
     uint256 balanceAfter = underlying.balanceOf(address(this));
-    underlying.safeTransfer(vault, balanceAfter.sub(balanceBefore));
+    uint256 redeemablePureUnderlying = balanceBefore.mul(correspondingShares).div(totalShares);
+    underlying.safeTransfer(vault, balanceAfter.sub(balanceBefore).add(redeemablePureUnderlying));
   }
 
   /**

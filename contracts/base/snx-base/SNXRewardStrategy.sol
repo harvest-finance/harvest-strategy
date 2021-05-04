@@ -15,6 +15,7 @@ contract SNXRewardStrategy is StrategyBase {
   using SafeERC20 for IERC20;
 
   bool pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
+  bool getRewardWhenExit = true;
   SNXRewardInterface public rewardPool;
   address public rewardToken;
 
@@ -49,8 +50,16 @@ contract SNXRewardStrategy is StrategyBase {
   *   The function is only used for emergency to exit the pool
   */
   function emergencyExit() public onlyGovernance {
-    rewardPool.exit();
+    if(getRewardWhenExit){
+      rewardPool.exit();
+    } else {
+      rewardPool.withdraw(rewardPool.balanceOf(address(this)));
+    }
     pausedInvesting = true;
+  }
+
+  function setGetRewardWhenExit(bool flag) public onlyGovernance {
+    getRewardWhenExit = flag;
   }
 
   /*

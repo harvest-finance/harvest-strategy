@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.5.16;
 
+import "hardhat/console.sol";
+
 import "./inheritance/RewardTokenProfitNotifier.sol";
 import "./interface/IStrategy.sol";
 

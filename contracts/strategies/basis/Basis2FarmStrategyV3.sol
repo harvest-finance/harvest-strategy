@@ -4,11 +4,12 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../StrategyBaseUL.sol";
-import "../interface/IVault.sol";
-import "../interface/IRewardDistributionSwitcher.sol";
-import "../interface/INoMintRewardPool.sol";
-import "./interfaces/SNXRewardInterface.sol";
+import "../../base/StrategyBaseUL.sol";
+import "../../base/interface/IVault.sol";
+import "../../base/interface/IRewardDistributionSwitcher.sol";
+import "../../base/interface/INoMintRewardPool.sol";
+import "./interfaces/IBASPool.sol";
+
 
 /*
 *   This is a general strategy for yields that are based on the synthetix reward contract
@@ -43,7 +44,7 @@ import "./interfaces/SNXRewardInterface.sol";
 *
 */
 
-contract SNXReward2FarmStrategyUL is StrategyBaseUL {
+contract Basis2FarmStrategyV3 is StrategyBaseUL {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -54,11 +55,11 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   address public rewardToken;
   bool public pausedInvesting = false; // When this flag is true, the strategy will not be able to invest. But users should be able to withdraw.
 
-  SNXRewardInterface public rewardPool;
+  IBASPool public rewardPool;
 
   // a flag for disabling selling for simplified emergency exit
   bool public sell = true;
-  uint256 public sellFloor = 1;
+  uint256 public sellFloor = 1e6;
 
 
   //  Instead of trying to pass in the detailed liquidation path and different dexes to the liquidator,
@@ -75,6 +76,13 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   // specifies which DEX is the token liquidated on
   bytes32 [] public liquidationDexes;
 
+  // if the flag is set, then it would read the previous reward distribution from the pool
+  // otherwise, it would read from `setRewardDistributionTo` and ask the distributionSwitcher to set to it.
+  bool public autoRevertRewardDistribution;
+  address public defaultRewardDistribution;
+
+  uint poolId;
+
   event ProfitsNotCollected();
 
   // This is only used in `investAllUnderlying()`
@@ -89,23 +97,23 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     address _underlying,
     address _vault,
     address _rewardPool,
+    uint _rewardPoolId,
     address _rewardToken,
     address _universalLiquidatorRegistry,
     address _farm,
-    address _distributionPool
+    address _distributionPool,
+    address _distributionSwitcher
   )
   StrategyBaseUL(_storage, _underlying, _vault, _farm, _universalLiquidatorRegistry)
   public {
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
-    require(
-      (_farm == INoMintRewardPool(_distributionPool).rewardToken())
-      || (_farm == IVault(INoMintRewardPool(_distributionPool).rewardToken()).underlying()),
-      "distribution pool's reward must be FARM or iFARM");
-
+    require(_farm == INoMintRewardPool(_distributionPool).rewardToken(), "distribution pool's reward must be FARM");
     farm = _farm;
     distributionPool = _distributionPool;
     rewardToken = _rewardToken;
-    rewardPool = SNXRewardInterface(_rewardPool);
+    distributionSwitcher = _distributionSwitcher;
+    rewardPool = IBASPool(_rewardPool);
+    poolId = _rewardPoolId;
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -118,7 +126,9 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   *   The function is only used for emergency to exit the pool
   */
   function emergencyExit() public onlyGovernance {
-    rewardPool.exit();
+    if (rewardPool.balanceOf(poolId, address(this)) > 0) {
+      rewardPool.withdraw(poolId, rewardPool.balanceOf(poolId, address(this)));
+    }
     pausedInvesting = true;
   }
 
@@ -161,8 +171,25 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
 
     uint256 farmAmount = IERC20(farm).balanceOf(address(this));
 
-    // Share profit + buyback
-    notifyProfitAndBuybackInRewardToken(farmAmount, distributionPool, 10000);
+    // Use farm as profit sharing base, sending it
+    notifyProfitInRewardToken(farmAmount);
+
+    // The remaining farms should be distributed to the distribution pool
+    farmAmount = IERC20(farm).balanceOf(address(this));
+
+    // Switch reward distribution temporarily, notify reward, switch it back
+    address prevRewardDistribution;
+    if(autoRevertRewardDistribution) {
+      prevRewardDistribution = INoMintRewardPool(distributionPool).rewardDistribution();
+    } else {
+      prevRewardDistribution = defaultRewardDistribution;
+    }
+    IRewardDistributionSwitcher(distributionSwitcher).setPoolRewardDistribution(distributionPool, address(this));
+
+    // transfer and notify with the remaining farm amount
+    IERC20(farm).safeTransfer(distributionPool, farmAmount);
+    INoMintRewardPool(distributionPool).notifyRewardAmount(farmAmount);
+    IRewardDistributionSwitcher(distributionSwitcher).setPoolRewardDistribution(distributionPool, prevRewardDistribution);
   }
 
   /*
@@ -173,7 +200,7 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     // you try to stake(0).
     if(IERC20(underlying).balanceOf(address(this)) > 0) {
       IERC20(underlying).approve(address(rewardPool), IERC20(underlying).balanceOf(address(this)));
-      rewardPool.stake(IERC20(underlying).balanceOf(address(this)));
+      rewardPool.deposit(poolId, IERC20(underlying).balanceOf(address(this)));
     }
   }
 
@@ -181,10 +208,8 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
-    if (address(rewardPool) != address(0)) {
-      if (rewardPool.balanceOf(address(this)) > 0) {
-        rewardPool.exit();
-      }
+    if (rewardPool.balanceOf(poolId, address(this)) > 0) {
+      rewardPool.exit(poolId);
     }
     _liquidateReward();
 
@@ -203,7 +228,7 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
       // While we have the check above, we still using SafeMath below
       // for the peace of mind (in case something gets changed in between)
       uint256 needToWithdraw = amount.sub(IERC20(underlying).balanceOf(address(this)));
-      rewardPool.withdraw(Math.min(rewardPool.balanceOf(address(this)), needToWithdraw));
+      rewardPool.withdraw(poolId, Math.min(rewardPool.balanceOf(poolId, address(this)), needToWithdraw));
     }
 
     IERC20(underlying).safeTransfer(vault, amount);
@@ -214,14 +239,11 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   *   amount of reward that is accrued.
   */
   function investedUnderlyingBalance() external view returns (uint256) {
-    if (address(rewardPool) == address(0)) {
-      return IERC20(underlying).balanceOf(address(this));
-    }
     // Adding the amount locked in the reward pool and the amount that is somehow in this contract
     // both are in the units of "underlying"
     // The second part is needed because there is the emergency exit mechanism
     // which would break the assumption that all the funds are always inside of the reward pool
-    return rewardPool.balanceOf(address(this)).add(IERC20(underlying).balanceOf(address(this)));
+    return rewardPool.balanceOf(poolId, address(this)).add(IERC20(underlying).balanceOf(address(this)));
   }
 
   /*
@@ -244,7 +266,7 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    rewardPool.getReward();
+    rewardPool.claimReward(poolId);
     _liquidateReward();
     investAllUnderlying();
   }
@@ -262,5 +284,19 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   */
   function setSellFloor(uint256 floor) public onlyGovernance {
     sellFloor = floor;
+  }
+
+  function setRewardPool(address _rewardPool, uint256 _pid) public onlyGovernance {
+    require(IBASPool(_rewardPool).tokenOf(_pid) == underlying, "Pool underlying missmatch");
+
+    if (rewardPool.balanceOf(poolId, address(this)) > 0) {
+      rewardPool.exit(poolId);
+    }
+    _liquidateReward();
+
+    poolId = _pid;
+    rewardPool = IBASPool(_rewardPool);
+    
+    investAllUnderlying();
   }
 }
