@@ -122,6 +122,7 @@ contract SNXRewardUniLPStrategy is StrategyBase {
       return;
     }
 
+    console.log("rewardBalance", rewardBalance);
     notifyProfitInRewardToken(rewardBalance);
     uint256 remainingRewardBalance = IERC20(rewardToken).balanceOf(address(this));
 
@@ -130,6 +131,7 @@ contract SNXRewardUniLPStrategy is StrategyBase {
       && uniswapRoutes[address(uniLPComponentToken1)].length > 0 // and we have a route to do the swap
     ) {
 
+      console.log("remainingRewardBalance", remainingRewardBalance);
       // allow Uniswap to sell our reward
       uint256 amountOutMin = 1;
 
@@ -178,6 +180,9 @@ contract SNXRewardUniLPStrategy is StrategyBase {
       uint256 token1Amount = IERC20(uniLPComponentToken1).balanceOf(address(this));
 
       // provide token1 and token2 to UniLPToken
+
+      console.log("uniLPComponentToken0", uniLPComponentToken0);
+      console.log("uniLPComponentToken1", uniLPComponentToken1);
 
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, 0);
       IERC20(uniLPComponentToken0).safeApprove(uniswapRouterV2, token0Amount);
@@ -279,8 +284,11 @@ contract SNXRewardUniLPStrategy is StrategyBase {
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     rewardPool.getReward();
+    console.log("after rewardPool.getReward();");
     _liquidateReward();
+    console.log("after _liquidateReward();");
     investAllUnderlying();
+    console.log("after investAllUnderlying();");
   }
 
   /**

@@ -1,6 +1,15 @@
 pragma solidity 0.5.16;
 
 interface IController {
+
+    event SharePriceChangeLog(
+      address indexed vault,
+      address indexed strategy,
+      uint256 oldSharePrice,
+      uint256 newSharePrice,
+      uint256 timestamp
+    );
+
     // [Grey list]
     // An EOA can safely interact with the system no matter what.
     // If you're using Metamask, you're using an EOA.
@@ -26,4 +35,6 @@ interface IController {
 
     function feeRewardForwarder() external view returns(address);
     function setFeeRewardForwarder(address _value) external;
+
+    function addHardWorker(address _worker) external;
 }

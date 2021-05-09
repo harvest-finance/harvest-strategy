@@ -2,24 +2,31 @@
 const Utils = require("../utilities/Utils.js");
 const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
 
+const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const IdleStrategyUSDCMainnet = artifacts.require("IdleStrategyUSDCMainnet");
-const IVault = artifacts.require("IVault");
+const Strategy = artifacts.require("ComplifiStrategyMainnet_COMFI_WETH");
 
+//This test was developed at blockNumber 11925000
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet IDLE USDC", function() {
+describe("Complifi: COMFI:WETH", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
-  // external setup, block number: 12323239
-  let underlyingWhale = "0xAe2D4617c862309A3d75A0fFB358c7a5009c673F";
+  // external setup
+  // blocknumber 12368915
+  let underlyingWhale = "0x09CAa4928362c4b2055C86Fe0100d4E2a3bfD53d";
+  let treasury = "0x0FB21490A878AA2Af08117C96F897095797bD91C";
+  let reservoir = "0x22e1fe5bBB98a0eDA715B56a7bf04ed462BcA8d2";
+  let liquiditymining = "0x8a5827Ad1f28d3f397B748CE89895e437b8ef90D";
+  let comfi = "0x752Efadc0a7E05ad1BCCcDA22c141D01a75EF1e4";
+  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
   // parties in the protocol
   let governance;
@@ -34,7 +41,7 @@ describe("Mainnet IDLE USDC", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    underlying = await IERC20.at("0xe9C966bc01b4f14c0433800eFbffef4F81540A97");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -45,6 +52,10 @@ describe("Mainnet IDLE USDC", function() {
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
+
+    comfitoken = await IERC20.at(comfi);
+    treasuryBalance = await comfitoken.balanceOf(treasury);
+    await comfitoken.transfer(reservoir, treasuryBalance, { from: treasury });
   }
 
   before(async function() {
@@ -54,18 +65,20 @@ describe("Mainnet IDLE USDC", function() {
     farmer1 = accounts[1];
 
     // impersonate accounts
-    await impersonates([governance, underlyingWhale]);
+    await impersonates([governance, underlyingWhale, treasury]);
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE",
-      "strategyArtifact": IdleStrategyUSDCMainnet,
-      "announceStrategy": true,
+      "existingVaultAddress": null,
+      "strategyArtifact": Strategy,
+      "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
+      "liquidation": [{"uni": [comfi, weth, addresses.FARM]}],
     });
 
-    // vault = await IVault.at("0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE");
+    // Else sellfloor will not be reached
+    await strategy.setSellFloor(0, {from:governance});
 
     // whale send underlying to farmers
     await setupBalance();
@@ -76,29 +89,36 @@ describe("Mainnet IDLE USDC", function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
 
+      // progress blocks to after "startBlock" at 12375000
+      await Utils.advanceNBlock(6090);
+
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
       let oldSharePrice;
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
-        let blocksPerHour = 240;
+        let blocksPerHour = 2400;
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
-        await vault.doHardWork({ from: governance });
+        await controller.doHardWork(vault.address, { from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
-      await vault.withdraw( (new BigNumber(await vault.balanceOf(farmer1))).toFixed() , { from: farmer1 });
+      const vaultBalance = new BigNumber(await vault.balanceOf(farmer1));
+      console.log("vaultBalance: ", vaultBalance.toFixed());
+
+      await vault.withdraw(vaultBalance.toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
 
       console.log("earned!");
 
+      await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });
   });
 });

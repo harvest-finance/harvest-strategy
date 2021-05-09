@@ -17,6 +17,7 @@ contract VaultStorage is Initializable {
   bytes32 internal constant _STRATEGY_UPDATE_TIME_SLOT = 0x56e7c0e75875c6497f0de657009613a32558904b5c10771a825cc330feff7e72;
   bytes32 internal constant _ALLOW_SHARE_PRICE_DECREASE_SLOT = 0x22f7033891e85fc76735ebd320e0d3f546da431c4729c2f6d2613b11923aaaed;
   bytes32 internal constant _WITHDRAW_BEFORE_REINVESTING_SLOT = 0x4215fbb95dc0890d3e1660fb9089350f2d3f350c0a756934874cae6febf42a79;
+  bytes32 internal constant _PAUSED_SLOT = 0xf1cf856d03630b74791fc293cfafd739932a5a075b02d357fb7a726a38777930;
 
   constructor() public {
     assert(_STRATEGY_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategy")) - 1));
@@ -32,6 +33,7 @@ contract VaultStorage is Initializable {
     assert(_STRATEGY_UPDATE_TIME_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.strategyUpdateTime")) - 1));
     assert(_ALLOW_SHARE_PRICE_DECREASE_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.allowSharePriceDecrease")) - 1));
     assert(_WITHDRAW_BEFORE_REINVESTING_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.withdrawBeforeReinvesting")) - 1));
+    assert(_PAUSED_SLOT == bytes32(uint256(keccak256("eip1967.vaultStorage.paused")) - 1));
   }
 
   function initialize(
@@ -156,6 +158,14 @@ contract VaultStorage is Initializable {
 
   function _strategyUpdateTime() internal view returns (uint256) {
     return getUint256(_STRATEGY_UPDATE_TIME_SLOT);
+  }
+
+  function _paused() internal view returns (bool) {
+    return getBoolean(_PAUSED_SLOT);
+  }
+
+  function _setPaused(bool _value) internal {
+    setBoolean(_PAUSED_SLOT, _value);
   }
 
   function setBoolean(bytes32 slot, bool _value) internal {
