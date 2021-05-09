@@ -7,7 +7,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 const Strategy = artifacts.require("NexusLPSushiStrategy");
 const NexusLP = artifacts.require("contracts/strategies/nexus/interface/INexusLPSushi.sol:INexusLPSushi");
 
-const NEXUS_ADDRESS = "0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a";
+const NEXUS_ADDRESS = "0x98A1551bC63c5b8613B1A9467c3F7adc370aFAA1";
 
 describe("LiquidityNexus SushiSwap: WETH", () => {
   // parties in the protocol

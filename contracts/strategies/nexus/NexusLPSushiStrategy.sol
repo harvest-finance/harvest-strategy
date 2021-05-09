@@ -26,7 +26,7 @@ contract NexusLPSushiStrategy is IStrategy, BaseUpgradeableStrategy {
     address public constant ROUTER = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F); // Sushiswap Router2
     address public constant REWARD = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2); // Sushi
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant NEXUS_LP = address(0x82DE6a95b5fe5CB38466686Ee09D4dC74C9b4A1a);
+    address public constant NEXUS_LP = address(0x98A1551bC63c5b8613B1A9467c3F7adc370aFAA1);
 
     /**
      * Rewards split between ETH provider and USDC provider is set by this strategy to be 80/20.
