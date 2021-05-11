@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../StrategyBaseUL.sol";
+import "../StrategyBaseULClaimable.sol";
 import "../interface/IVault.sol";
 import "../interface/IRewardDistributionSwitcher.sol";
 import "../interface/INoMintRewardPool.sol";
@@ -43,7 +43,7 @@ import "./interfaces/SNXRewardInterface.sol";
 *
 */
 
-contract SNXReward2FarmStrategyUL is StrategyBaseUL {
+contract SNXReward2FarmStrategyUL is StrategyBaseULClaimable {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -59,7 +59,6 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
   // a flag for disabling selling for simplified emergency exit
   bool public sell = true;
   uint256 public sellFloor = 1;
-
 
   //  Instead of trying to pass in the detailed liquidation path and different dexes to the liquidator,
   //    we just pass in the input output of the liquidation path:
@@ -84,6 +83,11 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     _;
   }
 
+  modifier onlyMultiSigOrGovernance() {
+    require(msg.sender == multiSig || msg.sender == governance(), "The sender has to be multiSig or governance");
+    _;
+  }
+
   constructor(
     address _storage,
     address _underlying,
@@ -94,8 +98,9 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
     address _farm,
     address _distributionPool
   )
-  StrategyBaseUL(_storage, _underlying, _vault, _farm, _universalLiquidatorRegistry)
+  StrategyBaseULClaimable(_storage, _underlying, _vault, _rewardToken, _farm, _universalLiquidatorRegistry)
   public {
+    require(_rewardToken != _underlying, "reward token shouldn't be the same as underlying");
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
     require(
       (_farm == INoMintRewardPool(_distributionPool).rewardToken())
@@ -110,6 +115,14 @@ contract SNXReward2FarmStrategyUL is StrategyBaseUL {
 
   function depositArbCheck() public view returns(bool) {
     return true;
+  }
+
+  // If there are multiple reward tokens, they should all be liquidated to
+  // rewardToken.
+  function _getReward() internal {
+    if (address(rewardPool) != address(0)) {
+      rewardPool.getReward();
+    }
   }
 
   /*

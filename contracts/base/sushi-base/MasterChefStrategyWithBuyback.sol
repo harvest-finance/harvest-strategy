@@ -8,11 +8,11 @@ import "../interface/uniswap/IUniswapV2Router02.sol";
 import "../interface/IStrategy.sol";
 import "../interface/IRewardPool.sol";
 import "../interface/IVault.sol";
-import "../upgradability/BaseUpgradeableStrategy.sol";
+import "../upgradability/BaseUpgradeableStrategyClaimable.sol";
 import "./interfaces/IMasterChef.sol";
 import "../interface/uniswap/IUniswapV2Pair.sol";
 
-contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategy {
+contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategyClaimable {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -30,7 +30,7 @@ contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategy {
   // this would be reset on each upgrade
   mapping (address => address[]) public uniswapRoutes;
 
-  constructor() public BaseUpgradeableStrategy() {
+  constructor() public BaseUpgradeableStrategyClaimable() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
     assert(_USE_UNI_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.useUni")) - 1));
     assert(_IS_LP_ASSET_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.isLpAsset")) - 1));
@@ -51,7 +51,7 @@ contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategy {
     uint256 _buybackRatio
   ) public initializer {
 
-    BaseUpgradeableStrategy.initialize(
+    BaseUpgradeableStrategyClaimable.initialize(
       _storage,
       _underlying,
       _vault,
@@ -331,6 +331,11 @@ contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategy {
   function doHardWork() external onlyNotPausedInvesting restricted {
     exitRewardPool();
     _liquidateReward();
+    investAllUnderlying();
+  }
+
+  function _getReward() internal {
+    exitRewardPool();
     investAllUnderlying();
   }
 

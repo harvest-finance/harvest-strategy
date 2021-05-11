@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../StrategyBase.sol";
+import "../StrategyBaseClaimable.sol";
 import "../interface/uniswap/IUniswapV2Router02.sol";
 import "../interface/IVault.sol";
 import "../interface/IRewardDistributionSwitcher.sol";
@@ -45,7 +45,7 @@ import "./interfaces/SNXRewardInterface.sol";
 *
 */
 
-contract SNXReward2FarmStrategy is StrategyBase {
+contract SNXReward2FarmStrategy is StrategyBaseClaimable {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -79,12 +79,12 @@ contract SNXReward2FarmStrategy is StrategyBase {
     address _vault,
     address _rewardPool,
     address _rewardToken,
-    address _uniswapRouterV2, 
+    address _uniswapRouterV2,
     address _farm,
     address _distributionPool,
     address _distributionSwitcher
   )
-  StrategyBase(_storage, _underlying, _vault, _farm, _uniswapRouterV2)
+  StrategyBaseClaimable(_storage, _underlying, _vault, _rewardToken, _farm, _uniswapRouterV2)
   public {
     require(_vault == INoMintRewardPool(_distributionPool).lpToken(), "distribution pool's lp must be the vault");
     require(_farm == INoMintRewardPool(_distributionPool).rewardToken(), "distribution pool's reward must be FARM");
@@ -155,7 +155,7 @@ contract SNXReward2FarmStrategy is StrategyBase {
       revert("The liquidation path for [Reward -> FARM] must be set.");
     }
 
-    // Use farm as protif sharing base, sending it 
+    // Use farm as protif sharing base, sending it
     notifyProfitInRewardToken(farmAmount);
 
     // The remaining farms should be distributed to the distribution pool
@@ -267,5 +267,13 @@ contract SNXReward2FarmStrategy is StrategyBase {
   */
   function setSellFloor(uint256 floor) public onlyGovernance {
     sellFloor = floor;
+  }
+
+  // If there are multiple reward tokens, they should all be liquidated to
+  // rewardToken.
+  function _getReward() internal {
+    if (address(rewardPool) != address(0)) {
+      rewardPool.getReward();
+    }
   }
 }

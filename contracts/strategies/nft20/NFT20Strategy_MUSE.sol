@@ -28,7 +28,7 @@ contract NFT20Strategy_MUSE is MasterChefStrategyWithBuyback {
       true, // is LP asset
       true, // use Uniswap
       _distributionPool,
-      5000
+      0
     );
     uniswapRoutes[weth] = [muse, weth]; // swaps to weth
     uniswapRoutes[muse] = [muse]; // no swapping needed

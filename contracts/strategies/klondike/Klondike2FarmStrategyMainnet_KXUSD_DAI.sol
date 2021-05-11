@@ -23,5 +23,6 @@ contract Klondike2FarmStrategyMainnet_KXUSD_DAI is SNXReward2FarmStrategyUL {
     require(IVault(_vault).underlying() == kxusd_dai, "Underlying mismatch");
     liquidationPath = [klonx, farm];
     liquidationDexes.push(bytes32(uint256(keccak256("uni"))));
+    allowedRewardClaimable = true;
   }
 }

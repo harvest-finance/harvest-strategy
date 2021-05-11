@@ -50,12 +50,13 @@ describe("NFT2 MUSE-ETH", function() {
 
   before(async function() {
     governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
+    multiSig = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
     accounts = await web3.eth.getAccounts();
 
     farmer1 = accounts[1];
 
     // impersonate accounts
-    await impersonates([governance, underlyingWhale]);
+    await impersonates([governance, underlyingWhale, multiSig]);
 
     await setupExternalContracts();
     [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
@@ -91,17 +92,28 @@ describe("NFT2 MUSE-ETH", function() {
       let hours = 10;
       let oldSharePrice;
       let newSharePrice;
+
+      // Not selling, so doHardWork wouldn't sell rewards
+      await strategy.setSell(false, {from: governance});
+
+      await strategy.setRewardClaimable(true, {from: governance});
+
+      oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
+      await controller.doHardWork(vault.address, { from: governance });
+      newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+
+
+      let reward = await IERC20.at("0xB6Ca7399B4F9CA56FC27cBfF44F4d2e4Eef1fc81");
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
         let blocksPerHour = 2400;
-        oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
-        await controller.doHardWork(vault.address, { from: governance });
-        newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+        let rewardBalanceBefore = new BigNumber(await reward.balanceOf(multiSig));
+        await strategy.claimReward({from: multiSig});
+        let rewardBalanceAfter = new BigNumber(await reward.balanceOf(multiSig));
 
-        console.log("old shareprice: ", oldSharePrice.toFixed());
-        console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
+        console.log("rewardBalanceBefore: ", rewardBalanceBefore.toFixed());
+        console.log("rewardBalanceAfter: ", rewardBalanceAfter.toFixed());
+        console.log("diff: ", (rewardBalanceAfter.minus(rewardBalanceBefore)).toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
@@ -117,11 +129,8 @@ describe("NFT2 MUSE-ETH", function() {
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
-      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
-      console.log("earned underlying!");
-
-      Utils.assertBNGt(farmerNewIFarm, 0);
-      console.log("earned iFARM!");
+      Utils.assertBNEq(farmerNewBalance, farmerOldBalance);
+      console.log("got the same amount back");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

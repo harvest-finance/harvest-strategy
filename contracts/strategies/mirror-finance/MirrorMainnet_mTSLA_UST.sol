@@ -25,5 +25,6 @@ contract MirrorMainnet_mTSLA_UST is SNXReward2FarmStrategy {
 
     // adding ability to liquidate reward tokens manually if there is no liquidity
     unsalvagableTokens[mir] = false;
+    allowedRewardClaimable = true;
   }
 }

@@ -11,14 +11,14 @@ import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
 
-import "../../../base/StrategyBase.sol";
+import "../../../base/StrategyBaseClaimable.sol";
 
 /**
 * This strategy is for the mixToken vault, i.e., the underlying token is mixToken. It is not to accept
 * stable coins. It will farm the CRV crop. For liquidation, it swaps CRV into USDT and uses USDT
 * to produce mixToken.
 */
-contract CRVStrategyUST is StrategyBase {
+contract CRVStrategyUST is StrategyBaseClaimable {
 
   using SafeERC20 for IERC20;
   using Address for address;
@@ -58,7 +58,7 @@ contract CRVStrategyUST is StrategyBase {
     address _curveDepositUST,
     address _uniswap
   )
-  StrategyBase(_storage, _underlying, _vault, _crv, _uniswap) public {
+  StrategyBaseClaimable(_storage, _underlying, _vault, _crv, _crv, _uniswap) public {
     require(IVault(_vault).underlying() == _underlying, "vault does not support ustCRV");
     pool = _gauge;
     mintr = _mintr;
@@ -72,6 +72,7 @@ contract CRVStrategyUST is StrategyBase {
     // set these tokens to be not salvageable
     unsalvagableTokens[underlying] = true;
     unsalvagableTokens[crv] = true;
+    allowedRewardClaimable = true;
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -140,7 +141,7 @@ contract CRVStrategyUST is StrategyBase {
       emit ProfitsNotCollected();
       return;
     }
-    Mintr(mintr).mint(pool);
+    _getReward();
 
     uint256 rewardBalance = IERC20(crv).balanceOf(address(this));
 
@@ -166,6 +167,13 @@ contract CRVStrategyUST is StrategyBase {
         ustCRVFromUSDT();
       }
     }
+  }
+
+  /**
+  * Claims the rewards.
+  */
+  function _getReward() internal {
+    Mintr(mintr).mint(pool);
   }
 
   /**

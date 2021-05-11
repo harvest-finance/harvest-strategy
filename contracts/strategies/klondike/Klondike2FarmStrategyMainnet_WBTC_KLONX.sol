@@ -23,5 +23,6 @@ contract Klondike2FarmStrategyMainnet_WBTC_KLONX is SNXReward2FarmStrategyUL {
     require(IVault(_vault).underlying() == wbtc_klonx, "Underlying mismatch");
     liquidationPath = [klonx, farm];
     liquidationDexes.push(bytes32(uint256(keccak256("uni"))));
+    allowedRewardClaimable = true;
   }
 }

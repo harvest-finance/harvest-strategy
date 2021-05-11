@@ -8,18 +8,18 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("NFT20Strategy_MUSE");
+const Strategy = artifacts.require("MirrorMainnet_mNFLX_UST");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("NFT2 MUSE-ETH", function() {
+describe("MIR to FARM: mNFLX", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  // block: 12369538
-  let underlyingWhale = "0xc9f202deb231891e6cde1f6d4af18566bcaef6f0";
+  // block number: 12316889
+  let underlyingWhale = "0x447f95026107aaed7472A0470931e689f51e0e42";
 
   // parties in the protocol
   let governance;
@@ -32,10 +32,14 @@ describe("NFT2 MUSE-ETH", function() {
   let controller;
   let vault;
   let strategy;
-  let iFarm;
+  let rewardPool;
+  let farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
+
+  let mir = "0x09a3EcAFa817268f77BE1283176B946C4ff2E608";
+  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x20d2c17d1928ef4290bf17f922a10eaa2770bf43");
+    underlying = await IERC20.at("0xC99A74145682C4b4A6e9fa55d559eb49A6884F75");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -50,12 +54,14 @@ describe("NFT2 MUSE-ETH", function() {
 
   before(async function() {
     governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
+    multiSig = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
+
     accounts = await web3.eth.getAccounts();
 
     farmer1 = accounts[1];
 
     // impersonate accounts
-    await impersonates([governance, underlyingWhale]);
+    await impersonates([governance, underlyingWhale, multiSig]);
 
     await setupExternalContracts();
     [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
@@ -67,14 +73,18 @@ describe("NFT2 MUSE-ETH", function() {
         type: 'PotPool',
         rewardTokens: [addresses.IFARM]
       },
-      "strategyArtifactIsUpgradable": true,
+      "liquidation": [{"uni": [mir, weth, farm]}],
       "underlying": underlying,
       "governance": governance,
     });
 
+    //deploying rewardPool
+    await rewardPool.setRewardDistribution(["0x3D135252D366111cf0621eB0e846243CBb962061"], true, {from: governance});
+
     // whale send underlying to farmers
     await setupBalance();
-    iFarm = await IERC20.at(addresses.IFARM);
+
+    iFarm = await IERC20.at("0x1571eD0bed4D987fe2b498DdBaE7DFA19519F651");
   });
 
   describe("Happy path", function() {
@@ -91,37 +101,35 @@ describe("NFT2 MUSE-ETH", function() {
       let hours = 10;
       let oldSharePrice;
       let newSharePrice;
+
+      await strategy.setSell(false, {from: governance});
+      await strategy.setRewardClaimable(true, {from: governance});
+
+      oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
+      await controller.doHardWork(vault.address, { from: governance });
+      newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+
+      let reward = await IERC20.at("0x09a3EcAFa817268f77BE1283176B946C4ff2E608");
+
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
         let blocksPerHour = 2400;
-        oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
-        await controller.doHardWork(vault.address, { from: governance });
-        newSharePrice = new BigNumber(await vault.getPricePerFullShare());
+        let rewardBalanceBefore = new BigNumber(await reward.balanceOf(multiSig));
+        await strategy.claimReward({from: multiSig});
+        let rewardBalanceAfter = new BigNumber(await reward.balanceOf(multiSig));
 
-        console.log("old shareprice: ", oldSharePrice.toFixed());
-        console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
-        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
+        console.log("rewardBalanceBefore: ", rewardBalanceBefore.toFixed());
+        console.log("rewardBalanceAfter: ", rewardBalanceAfter.toFixed());
+        console.log("diff: ", (rewardBalanceAfter.minus(rewardBalanceBefore)).toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
       await rewardPool.exit({from: farmer1});
-      let farmerNewIFarm = new BigNumber(await iFarm.balanceOf(farmer1));
-      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
-
-      const vaultBalance = new BigNumber(await vault.balanceOf(farmer1));
-      console.log("vaultBalance: ", vaultBalance.toFixed());
-
-      await vault.withdraw(vaultBalance.toFixed(), { from: farmer1 });
-
+      await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
+
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
-      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
-      console.log("earned underlying!");
-
-      Utils.assertBNGt(farmerNewIFarm, 0);
-      console.log("earned iFARM!");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

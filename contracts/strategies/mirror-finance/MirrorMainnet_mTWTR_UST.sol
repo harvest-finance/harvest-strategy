@@ -24,5 +24,6 @@ contract MirrorMainnet_mTWTR_UST is SNXReward2FarmStrategyUL {
     require(IVault(_vault).underlying() == mtwtr_ust, "Underlying mismatch");
     liquidationPath = [mir, farm];
     liquidationDexes.push(bytes32(uint256(keccak256("uni"))));
+    allowedRewardClaimable = true;
   }
 }

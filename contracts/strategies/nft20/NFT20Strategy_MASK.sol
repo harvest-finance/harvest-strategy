@@ -29,7 +29,7 @@ contract NFT20Strategy_MASK is MasterChefStrategyWithBuyback {
       true, // is LP asset
       true, // use Uniswap
       _distributionPool,
-      5000
+      0
     );
     uniswapRoutes[weth] = [muse, weth]; // swaps to weth
     uniswapRoutes[mask] = [muse, weth, mask]; // no swapping needed
