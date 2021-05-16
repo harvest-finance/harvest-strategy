@@ -13,6 +13,8 @@ contract IdleStrategyUSDCMainnet is IdleFinanceStrategy {
   address constant public __idleUnderlying= address(0x5274891bEC421B39D23760c04A6755eCB444797C);
   address constant public __comp = address(0xc00e94Cb662C3520282E6f5717214004A7f26888);
   address constant public __idle = address(0x875773784Af8135eA0ef43b5a374AaD105c5D39e);
+  address constant public __stkaave = address(0x4da27a545c0c5B758a6BA100e3a049001de870f5);
+  address constant public __aave = address(0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9);
 
   constructor(
     address _storage,
@@ -24,6 +26,8 @@ contract IdleStrategyUSDCMainnet is IdleFinanceStrategy {
     __idleUnderlying,
     _vault,
     __comp,
+    __stkaave,
+    __aave,
     __idle,
     __weth,
     __uniswap

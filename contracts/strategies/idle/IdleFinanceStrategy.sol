@@ -10,6 +10,7 @@ import "../../base/interface/IVault.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "./interface/IdleToken.sol";
 import "./interface/IIdleTokenHelper.sol";
+import "./interface/IStakedAave.sol";
 
 contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
 
@@ -27,14 +28,18 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
 
   address public vault;
   address public comp;
+  address public stkaave;
+  address public aave;
   address public idle;
 
   address[] public uniswapComp;
+  address[] public uniswapAave;
   address[] public uniswapIdle;
 
   address public uniswapRouterV2;
 
   bool public sellComp;
+  bool public sellAave;
   bool public sellIdle;
   bool public claimAllowed;
   bool public protected;
@@ -62,11 +67,15 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     address _idleUnderlying,
     address _vault,
     address _comp,
+    address _stkaave,
+    address _aave,
     address _idle,
     address _weth,
     address _uniswap
   ) RewardTokenProfitNotifier(_storage, _idle) public {
     comp = _comp;
+    stkaave = _stkaave;
+    aave = _aave;
     idle = _idle;
     underlying = IERC20(_underlying);
     idleUnderlying = _idleUnderlying;
@@ -78,12 +87,16 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     unsalvagableTokens[_underlying] = true;
     unsalvagableTokens[_idleUnderlying] = true;
     unsalvagableTokens[_comp] = true;
+    unsalvagableTokens[_stkaave] = true;
+    unsalvagableTokens[_aave] = true;
     unsalvagableTokens[_idle] = true;
 
     uniswapComp = [_comp, _weth, _idle];
+    uniswapAave = [_aave, _weth, _idle];
     uniswapIdle = [_idle, _weth, _underlying];
     referral = address(0xf00dD244228F51547f0563e60bCa65a30FBF5f7f);
     sellComp = true;
+    sellAave = true;
     sellIdle = true;
     claimAllowed = true;
 
@@ -127,6 +140,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     IIdleTokenV3_1(idleUnderlying).redeemIdleToken(balance);
 
     liquidateComp();
+    liquidateAave();
     liquidateIdle();
   }
 
@@ -152,6 +166,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
       claim();
     }
     liquidateComp();
+    liquidateAave();
     liquidateIdle();
 
     // this updates the virtual price
@@ -194,6 +209,32 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     }
   }
 
+  function liquidateAave() internal {
+    if (!sellAave) {
+      // Profits can be disabled for possible simplified and rapid exit
+      emit ProfitsNotCollected(comp);
+      return;
+    }
+
+    // no profit notification, comp is liquidated to IDLE and will be notified there
+
+    uint256 stkAaveBalance = IERC20(stkaave).balanceOf(address(this));
+    if (stkAaveBalance > 0) {
+      IStakedAave(stkaave).redeem(address(this), stkAaveBalance);
+    }
+    uint256 aaveBalance = IERC20(aave).balanceOf(address(this));
+    if (aaveBalance > 0) {
+      emit Liquidating(address(aave), aaveBalance);
+      IERC20(aave).safeApprove(uniswapRouterV2, 0);
+      IERC20(aave).safeApprove(uniswapRouterV2, aaveBalance);
+      // we can accept 1 as the minimum because this will be called only by a trusted worker
+      IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
+        aaveBalance, 1, uniswapAave, address(this), block.timestamp
+      );
+    }
+  }
+
+
   function liquidateIdle() internal {
     if (!sellIdle) {
       // Profits can be disabled for possible simplified and rapid exit
@@ -230,8 +271,9 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     return invested.add(IERC20(underlying).balanceOf(address(this)));
   }
 
-  function setLiquidation(bool _sellComp, bool _sellIdle, bool _claimAllowed) public onlyGovernance {
+  function setLiquidation(bool _sellComp, bool _sellAave, bool _sellIdle, bool _claimAllowed) public onlyGovernance {
     sellComp = _sellComp;
+    sellAave = _sellAave;
     sellIdle = _sellIdle;
     claimAllowed = _claimAllowed;
   }
