@@ -7,11 +7,13 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interface/uniswap/IUniswapV2Router02.sol";
 import "../interface/IStrategy.sol";
 import "../interface/IVault.sol";
-import "../upgradability/BaseUpgradeableStrategy.sol";
+import "../upgradability/BaseUpgradeableStrategyClaimable.sol";
 import "./interfaces/IMasterChef.sol";
 import "../interface/uniswap/IUniswapV2Pair.sol";
 
-contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategy {
+import "hardhat/console.sol";
+
+contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategyClaimable {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -27,7 +29,7 @@ contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategy {
   // this would be reset on each upgrade
   mapping (address => address[]) public uniswapRoutes;
 
-  constructor() public BaseUpgradeableStrategy() {
+  constructor() public BaseUpgradeableStrategyClaimable() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
     assert(_USE_UNI_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.useUni")) - 1));
     assert(_IS_LP_ASSET_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.isLpAsset")) - 1));
@@ -44,7 +46,7 @@ contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategy {
     bool _useUni
   ) public initializer {
 
-    BaseUpgradeableStrategy.initialize(
+    BaseUpgradeableStrategyClaimable.initialize(
       _storage,
       _underlying,
       _vault,
@@ -307,9 +309,13 @@ contract MasterChefStrategy is IStrategy, BaseUpgradeableStrategy {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    exitRewardPool();
+    IMasterChef(rewardPool()).withdraw(poolId(), 0);
     _liquidateReward();
     investAllUnderlying();
+  }
+
+  function _getReward() internal {
+    IMasterChef(rewardPool()).withdraw(poolId(), 0);
   }
 
   /**

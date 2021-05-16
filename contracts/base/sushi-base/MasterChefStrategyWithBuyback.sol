@@ -329,14 +329,13 @@ contract MasterChefStrategyWithBuyback is IStrategy, BaseUpgradeableStrategyClai
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    exitRewardPool();
+    IMasterChef(rewardPool()).withdraw(poolId(), 0);
     _liquidateReward();
     investAllUnderlying();
   }
 
   function _getReward() internal {
-    exitRewardPool();
-    investAllUnderlying();
+    IMasterChef(rewardPool()).withdraw(poolId(), 0);
   }
 
   /**

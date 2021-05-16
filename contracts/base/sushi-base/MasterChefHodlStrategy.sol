@@ -202,7 +202,7 @@ contract MasterChefHodlStrategy is IStrategy, BaseUpgradeableStrategy {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    exitRewardPool();
+    IMasterChef(rewardPool()).withdraw(poolId(), 0);
     _hodlAndNotify();
     investAllUnderlying();
   }
