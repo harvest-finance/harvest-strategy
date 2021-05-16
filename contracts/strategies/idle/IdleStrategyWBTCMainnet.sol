@@ -1,10 +1,10 @@
 pragma solidity 0.5.16;
-import "./IdleFinanceStrategy.sol";
+import "./IdleFinanceStrategyClaimable.sol";
 
 /**
 * Adds the mainnet addresses to the PickleStrategy3Pool
 */
-contract IdleStrategyWBTCMainnet is IdleFinanceStrategy {
+contract IdleStrategyWBTCMainnet is IdleFinanceStrategyClaimable {
 
   // token addresses
   address constant public __weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -20,7 +20,7 @@ contract IdleStrategyWBTCMainnet is IdleFinanceStrategy {
     address _storage,
     address _vault
   )
-  IdleFinanceStrategy(
+  IdleFinanceStrategyClaimable(
     _storage,
     __wbtc,
     __idleUnderlying,
