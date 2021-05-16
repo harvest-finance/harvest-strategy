@@ -8,4 +8,5 @@ interface ILiquidityMining {
     function poolInfo(uint256 _pid) external view returns (address lpToken, uint256, uint256, uint256);
     function massUpdatePools() external;
     function claim() external;
+    function poolPidByAddress(address _address) external view returns (uint256 pid);
 }

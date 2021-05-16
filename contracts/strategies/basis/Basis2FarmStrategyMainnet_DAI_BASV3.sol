@@ -38,5 +38,6 @@ contract Basis2FarmStrategyMainnet_DAI_BASV3 is Basis2FarmStrategyV3 {
     require(IVault(_vault).underlying() == __dai_basv2, "Underlying mismatch");
     liquidationPath = [__basv2, farm];
     liquidationDexes.push(bytes32(uint256(keccak256("uni"))));
+    defaultRewardDistribution = __notifyHelper;
   }
 }
