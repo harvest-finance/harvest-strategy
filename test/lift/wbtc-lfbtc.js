@@ -8,17 +8,17 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("LiftStrategyMainnet_lfBTC_LIFT");
+const Strategy = artifacts.require("LiftStrategyMainnet_wBTC_lfBTC");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Lift.Kitchen lfBTC/LIFT", function() {
+describe("Lift.Kitchen wBTC/lfBTC", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
-  // external setup blockNumber 12365175
-  let underlyingWhale = "0x93006f9dc69Be8B9F1fEaAb318f3b4Bb3D32F2E8";
+  // external setup blockNumber 12442375
+  let underlyingWhale = "0x0dd16908663523e03c11c0dc14fa4276c1010a6b";
   let lift = "0xf9209d900f7ad1DC45376a2caA61c78f6dEA53B6";
 
   // parties in the protocol
@@ -34,7 +34,7 @@ describe("Lift.Kitchen lfBTC/LIFT", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x0e250c3FF736491712C5b11EcEe6d8dbFA41c78f");
+    underlying = await IERC20.at("0xd975b774C50aa0aEacB7b546b86218c1D7362123");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 

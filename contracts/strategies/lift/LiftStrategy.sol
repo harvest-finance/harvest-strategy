@@ -265,4 +265,8 @@ contract LiftStrategy is StrategyBaseClaimable {
     return boardRoom.earned(address(this));
   }
 
+  function stakedLift() external view returns(uint256){
+    return boardRoom.getbalanceOfShare(address(this));
+  }
+
 }
