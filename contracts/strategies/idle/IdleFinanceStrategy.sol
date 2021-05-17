@@ -212,7 +212,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   function liquidateAave() internal {
     if (!sellAave) {
       // Profits can be disabled for possible simplified and rapid exit
-      emit ProfitsNotCollected(comp);
+      emit ProfitsNotCollected(aave);
       return;
     }
 
