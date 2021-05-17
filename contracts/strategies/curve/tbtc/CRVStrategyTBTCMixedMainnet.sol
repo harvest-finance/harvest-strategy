@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./CRVStrategyTBTCMixed.sol";
+import "./CRVStrategyTBTCMixedClaimable.sol";
 
 
 /**
@@ -8,12 +8,12 @@ import "./CRVStrategyTBTCMixed.sol";
 * stable coins. It will farm the CRV and KEEP crop. For liquidation, it swaps CRV and KEEP into WBTC and uses WBTC
 * to produce the TBTC-mixed token.
 */
-contract CRVStrategyTBTCMixedMainnet is CRVStrategyTBTCMixed {
+contract CRVStrategyTBTCMixedMainnet is CRVStrategyTBTCMixedClaimable {
 
   constructor(
     address _storage,
     address _vault
-  ) CRVStrategyTBTCMixed(
+  ) CRVStrategyTBTCMixedClaimable(
     _storage,
     _vault,
     address(0x64eda51d3Ad40D56b9dFc5554E06F94e1Dd786Fd), // underlying
