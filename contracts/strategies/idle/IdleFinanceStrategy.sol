@@ -217,10 +217,25 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     }
 
     // no profit notification, comp is liquidated to IDLE and will be notified there
+    uint256 claimable = IStakedAave(stkaave).stakerRewardsToClaim(address(this));
+    if (claimable > 0) {
+      IStakedAave(stkaave).claimRewards(address(this), claimable);
+    }
 
     uint256 stkAaveBalance = IERC20(stkaave).balanceOf(address(this));
+    uint256 cooldown = IStakedAave(stkaave).stakersCooldowns(address(this));
     if (stkAaveBalance > 0) {
-      IStakedAave(stkaave).redeem(address(this), stkAaveBalance);
+      if (cooldown == 0) {
+        IStakedAave(stkaave).cooldown();
+      } else if (
+        block.timestamp > cooldown.add(IStakedAave(stkaave).COOLDOWN_SECONDS()) && //earliest time to unstake
+        block.timestamp <= cooldown.add(IStakedAave(stkaave).COOLDOWN_SECONDS().add(IStakedAave(stkaave).UNSTAKE_WINDOW())) //latest time to unstake
+        )
+      {
+        IStakedAave(stkaave).redeem(address(this), stkAaveBalance);
+      } else if (block.timestamp > cooldown.add(IStakedAave(stkaave).COOLDOWN_SECONDS().add(IStakedAave(stkaave).UNSTAKE_WINDOW()))) {
+        IStakedAave(stkaave).cooldown();
+      }
     }
     uint256 aaveBalance = IERC20(aave).balanceOf(address(this));
     if (aaveBalance > 0) {

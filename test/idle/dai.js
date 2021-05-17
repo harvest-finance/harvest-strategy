@@ -19,6 +19,8 @@ describe("Mainnet IDLE DAI", function() {
 
   // external setup, block number: 12323239
   let underlyingWhale = "0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503";
+  let stkAaveHolder = "0xdb5aa12ad695ef2a28c6cdb69f2bb04bed20a48e";
+  let stkAave = "0x4da27a545c0c5B758a6BA100e3a049001de870f5";
 
   // parties in the protocol
   let governance;
@@ -53,7 +55,7 @@ describe("Mainnet IDLE DAI", function() {
     farmer1 = accounts[1];
 
     // impersonate accounts
-    await impersonates([governance, underlyingWhale]);
+    await impersonates([governance, underlyingWhale, stkAaveHolder]);
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
@@ -64,7 +66,7 @@ describe("Mainnet IDLE DAI", function() {
       "governance": governance,
     });
 
-    // vault = await IVault.at("0xf0358e8c3CD5Fa238a29301d0bEa3D63A17bEdBE");
+    stkAaveToken = await IERC20.at(stkAave);
 
     // whale send underlying to farmers
     await setupBalance();
@@ -75,20 +77,24 @@ describe("Mainnet IDLE DAI", function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
 
+      await stkAaveToken.transfer(strategy.address, "10" + "000000000000000000", {from: stkAaveHolder});
+
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
       let oldSharePrice;
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
+        //put some stkAave into the strategy every loop to simulate rewards
+        await stkAaveToken.transfer(strategy.address, "1" + "000000000000000000", {from: stkAaveHolder});
         console.log("loop ", i);
-        let blocksPerHour = 240;
+        let blocksPerHour = 9600; //longer loops to test aave cooldown
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await vault.doHardWork({ from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed()/oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
