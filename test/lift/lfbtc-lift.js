@@ -77,11 +77,11 @@ describe("Lift.Kitchen lfBTC/LIFT", function() {
       await strategy.setRewardClaimable(true, {from:governance});
       await controller.doHardWork(vault.address, { from: governance });
 
-      let blocksPerHour = 2400;
+      let blocksPerHour = 240;
       await Utils.advanceNBlock(blocksPerHour);
 
       // Using half days is to simulate how we doHardwork in the real world
-      let hours = 10;
+      let hours = 200;
       let oldSharePrice;
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
@@ -122,7 +122,7 @@ describe("Lift.Kitchen lfBTC/LIFT", function() {
 
       console.log("Advance 24000 blocks...");
       console.log("");
-      await Utils.advanceNBlock(blocksPerHour*10);
+      await Utils.advanceNBlock(blocksPerHour*100);
 
       await strategy.withdrawRewardShareOldest({from: multiSig});
       msigBalance3 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();

@@ -117,7 +117,7 @@ contract LiftStrategy is StrategyBaseClaimable {
     // this check is needed, because most of the SNX reward pools will revert if
     // you try to stake(0).
     if(IERC20(underlying).balanceOf(address(this)) > 0) {
-      IERC20(underlying).approve(address(rewardPool), IERC20(underlying).balanceOf(address(this)));
+      IERC20(underlying).safeApprove(address(rewardPool), IERC20(underlying).balanceOf(address(this)));
       rewardPool.stake(IERC20(underlying).balanceOf(address(this)));
     }
   }
@@ -186,6 +186,8 @@ contract LiftStrategy is StrategyBaseClaimable {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
+    uint256 len = stakes.length;
+    require(len<=200, "Too many stakes, withdraw first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
@@ -197,6 +199,8 @@ contract LiftStrategy is StrategyBaseClaimable {
   }
 
   function _getReward() internal {
+    uint256 len = stakes.length;
+    require(len<=200, "Too many stakes, withdraw first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
@@ -209,45 +213,40 @@ contract LiftStrategy is StrategyBaseClaimable {
   function withdrawRewardShareOldest() external onlyMultiSigOrGovernance {
     require(allowedRewardClaimable, "reward claimable is not allowed");
     uint256 len = stakes.length;
+    require(len>0, "no stakes");
+
+    uint256 time = stakes[0][0];
+    boardRoom.withdrawShare(time);
     uint256 shareBalance = IERC20(rewardToken).balanceOf(address(this));
-    uint256 i = 0;
-    for (i;i<len;i++) {
-      uint256 time = stakes[i][0];
-      uint256 amount = stakes[i][1];
-      if (amount > 0) {
-        boardRoom.withdrawShare(time);
-        shareBalance = IERC20(rewardToken).balanceOf(address(this));
-        stakes[i] = [0,0];
-        break;
-      }
-    }
     IERC20(rewardToken).safeTransfer(msg.sender, shareBalance);
+
+    //clean up the list of stakes
+    uint256 i = 0;
+    for (i;i<(len.sub(1));i++) {
+      stakes[i] = stakes[i+1];
+    }
+    stakes.pop();
   }
 
   function withdrawRewardShareNewest() external onlyMultiSigOrGovernance {
     require(allowedRewardClaimable, "reward claimable is not allowed");
     uint256 len = stakes.length;
+    require(len>0, "no stakes");
+
+    uint256 time = stakes[len.sub(1)][0];
+    boardRoom.withdrawShare(time);
     uint256 shareBalance = IERC20(rewardToken).balanceOf(address(this));
-    uint256 i = len-1;
-    for (i;i>=0;i--) {
-      uint256 time = stakes[i][0];
-      uint256 amount = stakes[i][1];
-      if (amount > 0) {
-        boardRoom.withdrawShare(time);
-        shareBalance = IERC20(rewardToken).balanceOf(address(this));
-        stakes[i] = [0,0];
-        break;
-      }
-    }
     IERC20(rewardToken).safeTransfer(msg.sender, shareBalance);
+    stakes.pop();
   }
 
   function withdrawRewardShareAll() external onlyMultiSigOrGovernance {
     require(allowedRewardClaimable, "reward claimable is not allowed");
+    uint256 len = stakes.length;
+    require(len>0, "no stakes");
     boardRoom.withdrawShareDontCallMeUnlessYouAreCertain();
     uint256 shareBalance = IERC20(rewardToken).balanceOf(address(this));
     IERC20(rewardToken).safeTransfer(msg.sender, shareBalance);
-    uint256 len = stakes.length;
     uint256 i = 0;
     for (i;i<len;i++) {
       stakes.pop();
