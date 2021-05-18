@@ -60,7 +60,8 @@ contract LiftStrategy is StrategyBaseClaimable {
   ISharePool public rewardPool;
   IBoardRoom public boardRoom;
 
-  uint256[2][] stakes;
+  uint256[2][] public stakes;
+  uint256 public maxStakes;
 
   event ProfitsNotCollected();
 
@@ -77,7 +78,8 @@ contract LiftStrategy is StrategyBaseClaimable {
     address _vault,
     address _rewardPool,
     address _rewardToken,
-    address _uniswapRouterV2
+    address _uniswapRouterV2,
+    uint256 _maxStakes
   )
   StrategyBaseClaimable(_storage, _underlying, _vault, _rewardToken, _rewardToken, _uniswapRouterV2)
   public {
@@ -86,6 +88,7 @@ contract LiftStrategy is StrategyBaseClaimable {
     rewardPool = ISharePool(_rewardPool);
     boardRoom = IBoardRoom(rewardPool.boardroom());
     ctrl = boardRoom.control();
+    maxStakes = _maxStakes;
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -187,7 +190,7 @@ contract LiftStrategy is StrategyBaseClaimable {
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     uint256 len = stakes.length;
-    require(len<=200, "Too many stakes, withdraw first");
+    require(len<=maxStakes, "Too many stakes, withdraw first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
@@ -200,7 +203,7 @@ contract LiftStrategy is StrategyBaseClaimable {
 
   function _getReward() internal {
     uint256 len = stakes.length;
-    require(len<=200, "Too many stakes, withdraw first");
+    require(len<=maxStakes, "Too many stakes, withdraw first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
@@ -266,6 +269,15 @@ contract LiftStrategy is StrategyBaseClaimable {
 
   function stakedLift() external view returns(uint256){
     return boardRoom.getbalanceOfShare(address(this));
+  }
+
+  function setMaxStakes(uint256 _maxStakes) external onlyGovernance {
+    require(stakes.length <= _maxStakes, "Current number of stakes too high");
+    maxStakes = _maxStakes;
+  }
+
+  function stakesLength() external view returns(uint256) {
+    return stakes.length;
   }
 
 }

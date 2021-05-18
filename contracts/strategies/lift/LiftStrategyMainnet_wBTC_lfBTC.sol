@@ -15,7 +15,15 @@ contract LiftStrategyMainnet_wBTC_lfBTC is LiftStrategy {
     address _storage,
     address _vault
   )
-  LiftStrategy(_storage, wBTC_lfBTC, _vault, wBTClfBTCRewardPool, LIFT, sushiRouterAddress)
+  LiftStrategy(
+    _storage,
+    wBTC_lfBTC,
+    _vault,
+    wBTClfBTCRewardPool,
+    LIFT,
+    sushiRouterAddress,
+    200 //maxStakes
+  )
   public {
 
   }
