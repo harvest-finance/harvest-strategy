@@ -190,7 +190,7 @@ contract LiftStrategy is StrategyBaseClaimable {
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     uint256 len = stakes.length;
-    require(len<=maxStakes, "Too many stakes, withdraw first");
+    require(len<=maxStakes, "Too many stakes, withdraw or increase maxStakes first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
@@ -203,7 +203,7 @@ contract LiftStrategy is StrategyBaseClaimable {
 
   function _getReward() internal {
     uint256 len = stakes.length;
-    require(len<=maxStakes, "Too many stakes, withdraw first");
+    require(len<=maxStakes, "Too many stakes, withdrawor increase maxStakes first");
     uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
     rewardPool.stakeInBoardroom();
     uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
