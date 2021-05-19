@@ -189,15 +189,6 @@ contract LiftStrategy is StrategyBaseClaimable {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    uint256 len = stakes.length;
-    require(len<=maxStakes, "Too many stakes, withdraw or increase maxStakes first");
-    uint256 rewardBalanceBefore = boardRoom.getbalanceOfShare(address(this));
-    rewardPool.stakeInBoardroom();
-    uint256 rewardBalanceAfter = boardRoom.getbalanceOfShare(address(this));
-    uint256 rewardStaked = rewardBalanceAfter.sub(rewardBalanceBefore);
-    if (rewardStaked > 0) {
-      stakes.push([block.timestamp, rewardStaked]);
-    }
     investAllUnderlying();
   }
 
