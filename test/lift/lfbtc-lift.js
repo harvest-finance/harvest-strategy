@@ -77,11 +77,11 @@ describe("Lift.Kitchen lfBTC/LIFT", function() {
       await strategy.setRewardClaimable(true, {from:governance});
       await controller.doHardWork(vault.address, { from: governance });
 
-      let blocksPerHour = 240;
+      let blocksPerHour = 2400;
       await Utils.advanceNBlock(blocksPerHour);
 
       // Using half days is to simulate how we doHardwork in the real world
-      let hours = 200;
+      let hours = 10;
       let oldSharePrice;
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
