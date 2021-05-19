@@ -22,7 +22,7 @@ contract LiftStrategyMainnet_wBTC_lfBTC is LiftStrategy {
     wBTClfBTCRewardPool,
     LIFT,
     sushiRouterAddress,
-    200 //maxStakes
+    25 //maxStakes
   )
   public {
 
