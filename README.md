@@ -39,7 +39,7 @@ All tests are located under the `test` folder.
     accounts that are no longer such at the most recent block, or for time-sensitive activities like migrations.
     In addition, specifying block number speeds up tests due to caching.
 
-1. Run `npx hardhat test [test file location]`: `npx hardhat test ./test/1inch/eth-dai.js`. This will produce the following output:
+1. Run `npx hardhat test [test file location]`: `npx hardhat test ./test/1inch/eth-dai.js` (if for some reason the NodeJS heap runs out of memory, make sure to explicitly increase its size via `export NODE_OPTIONS=--max_old_space_size=4096`). This will produce the following output:
     ```
     Mainnet ETH/DAI
     Impersonating...
