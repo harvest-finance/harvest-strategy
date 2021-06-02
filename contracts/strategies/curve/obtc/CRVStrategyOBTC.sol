@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../../base/interface/curve/Gauge.sol";
-import "../../../base/interface/curve/ICurveOBTCDeposit.sol";
+import "../../../base/interface/curve/ICurveDeposit_4token.sol";
 import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
@@ -234,7 +234,7 @@ contract CRVStrategyOBTC is StrategyBase {
 
       // we can accept 0 as minimum, this will be called only by trusted roles
       uint256 minimum = 0;
-      ICurveOBTCDeposit(curveDepositOBTC).add_liquidity([0, 0, wbtcBalance, 0], minimum);
+      ICurveDeposit_4token(curveDepositOBTC).add_liquidity([0, 0, wbtcBalance, 0], minimum);
       // now we have obtcCRV
     }
   }

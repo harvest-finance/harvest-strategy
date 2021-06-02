@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../../base/interface/curve/Gauge.sol";
-import "../../../base/interface/curve/ICurveUSDPDeposit.sol";
+import "../../../base/interface/curve/ICurveDeposit_4token.sol";
 import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
@@ -198,7 +198,7 @@ contract CRVStrategyUSDP is StrategyBaseClaimable {
 
       // we can accept 0 as minimum, this will be called only by trusted roles
       uint256 minimum = 0;
-      ICurveUSDPDeposit(curveDepositUSDP).add_liquidity([0, daiBalance, 0, 0], minimum);
+      ICurveDeposit_4token(curveDepositUSDP).add_liquidity([0, daiBalance, 0, 0], minimum);
       // now we have usdpCRV
     }
   }

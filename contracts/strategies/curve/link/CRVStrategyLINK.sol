@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../../base/interface/curve/Gauge.sol";
-import "../../../base/interface/curve/ICurveLINKDeposit.sol";
+import "../../../base/interface/curve/ICurveDeposit_2token.sol";
 import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
@@ -217,7 +217,7 @@ contract CRVStrategyLINK is StrategyBase {
 
       // we can accept 0 as minimum, this will be called only by trusted roles
       uint256 minimum = 0;
-      ICurveLINKDeposit(curveDepositLINK).add_liquidity([linkBalance, 0], minimum);
+      ICurveDeposit_2token(curveDepositLINK).add_liquidity([linkBalance, 0], minimum);
       // now we have linkCRV
     }
   }
