@@ -6,6 +6,7 @@ const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
+const IBooster = artifacts.require("IBooster");
 
 const Strategy = artifacts.require("ConvexStrategy3CRVMainnet");
 
@@ -20,6 +21,7 @@ describe("Mainnet Convex 3CRV", function() {
 
   // external setup
   let underlyingWhale = "0x89515406c15a277F8906090553366219B3639834";
+  let booster;
 
   // parties in the protocol
   let governance;
@@ -68,6 +70,8 @@ describe("Mainnet Convex 3CRV", function() {
 
     await strategy.setSellFloor(0, {from:governance});
 
+    booster = await IBooster.at("0xF403C135812408BFbE8713b5A23a04b3D48AAE31");
+
     // whale send underlying to farmers
     await setupBalance();
   });
@@ -80,11 +84,14 @@ describe("Mainnet Convex 3CRV", function() {
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
-      let blocksPerHour = 2400;
+      let blocksPerHour = 4800;
       let oldSharePrice;
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
+
+        await booster.earmarkRewards(await strategy.poolId());
+
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await controller.doHardWork(vault.address, { from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
@@ -92,6 +99,12 @@ describe("Mainnet Convex 3CRV", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
+
+        apr = (newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))*365;
+        apy = ((newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
+
+        console.log("instant APR:", apr*100, "%");
+        console.log("instant APY:", (apy-1)*100, "%");
 
         await Utils.advanceNBlock(blocksPerHour);
       }
@@ -103,8 +116,8 @@ describe("Mainnet Convex 3CRV", function() {
       apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
 
       console.log("earned!");
-      console.log("APR:", apr*100, "%");
-      console.log("APY:", (apy-1)*100, "%");
+      console.log("Overall APR:", apr*100, "%");
+      console.log("Overall APY:", (apy-1)*100, "%");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

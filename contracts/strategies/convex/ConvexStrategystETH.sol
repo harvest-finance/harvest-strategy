@@ -11,10 +11,10 @@ import "../../base/upgradability/BaseUpgradeableStrategy.sol";
 import "../../base/interface/uniswap/IUniswapV2Pair.sol";
 import "./interface/IBooster.sol";
 import "./interface/IBaseRewardPool.sol";
-import "../../base/interface/curve/ICurveDeposit_3token.sol";
+import "../../base/interface/curve/ICurveDeposit_2token.sol";
+import "../../base/interface/weth/Weth9.sol";
 
-
-contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
+contract ConvexStrategystETH is IStrategy, BaseUpgradeableStrategy {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -30,7 +30,6 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
   bytes32 internal constant _DEPOSIT_ARRAY_POSITION_SLOT = 0xb7c50ef998211fff3420379d0bf5b8dfb0cee909d1b7d9e517f311c104675b09;
   bytes32 internal constant _CURVE_DEPOSIT_SLOT = 0xb306bb7adebd5a22f5e4cdf1efa00bc5f62d4f5554ef9d62c1b16327cd3ab5f9;
 
-  address[] public WETH2deposit;
   mapping (address => address[]) public reward2WETH;
   address[] public rewardTokens;
 
@@ -62,7 +61,7 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
       300, // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
-      0, // sell floor
+      1e18, // sell floor
       12 hours // implementation change delay
     );
 
@@ -70,13 +69,12 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
     address _depositReceipt;
     (_lpt,_depositReceipt,,,,) = IBooster(booster).poolInfo(_poolID);
     require(_lpt == underlying(), "Pool Info does not match underlying");
-    require(_depositArrayPosition < 3, "Deposit array position out of bounds");
+    require(_depositArrayPosition < 2, "Deposit array position out of bounds");
     _setDepositArrayPosition(_depositArrayPosition);
     _setPoolId(_poolID);
     _setDepositToken(_depositToken);
     _setDepositReceipt(_depositReceipt);
     _setCurveDeposit(_curveDeposit);
-    WETH2deposit = new address[](0);
     rewardTokens = new address[](0);
   }
 
@@ -147,10 +145,7 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
     _setPausedInvesting(false);
   }
 
-  function setLiquidationPath(address [] memory _route) public onlyGovernance {
-    WETH2deposit = _route;
-  }
-
+  // We assume that all the tradings can be done on Uniswap
   function _liquidateReward() internal {
     if (!sell()) {
       // Profits can be disabled for possible simplified and rapoolId exit
@@ -181,40 +176,22 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
       return;
     }
 
-    // allow Uniswap to sell our reward
-    IERC20(rewardToken()).safeApprove(sushiswapRouterV2, 0);
-    IERC20(rewardToken()).safeApprove(sushiswapRouterV2, remainingRewardBalance);
-
-    // we can accept 1 as minimum because this is called only by a trusted role
-    uint256 amountOutMin = 1;
-
-    IUniswapV2Router02(sushiswapRouterV2).swapExactTokensForTokens(
-      remainingRewardBalance,
-      amountOutMin,
-      WETH2deposit,
-      address(this),
-      block.timestamp
-    );
-
-    uint256 tokenBalance = IERC20(depositToken()).balanceOf(address(this));
-    if (tokenBalance > 0) {
+    if (remainingRewardBalance > 0) {
       depositCurve();
     }
   }
 
   function depositCurve() internal {
-    uint256 tokenBalance = IERC20(depositToken()).balanceOf(address(this));
-    IERC20(depositToken()).safeApprove(curveDeposit(), 0);
-    IERC20(depositToken()).safeApprove(curveDeposit(), tokenBalance);
-
-    uint256[3] memory depositArray;
-    depositArray[depositArrayPosition()] = tokenBalance;
+    uint256 tokenBalance = IERC20(weth).balanceOf(address(this));
+    WETH9(weth).withdraw(tokenBalance);
+    uint256 ethBalance = address(this).balance;
+    uint256[2] memory depositArray;
+    depositArray[depositArrayPosition()] = ethBalance;
 
     // we can accept 0 as minimum, this will be called only by trusted roles
     uint256 minimum = 0;
-    ICurveDeposit_3token(curveDeposit()).add_liquidity(depositArray, minimum);
+    ICurveDeposit_2token(curveDeposit()).add_liquidity.value(ethBalance)(depositArray, minimum);
   }
-
 
   /*
   *   Stakes everything the strategy holds into the reward pool
@@ -354,4 +331,6 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
   function finalizeUpgrade() external onlyGovernance {
     _finalizeUpgrade();
   }
+
+  function () external payable {}
 }

@@ -8,19 +8,19 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const IBooster = artifacts.require("IBooster");
 
-const Strategy = artifacts.require("ConvexStrategyHUSDMainnet");
+const Strategy = artifacts.require("ConvexStrategystETHMainnet");
 
 //This test was developed at blockNumber 12555215
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Convex HUSD", function() {
+describe("Mainnet Convex stETH", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xDf9BEB91f16DC49599E60B82c3a3Ee509fD840C7";
+  let underlyingWhale = "0xB1Ec171401c914b437D331994b328aC01D904671";
   let booster;
 
   // parties in the protocol
@@ -36,7 +36,7 @@ describe("Mainnet Convex HUSD", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x5B5CFE992AdAC0C9D48E05854B2d91C73a003858");
+    underlying = await IERC20.at("0x06325440D014e39736583c165C2963BA99fAf14E");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -60,7 +60,7 @@ describe("Mainnet Convex HUSD", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0x29780C39164Ebbd62e9DDDE50c151810070140f2",
+      "existingVaultAddress": "0xc27bfE32E0a934a12681C1b35acf0DBA0e7460Ba",
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "announceStrategy": true,

@@ -21,7 +21,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
 
   address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
   address public constant booster = address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
-  address public constant cvx = address(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
+  address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -30,9 +30,9 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
   bytes32 internal constant _DEPOSIT_ARRAY_POSITION_SLOT = 0xb7c50ef998211fff3420379d0bf5b8dfb0cee909d1b7d9e517f311c104675b09;
   bytes32 internal constant _CURVE_DEPOSIT_SLOT = 0xb306bb7adebd5a22f5e4cdf1efa00bc5f62d4f5554ef9d62c1b16327cd3ab5f9;
 
-  // this would be reset on each upgrade
-  address[] public liquidationPath;
-  address[] public pathCVX2CRV;
+  address[] public WETH2deposit;
+  mapping (address => address[]) public reward2WETH;
+  address[] public rewardTokens;
 
   constructor() public BaseUpgradeableStrategy() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
@@ -47,7 +47,6 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
     address _underlying,
     address _vault,
     address _rewardPool,
-    address _rewardToken,
     uint256 _poolID,
     address _depositToken,
     uint256 _depositArrayPosition,
@@ -59,7 +58,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
       _underlying,
       _vault,
       _rewardPool,
-      _rewardToken,
+      weth,
       300, // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
@@ -77,8 +76,8 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
     _setDepositToken(_depositToken);
     _setDepositReceipt(_depositReceipt);
     _setCurveDeposit(_curveDeposit);
-    liquidationPath = new address[](0);
-
+    WETH2deposit = new address[](0);
+    rewardTokens = new address[](0);
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -149,33 +148,32 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
   }
 
   function setLiquidationPath(address [] memory _route) public onlyGovernance {
-    liquidationPath = _route;
+    WETH2deposit = _route;
   }
 
   // We assume that all the tradings can be done on Uniswap
   function _liquidateReward() internal {
-    uint256 cvxBalance = IERC20(cvx).balanceOf(address(this));
-    if (cvxBalance > 0) {
-      // allow Uniswap to sell our reward
-      IERC20(cvx).safeApprove(sushiswapRouterV2, 0);
-      IERC20(cvx).safeApprove(sushiswapRouterV2, cvxBalance);
-      // we can accept 1 as minimum because this is called only by a trusted role
-      uint256 amountOutMin = 1;
+    if (!sell()) {
+      // Profits can be disabled for possible simplified and rapoolId exit
+      emit ProfitsNotCollected(sell(), false);
+      return;
+    }
+
+    for(uint256 i = 0; i < rewardTokens.length; i++){
+      address token = rewardTokens[i];
+      uint256 rewardBalance = IERC20(token).balanceOf(address(this));
+      if (rewardBalance == 0) {
+        continue;
+      }
+      IERC20(token).safeApprove(sushiswapRouterV2, 0);
+      IERC20(token).safeApprove(sushiswapRouterV2, rewardBalance);
+      // we can accept 1 as the minimum because this will be called only by a trusted worker
       IUniswapV2Router02(sushiswapRouterV2).swapExactTokensForTokens(
-        cvxBalance,
-        amountOutMin,
-        pathCVX2CRV,
-        address(this),
-        block.timestamp
+        rewardBalance, 1, reward2WETH[token], address(this), block.timestamp
       );
     }
 
-    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    if (!sell() || rewardBalance < sellFloor()) {
-      // Profits can be disabled for possible simplified and rapoolId exit
-      emit ProfitsNotCollected(sell(), rewardBalance < sellFloor());
-      return;
-    }
+    uint256 rewardBalance = IERC20(weth).balanceOf(address(this));
 
     notifyProfitInRewardToken(rewardBalance);
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
@@ -194,7 +192,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
     IUniswapV2Router02(sushiswapRouterV2).swapExactTokensForTokens(
       remainingRewardBalance,
       amountOutMin,
-      liquidationPath,
+      WETH2deposit,
       address(this),
       block.timestamp
     );
@@ -356,9 +354,5 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
 
   function finalizeUpgrade() external onlyGovernance {
     _finalizeUpgrade();
-    // reset the liquidation paths
-    // they need to be re-set manually
-    liquidationPath = new address[](0);
-    pathCVX2CRV = new address[](0);
   }
 }
