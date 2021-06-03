@@ -22,6 +22,18 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    // DODO token
+    address public constant dodo =
+        address(0x43Dfc4159D86F3A37A5A4B3D4580b888ad7d4DDd);
+
+    // USDT token
+    address public constant usdt =
+        address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+
+    // DODO/USDT pair on DODO V1
+    address public constant dodoV1DodoUsdtPair =
+        address(0x8876819535b48b551C9e97EBc07332C7482b4b2d);
+
     // Uniswap V2 router
     address public constant uniswapRouterV2 =
         address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
@@ -71,12 +83,11 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
 
     // ---------------- Initializer ----------------
 
-    function initializeStrategy(
+    function initializeBaseStrategy(
         address _storage,
         address _underlying,
         address _vault,
         address _rewardPool,
-        address _rewardToken,
         address _dodoPair,
         bool _isBaseToken
     ) public initializer {
@@ -85,7 +96,12 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
             _underlying,
             _vault,
             _rewardPool,
-            _rewardToken,
+            // Rewards are actually given in DODO tokens. However, since
+            // liquidity for DODO is very low on Uniswap, we swap the DODO
+            // rewards to USDT on DODO (which has very good liquidity for
+            // DODO/USDT) and use USDT as a reward token for more efficient
+            // liquidation.
+            usdt,
             300, // Profit sharing numerator
             1000, // Profit sharing denominator
             true, // Sell
@@ -119,7 +135,7 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
     // ---------------- IStrategy methods ----------------
 
     function unsalvagableTokens(address token) public view returns (bool) {
-        return (token == rewardToken() || token == underlying());
+        return (token == dodo || token == underlying());
     }
 
     /**
@@ -290,13 +306,36 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
 
     // We assume that all trading can be done on Uniswap
     function _liquidateReward() internal {
-        uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+        uint256 dodoBalance = IERC20(dodo).balanceOf(address(this));
 
         // Profits can be disabled for possible simplified and rapid exit
-        if (!sell() || rewardBalance < sellFloor()) {
-            emit ProfitsNotCollected(sell(), rewardBalance < sellFloor());
+        if (!sell() || dodoBalance < sellFloor()) {
+            emit ProfitsNotCollected(sell(), dodoBalance < sellFloor());
             return;
         }
+
+        // Liquidate the DODO rewards via DODO's DODO/USDT pool
+
+        IERC20(dodo).safeApprove(dodoApprove, 0);
+        IERC20(dodo).safeApprove(dodoApprove, dodoBalance);
+
+        address[] memory dodoV1Pairs = new address[](1);
+        dodoV1Pairs[0] = dodoV1DodoUsdtPair;
+
+        IDodoV2Proxy02(dodoRouterV2).dodoSwapV1(
+            dodo,
+            usdt,
+            dodoBalance,
+            1,
+            dodoV1Pairs,
+            0,
+            false,
+            block.timestamp
+        );
+
+        // Handle USDT as the reward token
+
+        uint256 rewardBalance = IERC20(usdt).balanceOf(address(this));
 
         notifyProfitInRewardToken(rewardBalance);
         uint256 remainingRewardBalance =
@@ -306,42 +345,25 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
             return;
         }
 
-        // TODO: Should we liquidate DODO to USDT on DODO first
-        // and only then use Uniswap? (DODO/USDT on DODO has much
-        // more liquidity than DODO/WETH on Uniswap)
-
-        // address[] memory dodoV1Pairs = new address[](1);
-        // dodoV1Pairs[0] = dodoV1DodoUsdtPair;
-        //
-        // // Swap DODO reward for USDT
-        // IDodoV2Proxy02(dodoV2Router).dodoSwapV1(
-        //     rewardToken,
-        //     usdt,
-        //     remainingRewardBalance,
-        //     1,
-        //     dodoV1Pairs,
-        //     0,
-        //     false,
-        //     block.timestamp
-        // );
-
-        // Liquidate the DODO rewards via Uniswap
+        // Liquidate the USDT via Uniswap
 
         address originToken = IDodoLpToken(underlying()).originToken();
 
-        IERC20(rewardToken()).safeApprove(uniswapRouterV2, 0);
-        IERC20(rewardToken()).safeApprove(
-            uniswapRouterV2,
-            remainingRewardBalance
-        );
+        if (uniswapRoutes[originToken].length > 0) {
+            IERC20(rewardToken()).safeApprove(uniswapRouterV2, 0);
+            IERC20(rewardToken()).safeApprove(
+                uniswapRouterV2,
+                remainingRewardBalance
+            );
 
-        IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-            remainingRewardBalance,
-            1,
-            uniswapRoutes[originToken],
-            address(this),
-            block.timestamp
-        );
+            IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
+                remainingRewardBalance,
+                1,
+                uniswapRoutes[originToken],
+                address(this),
+                block.timestamp
+            );
+        }
 
         // Use the liquidated rewards to provide liqudity in order to get more underlying
 

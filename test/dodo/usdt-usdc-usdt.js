@@ -61,7 +61,7 @@ describe("Mainnet USDT/USDC USDT LP", function () {
 
     await setupExternalContracts();
 
-    const dodo = "0x43Dfc4159D86F3A37A5A4B3D4580b888ad7d4DDd";
+    const usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
     const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
 
@@ -71,7 +71,7 @@ describe("Mainnet USDT/USDC USDT LP", function () {
       strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
-      liquidation: [{ uni: [dodo, weth, farm] }],
+      liquidation: [{ uni: [usdt, weth, farm] }],
     });
 
     // Send underlying from whale to farmers
@@ -80,12 +80,14 @@ describe("Mainnet USDT/USDC USDT LP", function () {
 
   describe("Happy path", function () {
     it("Farmer should earn money", async function () {
-      let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer));
+      const farmerOldBalance = new BigNumber(
+        await underlying.balanceOf(farmer)
+      );
       await depositVault(farmer, underlying, vault, farmerBalance);
 
       // Using half days is to simulate how we `doHardWork` in the real world
-      let hours = 10;
-      let blocksPerHour = 2400;
+      const hours = 10;
+      const blocksPerHour = 2400;
 
       let oldSharePrice;
       let newSharePrice;
@@ -107,7 +109,9 @@ describe("Mainnet USDT/USDC USDT LP", function () {
       }
 
       await vault.withdraw(farmerBalance, { from: farmer });
-      let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer));
+      const farmerNewBalance = new BigNumber(
+        await underlying.balanceOf(farmer)
+      );
       utils.assertBNGt(farmerNewBalance, farmerOldBalance);
 
       console.log(
