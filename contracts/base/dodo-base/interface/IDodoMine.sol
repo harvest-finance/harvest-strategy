@@ -1,6 +1,8 @@
 pragma solidity 0.5.16;
 
 interface IDodoMine {
+    function claim(address _lpToken) external;
+
     function deposit(address _lpToken, uint256 _amount) external;
 
     function withdraw(address _lpToken, uint256 _amount) external;

@@ -11,8 +11,8 @@ const IERC20 = artifacts.require(
   "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20"
 );
 
-const DodoStrategyMainnet_USDT_USDC_USDT = artifacts.require(
-  "DodoStrategyMainnet_USDT_USDC_USDT"
+const Strategy = artifacts.require(
+  "DodoV1SingleLPStrategyMainnet_USDT_USDC_USDT"
 );
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
@@ -67,7 +67,8 @@ describe("Mainnet USDT/USDC USDT LP", function () {
 
     [controller, vault, strategy] = await setupCoreProtocol({
       existingVaultAddress: null,
-      strategyArtifact: DodoStrategyMainnet_USDT_USDC_USDT,
+      strategyArtifact: Strategy,
+      strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
       liquidation: [{ uni: [dodo, weth, farm] }],
