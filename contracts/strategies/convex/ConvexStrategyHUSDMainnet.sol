@@ -32,5 +32,8 @@ contract ConvexStrategyHUSDMainnet is ConvexStrategy4Token {
     reward2WETH[cvx] = [cvx, weth];
     WETH2deposit = [weth, dai];
     rewardTokens = [crv, cvx];
+    useUni[crv] = false;
+    useUni[cvx] = false;
+    useUni[dai] = false;
   }
 }

@@ -1,10 +1,10 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategy2Token.sol";
+import "./ConvexStrategy4Token.sol";
 
-contract ConvexStrategyCompoundMainnet is ConvexStrategy2Token {
+contract ConvexStrategyUSTMainnet is ConvexStrategy4Token {
 
-  address public compound_unused; // just a differentiator for the bytecode
+  address public ust_unused; // just a differentiator for the bytecode
 
   constructor() public {}
 
@@ -12,21 +12,21 @@ contract ConvexStrategyCompoundMainnet is ConvexStrategy2Token {
     address _storage,
     address _vault
   ) public initializer {
-    address underlying = address(0x845838DF265Dcd2c412A1Dc9e959c7d08537f8a2);
-    address rewardPool = address(0xf34DFF761145FF0B05e917811d488B441F33a968);
+    address underlying = address(0x94e131324b6054c0D789b190b2dAC504e4361b53);
+    address rewardPool = address(0xd4Be1911F8a0df178d6e7fF5cE39919c273E2B7B);
     address crv = address(0xD533a949740bb3306d119CC777fa900bA034cd52);
     address cvx = address(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     address dai = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-    address compoundCurveDeposit = address(0xeB21209ae4C2c9FF2a86ACA31E123764A3B6Bc06);
-    ConvexStrategy2Token.initializeBaseStrategy(
+    address ustCurveDeposit = address(0xB0a0716841F2Fc03fbA72A891B8Bb13584F52F2d);
+    ConvexStrategy4Token.initializeBaseStrategy(
       _storage,
       underlying,
       _vault,
       rewardPool, //rewardPool
-      0,  // Pool id
+      21,  // Pool id
       dai,
-      0, //depositArrayPosition
-      compoundCurveDeposit
+      1, //depositArrayPosition
+      ustCurveDeposit
     );
     reward2WETH[crv] = [crv, weth];
     reward2WETH[cvx] = [cvx, weth];

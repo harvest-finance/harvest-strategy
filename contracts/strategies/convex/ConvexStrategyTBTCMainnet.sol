@@ -34,5 +34,9 @@ contract ConvexStrategyTBTCMainnet is ConvexStrategy4Token {
     reward2WETH[keep] = [keep, weth];
     WETH2deposit = [weth, wbtc];
     rewardTokens = [crv, cvx, keep];
+    useUni[crv] = false;
+    useUni[cvx] = false;
+    useUni[wbtc] = false;
+    useUni[keep] = true;
   }
 }

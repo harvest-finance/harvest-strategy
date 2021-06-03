@@ -19,6 +19,7 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
+  address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
   address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
   address public constant booster = address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -32,6 +33,7 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
 
   address[] public WETH2deposit;
   mapping (address => address[]) public reward2WETH;
+  mapping (address => bool) public useUni;
   address[] public rewardTokens;
 
   constructor() public BaseUpgradeableStrategy() {
@@ -186,10 +188,16 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
       if (rewardBalance == 0 || reward2WETH[token].length < 2) {
         continue;
       }
-      IERC20(token).safeApprove(sushiswapRouterV2, 0);
-      IERC20(token).safeApprove(sushiswapRouterV2, rewardBalance);
+      address routerV2;
+      if(useUni[token]) {
+        routerV2 = uniswapRouterV2;
+      } else {
+        routerV2 = sushiswapRouterV2;
+      }
+      IERC20(token).safeApprove(routerV2, 0);
+      IERC20(token).safeApprove(routerV2, rewardBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
-      IUniswapV2Router02(sushiswapRouterV2).swapExactTokensForTokens(
+      IUniswapV2Router02(routerV2).swapExactTokensForTokens(
         rewardBalance, 1, reward2WETH[token], address(this), block.timestamp
       );
     }
@@ -203,14 +211,20 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
       return;
     }
 
+    address routerV2;
+    if(useUni[depositToken()]) {
+      routerV2 = uniswapRouterV2;
+    } else {
+      routerV2 = sushiswapRouterV2;
+    }
     // allow Uniswap to sell our reward
-    IERC20(rewardToken()).safeApprove(sushiswapRouterV2, 0);
-    IERC20(rewardToken()).safeApprove(sushiswapRouterV2, remainingRewardBalance);
+    IERC20(rewardToken()).safeApprove(routerV2, 0);
+    IERC20(rewardToken()).safeApprove(routerV2, remainingRewardBalance);
 
     // we can accept 1 as minimum because this is called only by a trusted role
     uint256 amountOutMin = 1;
 
-    IUniswapV2Router02(sushiswapRouterV2).swapExactTokensForTokens(
+    IUniswapV2Router02(routerV2).swapExactTokensForTokens(
       remainingRewardBalance,
       amountOutMin,
       WETH2deposit,

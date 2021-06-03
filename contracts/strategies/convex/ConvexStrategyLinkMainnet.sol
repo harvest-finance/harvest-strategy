@@ -32,5 +32,8 @@ contract ConvexStrategyLinkMainnet is ConvexStrategy2Token {
     reward2WETH[cvx] = [cvx, weth];
     WETH2deposit = [weth, link];
     rewardTokens = [crv, cvx];
+    useUni[crv] = false;
+    useUni[cvx] = false;
+    useUni[link] = false;
   }
 }

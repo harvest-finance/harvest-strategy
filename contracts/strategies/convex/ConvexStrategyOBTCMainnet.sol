@@ -34,5 +34,9 @@ contract ConvexStrategyOBTCMainnet is ConvexStrategy4Token {
     reward2WETH[bor] = [bor, weth];
     WETH2deposit = [weth, wbtc];
     rewardTokens = [crv, cvx, bor];
+    useUni[crv] = false;
+    useUni[cvx] = false;
+    useUni[wbtc] = false;
+    useUni[bor] = false;
   }
 }
