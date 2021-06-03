@@ -145,6 +145,25 @@ contract ConvexStrategystETH is IStrategy, BaseUpgradeableStrategy {
     _setPausedInvesting(false);
   }
 
+  function setRewardLiquidationPath(address [] memory _route) public onlyGovernance {
+    require(_route[_route.length-1] == weth, "Path should end with WETH");
+    bool isReward = false;
+    for(uint256 i = 0; i < rewardTokens.length; i++){
+      if (_route[0] == rewardTokens[i]) {
+        isReward = true;
+      }
+    }
+    require(isReward, "Path should start with a rewardToken");
+    reward2WETH[_route[0]] = _route;
+  }
+
+  function addRewardToken(address _token, address[] memory _path2WETH) public onlyGovernance {
+    require(_path2WETH[_path2WETH.length-1] == weth, "Path should end with WETH");
+    require(_path2WETH[0] == _token, "Path should start with rewardToken");
+    rewardTokens.push(_token);
+    reward2WETH[_token] = _path2WETH;
+  }
+
   // We assume that all the tradings can be done on Uniswap
   function _liquidateReward() internal {
     if (!sell()) {
@@ -156,7 +175,7 @@ contract ConvexStrategystETH is IStrategy, BaseUpgradeableStrategy {
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
-      if (rewardBalance == 0) {
+      if (rewardBalance == 0 || reward2WETH[token].length < 2) {
         continue;
       }
       IERC20(token).safeApprove(sushiswapRouterV2, 0);
