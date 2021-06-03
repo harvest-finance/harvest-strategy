@@ -335,7 +335,7 @@ contract DodoV1SingleLPStrategy is IStrategy, BaseUpgradeableStrategy {
 
         // Handle USDT as the reward token
 
-        uint256 rewardBalance = IERC20(usdt).balanceOf(address(this));
+        uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 
         notifyProfitInRewardToken(rewardBalance);
         uint256 remainingRewardBalance =
