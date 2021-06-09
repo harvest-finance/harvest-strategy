@@ -297,14 +297,9 @@ contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
   *   amount of reward that is accrued.
   */
   function investedUnderlyingBalance() external view returns (uint256) {
-    if (rewardPool() == address(0)) {
-      return IERC20(underlying()).balanceOf(address(this));
-    }
-    // Adding the amount locked in the reward pool and the amount that is somehow in this contract
-    // both are in the units of "underlying"
-    // The second part is needed because there is the emergency exit mechanism
-    // which would break the assumption that all the funds are always inside of the reward pool
-    return rewardPoolBalance().add(IERC20(underlying()).balanceOf(address(this)));
+    return rewardPoolBalance()
+      .add(IERC20(depositReceipt()).balanceOf(address(this)))
+      .add(IERC20(underlying()).balanceOf(address(this)));
   }
 
   /*
