@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../../base/interface/curve/Gauge.sol";
-import "./ICurveAAVEDeposit.sol";
+import "../../../base/interface/curve/ICurveDeposit_3token_underlying.sol";
 import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
@@ -185,7 +185,7 @@ contract CRVStrategyAAVE is StrategyBase {
 
       // we can accept 0 as minimum, this will be called only by trusted roles
       uint256 minimum = 0;
-      ICurveAAVEDeposit(curveDepositAAVE).add_liquidity([daiBalance, 0, 0], minimum, true);
+      ICurveDeposit_3token_underlying(curveDepositAAVE).add_liquidity([daiBalance, 0, 0], minimum, true);
       // now we have aaveCRV
     }
   }
