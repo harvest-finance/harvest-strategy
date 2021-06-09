@@ -152,6 +152,10 @@ contract LiftStrategy is StrategyBaseClaimable {
       rewardPool.withdraw(Math.min(rewardPool.balanceOf(address(this)), needToWithdraw));
     }
     IERC20(underlying).safeTransfer(vault, amount);
+
+    if (IERC20(underlying).balanceOf(address(this)) != 0){
+      investAllUnderlying();
+    }
   }
 
   /*

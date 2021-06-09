@@ -99,54 +99,58 @@ describe("Lift.Kitchen lfBTC/LIFT", function() {
 
       rewardToken = await IERC20.at(lift);
 
-      msigBalance0 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift0 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Before claims: Staked Lift:", stakedLift0, "MSig Balance:", msigBalance0);
-      console.log("");
-
-      await strategy.withdrawRewardShareOldest({from: multiSig});
-      msigBalance1 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift1 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Claim oldest: Staked Lift:", stakedLift1, "MSig Balance:", msigBalance1);
-      console.log("Diff: Staked Lift:", stakedLift1-stakedLift0, "MSig Balance:", msigBalance1-msigBalance0);
-      console.log("Efficiency:", (msigBalance1-msigBalance0)/(stakedLift0-stakedLift1)*100, "%");
-      console.log("");
-
-      await strategy.withdrawRewardShareNewest({from: multiSig});
-      msigBalance2 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift2 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Claim newest: Staked Lift:", stakedLift2, "MSig Balance:", msigBalance2);
-      console.log("Diff: Staked Lift:", stakedLift2-stakedLift1, "MSig Balance:", msigBalance2-msigBalance1);
-      console.log("Efficiency:", (msigBalance2-msigBalance1)/(stakedLift1-stakedLift2)*100, "%");
-      console.log("");
-
-      console.log("Advance 24000 blocks...");
-      console.log("");
-      await Utils.advanceNBlock(blocksPerHour*100);
-
-      await strategy.withdrawRewardShareOldest({from: multiSig});
-      msigBalance3 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift3 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Claim oldest: Staked Lift:", stakedLift3, "MSig Balance:", msigBalance3);
-      console.log("Diff: Staked Lift:", stakedLift3-stakedLift2, "MSig Balance:", msigBalance3-msigBalance2);
-      console.log("Efficiency:", (msigBalance3-msigBalance2)/(stakedLift2-stakedLift3)*100, "%");
-      console.log("");
-
-      await strategy.withdrawRewardShareNewest({from: multiSig});
-      msigBalance4 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift4 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Claim newest: Staked Lift:", stakedLift4, "MSig Balance:", msigBalance4);
-      console.log("Diff: Staked Lift:", stakedLift4-stakedLift3, "MSig Balance:", msigBalance4-msigBalance3);
-      console.log("Efficiency:", (msigBalance4-msigBalance3)/(stakedLift3-stakedLift4)*100, "%");
-      console.log("");
-
-      await strategy.withdrawRewardShareAll({from: multiSig});
-      msigBalance5 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
-      stakedLift5 = new BigNumber(await await strategy.stakedLift()).toFixed();
-      console.log("Claim all: Staked Lift:", stakedLift5, "MSig Balance:", msigBalance5);
-      console.log("Diff: Staked Lift:", stakedLift5-stakedLift4, "MSig Balance:", msigBalance5-msigBalance4);
-      console.log("Efficiency:", (msigBalance5-msigBalance4)/(stakedLift4-stakedLift5)*100, "%");
-      console.log("");
+      // msigBalance0 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift0 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Before claims: Staked Lift:", stakedLift0, "MSig Balance:", msigBalance0);
+      // console.log("");
+      //
+      // await strategy.withdrawRewardShareOldest({from: multiSig});
+      // msigBalance1 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift1 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Claim oldest: Staked Lift:", stakedLift1, "MSig Balance:", msigBalance1);
+      // console.log("Diff: Staked Lift:", stakedLift1-stakedLift0, "MSig Balance:", msigBalance1-msigBalance0);
+      // console.log("Efficiency:", (msigBalance1-msigBalance0)/(stakedLift0-stakedLift1)*100, "%");
+      // console.log("");
+      //
+      // await strategy.withdrawRewardShareNewest({from: multiSig});
+      // msigBalance2 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift2 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Claim newest: Staked Lift:", stakedLift2, "MSig Balance:", msigBalance2);
+      // console.log("Diff: Staked Lift:", stakedLift2-stakedLift1, "MSig Balance:", msigBalance2-msigBalance1);
+      // console.log("Efficiency:", (msigBalance2-msigBalance1)/(stakedLift1-stakedLift2)*100, "%");
+      // console.log("");
+      //
+      // console.log("Advance 24000 blocks...");
+      // console.log("");
+      // await Utils.advanceNBlock(blocksPerHour*100);
+      //
+      // await strategy.withdrawRewardShareOldest({from: multiSig});
+      // msigBalance3 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift3 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Claim oldest: Staked Lift:", stakedLift3, "MSig Balance:", msigBalance3);
+      // console.log("Diff: Staked Lift:", stakedLift3-stakedLift2, "MSig Balance:", msigBalance3-msigBalance2);
+      // console.log("Efficiency:", (msigBalance3-msigBalance2)/(stakedLift2-stakedLift3)*100, "%");
+      // console.log("");
+      //
+      // await strategy.withdrawRewardShareNewest({from: multiSig});
+      // msigBalance4 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift4 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Claim newest: Staked Lift:", stakedLift4, "MSig Balance:", msigBalance4);
+      // console.log("Diff: Staked Lift:", stakedLift4-stakedLift3, "MSig Balance:", msigBalance4-msigBalance3);
+      // console.log("Efficiency:", (msigBalance4-msigBalance3)/(stakedLift3-stakedLift4)*100, "%");
+      // console.log("");
+      //
+      // await strategy.withdrawRewardShareAll({from: multiSig});
+      // msigBalance5 = new BigNumber(await rewardToken.balanceOf(multiSig)).toFixed();
+      // stakedLift5 = new BigNumber(await await strategy.stakedLift()).toFixed();
+      // console.log("Claim all: Staked Lift:", stakedLift5, "MSig Balance:", msigBalance5);
+      // console.log("Diff: Staked Lift:", stakedLift5-stakedLift4, "MSig Balance:", msigBalance5-msigBalance4);
+      // console.log("Efficiency:", (msigBalance5-msigBalance4)/(stakedLift4-stakedLift5)*100, "%");
+      // console.log("");
+      //
+      await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).div(10), {from: farmer1});
+      let strategyBalance = new BigNumber(await underlying.balanceOf(strategy.address));
+      Utils.assertBNEq(new BigNumber(0), strategyBalance);
 
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
