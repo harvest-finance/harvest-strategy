@@ -4,5 +4,6 @@ module.exports = {
   "IFARM": "0x1571eD0bed4D987fe2b498DdBaE7DFA19519F651",
   "Controller": "0x222412af183BCeAdEFd72e4Cb1b71f1889953b1C",
   "VaultImplementationV1": "0x9B3bE0cc5dD26fd0254088d03D8206792715588B",
-  "UniversalLiquidatorRegistry": "0x7882172921E99d590E097cD600554339fBDBc480"
+  "UniversalLiquidatorRegistry": "0x7882172921E99d590E097cD600554339fBDBc480",
+  "FeeForwarderV6": "0x153C544f72329c1ba521DDf5086cf2fA98C86676",
 };
