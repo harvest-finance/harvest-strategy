@@ -23,6 +23,7 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
   address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
   address public constant booster = address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+  address public constant multiSigAddr = 0xF49440C1F012d041802b25A73e5B0B9166a75c02;
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -30,7 +31,10 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
   bytes32 internal constant _DEPOSIT_RECEIPT_SLOT = 0x414478d5ad7f54ead8a3dd018bba4f8d686ba5ab5975cd376e0c98f98fb713c5;
   bytes32 internal constant _DEPOSIT_ARRAY_POSITION_SLOT = 0xb7c50ef998211fff3420379d0bf5b8dfb0cee909d1b7d9e517f311c104675b09;
   bytes32 internal constant _CURVE_DEPOSIT_SLOT = 0xb306bb7adebd5a22f5e4cdf1efa00bc5f62d4f5554ef9d62c1b16327cd3ab5f9;
+  bytes32 internal constant _HODL_RATIO_SLOT = 0xb487e573671f10704ed229d25cf38dda6d287a35872859d096c0395110a0adb1;
+  bytes32 internal constant _HODL_VAULT_SLOT = 0xc26d330f887c749cb38ae7c37873ff08ac4bba7aec9113c82d48a0cf6cc145f2;
 
+  uint256 public constant hodlRatioBase = 10000;
   address[] public WETH2deposit;
   mapping (address => address[]) public reward2WETH;
   mapping (address => bool) public useUni;
@@ -42,6 +46,8 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
     assert(_DEPOSIT_RECEIPT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositReceipt")) - 1));
     assert(_DEPOSIT_ARRAY_POSITION_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositArrayPosition")) - 1));
     assert(_CURVE_DEPOSIT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.curveDeposit")) - 1));
+    assert(_HODL_RATIO_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlRatio")) - 1));
+    assert(_HODL_VAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlVault")) - 1));
   }
 
   function initializeBaseStrategy(
@@ -61,7 +67,7 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
       _vault,
       _rewardPool,
       weth,
-      300, // profit sharing numerator
+      300,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       0, // sell floor
@@ -78,8 +84,26 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
     _setDepositToken(_depositToken);
     _setDepositReceipt(_depositReceipt);
     _setCurveDeposit(_curveDeposit);
+    setHodlRatio(1000);
+    setHodlVault(multiSigAddr);
     WETH2deposit = new address[](0);
     rewardTokens = new address[](0);
+  }
+
+  function setHodlRatio(uint256 _value) public onlyGovernance {
+    setUint256(_HODL_RATIO_SLOT, _value);
+  }
+
+  function hodlRatio() public view returns (uint256) {
+    return getUint256(_HODL_RATIO_SLOT);
+  }
+
+  function setHodlVault(address _address) public onlyGovernance {
+    setAddress(_HODL_VAULT_SLOT, _address);
+  }
+
+  function hodlVault() public view returns (address) {
+    return getAddress(_HODL_VAULT_SLOT);
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -188,6 +212,16 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
       if (rewardBalance == 0 || reward2WETH[token].length < 2) {
         continue;
       }
+
+      uint256 toHodl = rewardBalance.mul(hodlRatio()).div(hodlRatioBase);
+      if (toHodl > 0) {
+        IERC20(token).safeTransfer(hodlVault(), toHodl);
+        rewardBalance = rewardBalance.sub(toHodl);
+        if (rewardBalance == 0) {
+          continue;
+        }
+      }
+
       address routerV2;
       if(useUni[token]) {
         routerV2 = uniswapRouterV2;
@@ -384,5 +418,7 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
 
   function finalizeUpgrade() external onlyGovernance {
     _finalizeUpgrade();
+    setHodlVault(multiSigAddr);
+    setHodlRatio(1000); // 10%
   }
 }
