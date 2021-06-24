@@ -36,7 +36,11 @@ async function setupCoreProtocol(config) {
     console.log("New Vault Deployed: ", vault.address);
   }
 
-  controller = await IController.at(addresses.Controller);
+  if (config.newController) {
+    controller = await IController.at(addresses.NewController);
+  } else {
+    controller = await IController.at(addresses.Controller);
+  }
 
   if (config.feeRewardForwarder) {/*
     const FeeRewardForwarder = artifacts.require("FeeRewardForwarder");
