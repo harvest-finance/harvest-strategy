@@ -10,7 +10,7 @@ const IBooster = artifacts.require("IBooster");
 
 const Strategy = artifacts.require("ConvexStrategyHBTCMainnet");
 
-//This test was developed at blockNumber 12555215
+//This test was developed at blockNumber 12690800
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Convex HBTC", function() {
@@ -21,6 +21,7 @@ describe("Mainnet Convex HBTC", function() {
 
   // external setup
   let underlyingWhale = "0x7a7A599D2384ed203cFEA49721628aA851E0DA16";
+  let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
   let booster;
 
   // parties in the protocol
@@ -62,8 +63,8 @@ describe("Mainnet Convex HBTC", function() {
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": "0xCC775989e76ab386E9253df5B0c0b473E22102E2",
       "strategyArtifact": Strategy,
+      "upgradeStrategy": true,
       "strategyArtifactIsUpgradable": true,
-      "announceStrategy": true,
       "underlying": underlying,
       "governance": governance,
     });
@@ -81,12 +82,14 @@ describe("Mainnet Convex HBTC", function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
       let fTokenBalance = await vault.balanceOf(farmer1);
+      let cvx = await IERC20.at("0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B");
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
       let blocksPerHour = 4800;
       let oldSharePrice;
       let newSharePrice;
+      let hodlOldBalance = new BigNumber(await cvx.balanceOf(hodlVault));
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
 
@@ -111,6 +114,11 @@ describe("Mainnet Convex HBTC", function() {
       await vault.withdraw(fTokenBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
+
+      let hodlNewBalance = new BigNumber(await cvx.balanceOf(hodlVault));
+      console.log("CVX before", hodlOldBalance.toFixed());
+      console.log("CVX after ", hodlNewBalance.toFixed());
+      Utils.assertBNGt(hodlNewBalance, hodlOldBalance);
 
       apr = (farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
       apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;

@@ -24,7 +24,6 @@ interface IController {
 
     function addVaultAndStrategy(address _vault, address _strategy) external;
     function doHardWork(address _vault) external;
-    function hasVault(address _vault) external returns(bool);
 
     function salvage(address _token, uint256 amount) external;
     function salvageStrategy(address _strategy, address _token, uint256 amount) external;
