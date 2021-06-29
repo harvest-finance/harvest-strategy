@@ -35,6 +35,6 @@ contract ConvexStrategyEURSMainnet is ConvexStrategy2Token {
     rewardTokens = [crv, cvx];
     useUni[crv] = false;
     useUni[cvx] = false;
-    useUni[eurs] = true;
+    useUni[eurs] = false;
   }
 }
