@@ -10,7 +10,7 @@ const IBooster = artifacts.require("IBooster");
 
 const Strategy = artifacts.require("ConvexStrategyEURSMainnet");
 
-//This test was developed at blockNumber 12555215
+//This test was developed at blockNumber 12727685
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Convex EURS", function() {
@@ -20,7 +20,7 @@ describe("Mainnet Convex EURS", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xe787949d68C28F47A49eeB805ec8480279272563";
+  let underlyingWhale = "0x8a08aD6DA1e8b142C9622DDFEB6ad8d6511d724F";
   let booster;
 
   // parties in the protocol

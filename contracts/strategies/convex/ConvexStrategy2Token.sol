@@ -13,7 +13,6 @@ import "./interface/IBooster.sol";
 import "./interface/IBaseRewardPool.sol";
 import "../../base/interface/curve/ICurveDeposit_2token.sol";
 
-
 contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
 
   using SafeMath for uint256;
@@ -173,13 +172,14 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
     _setPausedInvesting(false);
   }
 
-  function setDepositLiquidationPath(address [] memory _route) public onlyGovernance {
+  function setDepositLiquidationPath(address [] memory _route, bool _useUni) public onlyGovernance {
     require(_route[0] == weth, "Path should start with WETH");
     require(_route[_route.length-1] == depositToken(), "Path should end with depositToken");
     WETH2deposit = _route;
+    useUni[_route[_route.length-1]] = _useUni;
   }
 
-  function setRewardLiquidationPath(address [] memory _route) public onlyGovernance {
+  function setRewardLiquidationPath(address [] memory _route, bool _useUni) public onlyGovernance {
     require(_route[_route.length-1] == weth, "Path should end with WETH");
     bool isReward = false;
     for(uint256 i = 0; i < rewardTokens.length; i++){
@@ -189,13 +189,15 @@ contract ConvexStrategy2Token is IStrategy, BaseUpgradeableStrategy {
     }
     require(isReward, "Path should start with a rewardToken");
     reward2WETH[_route[0]] = _route;
+    useUni[_route[0]] = _useUni;
   }
 
-  function addRewardToken(address _token, address[] memory _path2WETH) public onlyGovernance {
+  function addRewardToken(address _token, address[] memory _path2WETH, bool _useUni) public onlyGovernance {
     require(_path2WETH[_path2WETH.length-1] == weth, "Path should end with WETH");
     require(_path2WETH[0] == _token, "Path should start with rewardToken");
     rewardTokens.push(_token);
     reward2WETH[_token] = _path2WETH;
+    useUni[_token] = _useUni;
   }
 
   // We assume that all the tradings can be done on Sushiswap
