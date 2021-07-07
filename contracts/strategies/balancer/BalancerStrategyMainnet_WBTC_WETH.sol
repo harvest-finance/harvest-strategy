@@ -17,6 +17,7 @@ contract BalancerStrategyMainnet_WBTC_WETH is BalancerStrategy {
     address wbtc = address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     address weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address bal = address(0xba100000625a3754423978a60c9317c58a424e3D);
+    bytes32 uniDex = 0xde2d1a51640f78257713031680d1f306297d957426e912ab21317b9cc9495a41;
     BalancerStrategy.initializeStrategy(
       _storage,
       underlying,
@@ -24,10 +25,11 @@ contract BalancerStrategyMainnet_WBTC_WETH is BalancerStrategy {
       address(0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8), // claiming contract
       bal,
       address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
-      0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e,  // Pool id
-      true // true = use Uniswap for liquidating
+      0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e  // Pool id
     );
-    swapRoutes[wbtc] = [bal, weth, wbtc];
-    swapRoutes[weth] = [bal, weth];
+    storedLiquidationPaths[bal][wbtc] = [bal, wbtc];
+    storedLiquidationDexes[bal][wbtc] = [uniDex];
+    storedLiquidationPaths[bal][weth] = [bal, weth];
+    storedLiquidationDexes[bal][weth] = [uniDex];
   }
 }

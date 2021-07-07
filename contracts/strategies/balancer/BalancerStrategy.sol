@@ -7,29 +7,24 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../base/interface/IStrategy.sol";
 import "../../base/interface/IVault.sol";
-import "../../base/upgradability/BaseUpgradeableStrategy.sol";
+import "../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 import "../../base/interface/uniswap/IUniswapV2Pair.sol";
 import "./interface/IBVault.sol";
 
-contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
+contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-  address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
-
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
-  bytes32 internal constant _USE_UNI_SLOT = 0x1132c1de5e5b6f1c4c7726265ddcf1f4ae2a9ecf258a0002de174248ecbf2c7a;
   bytes32 internal constant _BVAULT_SLOT = 0x85cbd475ba105ca98d9a2db62dcf7cf3c0074b36303ef64160d68a3e0fdd3c67;
 
   // this would be reset on each upgrade
   mapping (address => address[]) public swapRoutes;
 
-  constructor() public BaseUpgradeableStrategy() {
+  constructor() public BaseUpgradeableStrategyUL() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
-    assert(_USE_UNI_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.useUni")) - 1));
     assert(_BVAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.bVault")) - 1));
   }
 
@@ -40,11 +35,10 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
     address _rewardPool,
     address _rewardToken,
     address _bVault,
-    bytes32 _poolID,
-    bool _useUni
+    bytes32 _poolID
   ) public initializer {
 
-    BaseUpgradeableStrategy.initialize(
+    BaseUpgradeableStrategyUL.initialize(
       _storage,
       _underlying,
       _vault,
@@ -54,7 +48,8 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
       1000, // profit sharing denominator
       true, // sell
       1e18, // sell floor
-      12 hours // implementation change delay
+      12 hours, // implementation change delay
+      address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
     );
 
     (address _lpt,) = IBVault(_bVault).getPool(_poolID);
@@ -62,17 +57,6 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
 
     _setPoolId(_poolID);
     _setBVault(_bVault);
-
-    (IERC20[] memory componentTokens,,) = IBVault(bVault()).getPoolTokens(poolId());
-
-    address lpComponentToken0 = address(componentTokens[0]);
-    address lpComponentToken1 = address(componentTokens[1]);
-
-    // these would be required to be initialized separately by governance
-    swapRoutes[lpComponentToken0] = new address[](0);
-    swapRoutes[lpComponentToken1] = new address[](0);
-
-    setBoolean(_USE_UNI_SLOT, _useUni);
   }
 
   function depositArbCheck() public view returns(bool) {
@@ -87,58 +71,44 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
     return (token == rewardToken() || token == underlying());
   }
 
-  function setLiquidationPath(address _token, address [] memory _route) public onlyGovernance {
-    swapRoutes[_token] = _route;
-  }
-
   // We assume that all the tradings can be done on Uniswap
-  function _liquidateReward() internal {
-    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    if (!sell() || rewardBalance < sellFloor()) {
+  function _liquidateReward(uint256 rewardAmount) internal {
+    if (!sell() || rewardAmount < sellFloor()) {
       // Profits can be disabled for possible simplified and rapid exit
-      emit ProfitsNotCollected(sell(), rewardBalance < sellFloor());
+      emit ProfitsNotCollected(sell(), rewardAmount < sellFloor());
       return;
     }
 
-
-    notifyProfitInRewardToken(rewardBalance);
+    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    notifyProfitInRewardToken(rewardAmount);
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    uint256 toLiquidate = rewardAmount.sub(rewardBalance.sub(remainingRewardBalance));
 
-    if (remainingRewardBalance == 0) {
+    if (toLiquidate == 0) {
       return;
-    }
-
-    address routerV2;
-    if(useUni()) {
-      routerV2 = uniswapRouterV2;
-    } else {
-      routerV2 = sushiswapRouterV2;
     }
 
     // allow Uniswap to sell our reward
-    IERC20(rewardToken()).safeApprove(routerV2, 0);
-    IERC20(rewardToken()).safeApprove(routerV2, remainingRewardBalance);
-
-    // we can accept 1 as minimum because this is called only by a trusted role
-    uint256 amountOutMin = 1;
+    IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
+    IERC20(rewardToken()).safeApprove(universalLiquidator(), toLiquidate);
 
     (IERC20[] memory componentTokens,,) = IBVault(bVault()).getPoolTokens(poolId());
     address lpComponentToken0 = address(componentTokens[0]);
     address lpComponentToken1 = address(componentTokens[1]);
 
-    uint256 toToken0 = remainingRewardBalance.div(2);
-    uint256 toToken1 = remainingRewardBalance.sub(toToken0);
+    uint256 toToken0 = toLiquidate.div(2);
+    uint256 toToken1 = toLiquidate.sub(toToken0);
 
     uint256 token0Amount;
 
-    if (swapRoutes[lpComponentToken0].length > 1) {
+    if (storedLiquidationDexes[rewardToken()][lpComponentToken0].length > 0) {
       // if we need to liquidate the token0
-      IUniswapV2Router02(routerV2).swapExactTokensForTokens(
+      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
         toToken0,
-        amountOutMin,
-        swapRoutes[lpComponentToken0],
-        address(this),
-        block.timestamp
+        1,
+        address(this), // target
+        storedLiquidationDexes[rewardToken()][lpComponentToken0],
+        storedLiquidationPaths[rewardToken()][lpComponentToken0]
       );
       token0Amount = IERC20(lpComponentToken0).balanceOf(address(this));
     } else {
@@ -148,14 +118,14 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
 
     uint256 token1Amount;
 
-    if (swapRoutes[lpComponentToken1].length > 1) {
+    if (storedLiquidationDexes[rewardToken()][lpComponentToken1].length > 0) {
       // sell reward token to token1
-      IUniswapV2Router02(routerV2).swapExactTokensForTokens(
+      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
         toToken1,
-        amountOutMin,
-        swapRoutes[lpComponentToken1],
-        address(this),
-        block.timestamp
+        1,
+        address(this), // target
+        storedLiquidationDexes[rewardToken()][lpComponentToken1],
+        storedLiquidationPaths[rewardToken()][lpComponentToken1]
       );
       token1Amount = IERC20(lpComponentToken1).balanceOf(address(this));
     } else {
@@ -199,7 +169,8 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
-    _liquidateReward();
+    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    _liquidateReward(rewardBalance);
     IERC20(underlying()).safeTransfer(vault(), IERC20(underlying()).balanceOf(address(this)));
   }
 
@@ -245,7 +216,13 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    _liquidateReward();
+    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    _liquidateReward(rewardBalance.div(2));
+  }
+
+  function liquidateAll() external onlyGovernance {
+    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    _liquidateReward(rewardBalance);
   }
 
   /**
@@ -270,14 +247,6 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
 
   function poolId() public view returns (bytes32) {
     return getBytes32(_POOLID_SLOT);
-  }
-
-  function setUseUni(bool _value) public onlyGovernance {
-    setBoolean(_USE_UNI_SLOT, _value);
-  }
-
-  function useUni() public view returns (bool) {
-    return getBoolean(_USE_UNI_SLOT);
   }
 
   function _setBVault(address _address) internal {
@@ -309,7 +278,9 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategy {
     (IERC20[] memory componentTokens,,) = IBVault(bVault()).getPoolTokens(poolId());
     address lpComponentToken0 = address(componentTokens[0]);
     address lpComponentToken1 = address(componentTokens[1]);
-    swapRoutes[lpComponentToken0] = new address[](0);
-    swapRoutes[lpComponentToken1] = new address[](0);
+    storedLiquidationPaths[rewardToken()][lpComponentToken0] = new address[](0);
+    storedLiquidationDexes[rewardToken()][lpComponentToken0] = new bytes32[](0);
+    storedLiquidationPaths[rewardToken()][lpComponentToken1] = new address[](0);
+    storedLiquidationDexes[rewardToken()][lpComponentToken1] = new bytes32[](0);
   }
 }

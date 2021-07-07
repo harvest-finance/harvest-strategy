@@ -24,6 +24,7 @@ describe("Balancer: WBTC/WETH", function() {
   let balHolder = "0xE83CcF7475565692a3C6bE6013753492C72610DD";
   let balAddr = "0xba100000625a3754423978a60c9317c58a424e3D";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  let wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
   // parties in the protocol
   let governance;
@@ -69,7 +70,9 @@ describe("Balancer: WBTC/WETH", function() {
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"uni": [balAddr, weth, addresses.FARM]}],
+      "liquidation": [{"uni": [balAddr, weth, addresses.FARM]},
+                      {"uni": [balAddr, weth, wbtc]},
+                      {"uni": [balAddr, weth]}],
     });
 
     // Else sellfloor will not be reached
