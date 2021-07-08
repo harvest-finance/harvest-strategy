@@ -26,6 +26,7 @@ contract BalancerStrategyMainnet_DAI_WETH is BalancerStrategyRatio {
       bal,
       address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
       0x0b09dea16768f0799065c475be02919503cb2a3500020000000000000000001a,  // Pool id
+      500, //Liquidation ratio, liquidate 50% on doHardWork
       400 //Ratio, token0 = BAL, 40% of pool
     );
     storedLiquidationPaths[bal][dai] = [bal, dai];

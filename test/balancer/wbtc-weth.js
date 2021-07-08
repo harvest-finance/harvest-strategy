@@ -78,6 +78,8 @@ describe("Balancer: WBTC/WETH", function() {
     // Else sellfloor will not be reached
     await strategy.setSellFloor(0, {from:governance});
 
+    await strategy.setLiquidationRatio(750, {from: governance});
+
     // whale send underlying to farmers
     await setupBalance();
   });

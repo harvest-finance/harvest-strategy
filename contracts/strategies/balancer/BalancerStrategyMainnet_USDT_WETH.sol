@@ -25,7 +25,8 @@ contract BalancerStrategyMainnet_USDT_WETH is BalancerStrategy {
       address(0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8), // claiming contract
       bal,
       address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
-      0x3e5fa9518ea95c3e533eb377c001702a9aacaa32000200000000000000000052  // Pool id
+      0x3e5fa9518ea95c3e533eb377c001702a9aacaa32000200000000000000000052,  // Pool id
+      500 //Liquidation ratio, liquidate 50% on doHardWork
     );
     storedLiquidationPaths[bal][usdt] = [bal, usdt];
     storedLiquidationDexes[bal][usdt] = [uniDex];

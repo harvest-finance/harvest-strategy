@@ -19,6 +19,7 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
   bytes32 internal constant _BVAULT_SLOT = 0x85cbd475ba105ca98d9a2db62dcf7cf3c0074b36303ef64160d68a3e0fdd3c67;
+  bytes32 internal constant _LIQUIDATION_RATIO_SLOT = 0x88a908c31cfd33a7a64870721e6da89f529116031d2cb9ed0bf1c4ba0873d19f;
 
   // this would be reset on each upgrade
   mapping (address => address[]) public swapRoutes;
@@ -26,6 +27,7 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
   constructor() public BaseUpgradeableStrategyUL() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
     assert(_BVAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.bVault")) - 1));
+    assert(_LIQUIDATION_RATIO_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.liquidationRatio")) - 1));
   }
 
   function initializeStrategy(
@@ -35,7 +37,8 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
     address _rewardPool,
     address _rewardToken,
     address _bVault,
-    bytes32 _poolID
+    bytes32 _poolID,
+    uint256 _liquidationRatio
   ) public initializer {
 
     BaseUpgradeableStrategyUL.initialize(
@@ -54,7 +57,9 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     (address _lpt,) = IBVault(_bVault).getPool(_poolID);
     require(_lpt == _underlying, "Underlying mismatch");
+    require(_liquidationRatio < 1000, "Invalid ratio"); //Ratio base = 1000
 
+    setLiquidationRatio(_liquidationRatio);
     _setPoolId(_poolID);
     _setBVault(_bVault);
   }
@@ -217,7 +222,7 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    _liquidateReward(rewardBalance.div(2));
+    _liquidateReward(rewardBalance.mul(liquidationRatio()).div(1000));
   }
 
   function liquidateAll() external onlyGovernance {
@@ -255,6 +260,15 @@ contract BalancerStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   function bVault() public view returns (address) {
     return getAddress(_BVAULT_SLOT);
+  }
+
+  function setLiquidationRatio(uint256 _ratio) public onlyGovernance {
+    require(_ratio < 1000, "Invalid ratio"); //Ratio base = 1000
+    setUint256(_LIQUIDATION_RATIO_SLOT, _ratio);
+  }
+
+  function liquidationRatio() public view returns (uint256) {
+    return getUint256(_LIQUIDATION_RATIO_SLOT);
   }
 
   function setBytes32(bytes32 slot, bytes32 _value) internal {

@@ -25,7 +25,8 @@ contract BalancerStrategyMainnet_WBTC_WETH is BalancerStrategy {
       address(0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8), // claiming contract
       bal,
       address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
-      0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e  // Pool id
+      0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e,  // Pool id
+      500 //Liquidation ratio, liquidate 50% on doHardWork
     );
     storedLiquidationPaths[bal][wbtc] = [bal, wbtc];
     storedLiquidationDexes[bal][wbtc] = [uniDex];
