@@ -125,7 +125,7 @@ describe("ShapeShift FOX-WETH", function() {
       console.log("farmerOldBalance: ", farmerOldBalance.toFixed());
       console.log("farmerNewBalance: ", farmerNewBalance.toFixed());
       Utils.assertBNEq(farmerNewBalance, farmerOldBalance);
-      console.log("earned underlying!");
+      console.log("underlying remained the same");
 
       Utils.assertBNGt(farmerNewIFarm, 0);
       console.log("earned iFARM!");

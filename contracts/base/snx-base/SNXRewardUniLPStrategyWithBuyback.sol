@@ -105,7 +105,9 @@ contract SNXRewardUniLPStrategyWithBuyback is StrategyBase {
   *   The function is only used for emergency to exit the pool
   */
   function emergencyExit() public onlyGovernance {
-    rewardPool.exit();
+    if (rewardPool.balanceOf(address(this)) > 0) {
+      rewardPool.exit();
+    }
     pausedInvesting = true;
   }
 
@@ -240,10 +242,8 @@ contract SNXRewardUniLPStrategyWithBuyback is StrategyBase {
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
-    if (address(rewardPool) != address(0)) {
-      if (rewardPool.balanceOf(address(this)) > 0) {
-        rewardPool.exit();
-      }
+    if (rewardPool.balanceOf(address(this)) > 0) {
+      rewardPool.exit();
     }
     _liquidateReward();
 
@@ -273,9 +273,6 @@ contract SNXRewardUniLPStrategyWithBuyback is StrategyBase {
   *   amount of reward that is accrued.
   */
   function investedUnderlyingBalance() external view returns (uint256) {
-    if (address(rewardPool) == address(0)) {
-      return IERC20(underlying).balanceOf(address(this));
-    }
     // Adding the amount locked in the reward pool and the amount that is somehow in this contract
     // both are in the units of "underlying"
     // The second part is needed because there is the emergency exit mechanism
@@ -321,5 +318,17 @@ contract SNXRewardUniLPStrategyWithBuyback is StrategyBase {
   */
   function setSellFloor(uint256 floor) public onlyGovernance {
     sellFloor = floor;
+  }
+
+  /**
+  * Exits old rewardPool, sets the new one and invests in the new pool.
+  */
+  function changeRewardPool(address _newPool) public onlyGovernance {
+    if (rewardPool.balanceOf(address(this)) > 0) {
+      rewardPool.exit();
+    }
+    _liquidateReward();
+    rewardPool = SNXRewardInterface(_newPool);
+    investAllUnderlying();
   }
 }
