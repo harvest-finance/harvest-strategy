@@ -12,7 +12,8 @@ const IERC20 = artifacts.require(
   "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20"
 );
 
-const Strategy = artifacts.require("LiquityLQTYStakingStrategy");
+const LiquidatorRegistry = artifacts.require("ILiquidatorRegistry");
+const Strategy = artifacts.require("LQTYStakingStrategyMainnet");
 
 const BorrowerOperations = artifacts.require("IBorrowerOperations");
 const TroveManager = artifacts.require("ITroveManager");
@@ -65,6 +66,28 @@ describe("LQTY Staking", function () {
     });
   };
 
+  const setupULPath = async () => {
+    // Set up a path from WETH to LQTY via UniswapV3 on UL
+    const registry = await LiquidatorRegistry.at(
+      "0x7882172921e99d590e097cd600554339fbdbc480"
+    );
+
+    await registry.setPath(
+      // Via UniswapV3
+      "0x8f78a54cb77f4634a5bf3dd452ed6a2e33432c73821be59208661199511cd94f",
+      // From WETH
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      // To LQTY
+      "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+      // Path
+      [
+        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+      ],
+      { from: governance }
+    );
+  };
+
   const triggerETHRewards = async () => {
     // Redeem collateral for triggering ETH rewards
     // Taken from:
@@ -106,7 +129,6 @@ describe("LQTY Staking", function () {
 
     await setupExternalContracts();
 
-    const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const farm = "0xa0246c9032bC3A600820415aE600c6388619A14D";
 
@@ -116,11 +138,13 @@ describe("LQTY Staking", function () {
       strategyArtifactIsUpgradable: true,
       underlying,
       governance,
-      liquidation: [{ uni: [usdc, weth, farm] }],
+      liquidation: [{ uni: [weth, farm] }],
     });
 
     // Send underlying from whale to farmers
     await setupBalance();
+
+    await setupULPath();
   });
 
   describe("Happy path", function () {
