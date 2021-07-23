@@ -18,8 +18,8 @@ describe("Mainnet IDLE WBTC", function() {
   // external contracts
   let underlying;
 
-  // external setup, block number: 12323239
-  let underlyingWhale = "0x701bd63938518d7db7e0f00945110c80c67df532";
+  // external setup, block number: 12882710
+  let underlyingWhale = "0x2FAF487A4414Fe77e2327F0bf4AE2a264a776AD2";
 
   // parties in the protocol
   let governance;
@@ -43,7 +43,7 @@ describe("Mainnet IDLE WBTC", function() {
     // Give whale some ether to make sure the following actions are good
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
-    farmerBalance = await underlying.balanceOf(underlyingWhale);
+    farmerBalance = "30" + "00000000";
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -82,14 +82,14 @@ describe("Mainnet IDLE WBTC", function() {
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
-        let blocksPerHour = 240;
+        let blocksPerHour = 2400;
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await vault.doHardWork({ from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed()/oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
