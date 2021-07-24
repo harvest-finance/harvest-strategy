@@ -4,17 +4,17 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../../base/interface/uniswap/IUniswapV2Router02.sol";
-import "../../base/interface/IStrategy.sol";
-import "../../base/interface/IVault.sol";
-import "../../base/upgradability/BaseUpgradeableStrategy.sol";
-import "../../base/interface/uniswap/IUniswapV2Pair.sol";
-import "./interface/IBooster.sol";
-import "./interface/IBaseRewardPool.sol";
-import "../../base/interface/curve/ICurveDeposit_4token.sol";
+import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
+import "../../../base/interface/IStrategy.sol";
+import "../../../base/interface/IVault.sol";
+import "../../../base/upgradability/BaseUpgradeableStrategy.sol";
+import "../../../base/interface/uniswap/IUniswapV2Pair.sol";
+import "../interface/IBooster.sol";
+import "../interface/IBaseRewardPool.sol";
+import "../../../base/interface/curve/ICurveDeposit_3token.sol";
 
 
-contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
+contract ConvexStrategy3Token is IStrategy, BaseUpgradeableStrategy {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -24,7 +24,6 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
   address public constant booster = address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
   address public constant multiSigAddr = 0xF49440C1F012d041802b25A73e5B0B9166a75c02;
-  uint256 public constant hodlRatioBase = 10000;
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -34,6 +33,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
   bytes32 internal constant _CURVE_DEPOSIT_SLOT = 0xb306bb7adebd5a22f5e4cdf1efa00bc5f62d4f5554ef9d62c1b16327cd3ab5f9;
   bytes32 internal constant _HODL_RATIO_SLOT = 0xb487e573671f10704ed229d25cf38dda6d287a35872859d096c0395110a0adb1;
   bytes32 internal constant _HODL_VAULT_SLOT = 0xc26d330f887c749cb38ae7c37873ff08ac4bba7aec9113c82d48a0cf6cc145f2;
+  uint256 public constant hodlRatioBase = 10000;
 
   address[] public WETH2deposit;
   mapping (address => address[]) public reward2WETH;
@@ -70,7 +70,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
       300, // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
-      1e18, // sell floor
+      0, // sell floor
       12 hours // implementation change delay
     );
 
@@ -78,7 +78,7 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
     address _depositReceipt;
     (_lpt,_depositReceipt,,,,) = IBooster(booster).poolInfo(_poolID);
     require(_lpt == underlying(), "Pool Info does not match underlying");
-    require(_depositArrayPosition < 4, "Deposit array position out of bounds");
+    require(_depositArrayPosition < 3, "Deposit array position out of bounds");
     _setDepositArrayPosition(_depositArrayPosition);
     _setPoolId(_poolID);
     _setDepositToken(_depositToken);
@@ -280,12 +280,12 @@ contract ConvexStrategy4Token is IStrategy, BaseUpgradeableStrategy {
     IERC20(depositToken()).safeApprove(curveDeposit(), 0);
     IERC20(depositToken()).safeApprove(curveDeposit(), tokenBalance);
 
-    uint256[4] memory depositArray;
+    uint256[3] memory depositArray;
     depositArray[depositArrayPosition()] = tokenBalance;
 
     // we can accept 0 as minimum, this will be called only by trusted roles
     uint256 minimum = 0;
-    ICurveDeposit_4token(curveDeposit()).add_liquidity(depositArray, minimum);
+    ICurveDeposit_3token(curveDeposit()).add_liquidity(depositArray, minimum);
   }
 
 

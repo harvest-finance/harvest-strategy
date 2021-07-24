@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategy2Token.sol";
+import "./base/ConvexStrategy2Token.sol";
 
 contract ConvexStrategyEURSMainnet is ConvexStrategy2Token {
 
