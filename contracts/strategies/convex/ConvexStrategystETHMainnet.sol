@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategystETH.sol";
+import "./base/ConvexStrategystETH.sol";
 
 contract ConvexStrategystETHMainnet is ConvexStrategystETH {
 

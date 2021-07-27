@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategy3Token.sol";
+import "./base/ConvexStrategy3Token.sol";
 
 contract ConvexStrategy3CRVMainnet is ConvexStrategy3Token {
 

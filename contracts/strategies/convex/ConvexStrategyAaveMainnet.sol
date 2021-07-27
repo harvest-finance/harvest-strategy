@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategyAave.sol";
+import "./base/ConvexStrategyAave.sol";
 
 contract ConvexStrategyAaveMainnet is ConvexStrategyAave {
 

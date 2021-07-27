@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./ConvexStrategyCVX.sol";
+import "./base/ConvexStrategyCVX.sol";
 
 contract ConvexStrategyCVXMainnet is ConvexStrategyCVX {
 
