@@ -10,6 +10,7 @@ import "../../base/interface/IVault.sol";
 import "../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "./interface/IdleToken.sol";
 import "./interface/IIdleTokenHelper.sol";
+import "./interface/IStakedAave.sol";
 
 contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
 
@@ -26,18 +27,23 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   IIdleTokenHelper public idleTokenHelper;
 
   address public vault;
-  address public comp;
-  address public idle;
+  address public stkaave;
 
-  address[] public uniswapComp;
-  address[] public uniswapIdle;
+  address[] public rewardTokens;
+  mapping(address => address[]) public reward2WETH;
+  address[] public WETH2underlying;
+  mapping(address => bool) public sell;
+  mapping(address => bool) public useUni;
 
-  address public uniswapRouterV2;
+  address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+  address public constant sushiswapRouterV2 = address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+  address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-  bool public sellComp;
-  bool public sellIdle;
   bool public claimAllowed;
   bool public protected;
+
+  bool public allowedRewardClaimable = false;
+  address public multiSig = address(0xF49440C1F012d041802b25A73e5B0B9166a75c02);
 
   // These tokens cannot be claimed by the controller
   mapping (address => bool) public unsalvagableTokens;
@@ -45,6 +51,11 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   modifier restricted() {
     require(msg.sender == vault || msg.sender == address(controller()) || msg.sender == address(governance()),
       "The sender has to be the controller or vault or governance");
+    _;
+  }
+
+  modifier onlyMultiSigOrGovernance() {
+    require(msg.sender == multiSig || msg.sender == governance(), "The sender has to be multiSig or governance");
     _;
   }
 
@@ -61,30 +72,22 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     address _underlying,
     address _idleUnderlying,
     address _vault,
-    address _comp,
-    address _idle,
-    address _weth,
-    address _uniswap
-  ) RewardTokenProfitNotifier(_storage, _idle) public {
-    comp = _comp;
-    idle = _idle;
+    address _stkaave
+  ) RewardTokenProfitNotifier(_storage, weth) public {
+    stkaave = _stkaave;
     underlying = IERC20(_underlying);
     idleUnderlying = _idleUnderlying;
     vault = _vault;
-    uniswapRouterV2 = _uniswap;
     protected = true;
 
     // set these tokens to be not salvagable
     unsalvagableTokens[_underlying] = true;
     unsalvagableTokens[_idleUnderlying] = true;
-    unsalvagableTokens[_comp] = true;
-    unsalvagableTokens[_idle] = true;
-
-    uniswapComp = [_comp, _weth, _idle];
-    uniswapIdle = [_idle, _weth, _underlying];
+    for (uint256 i = 0; i < rewardTokens.length; i++) {
+      address token = rewardTokens[i];
+      unsalvagableTokens[token] = true;
+    }
     referral = address(0xf00dD244228F51547f0563e60bCa65a30FBF5f7f);
-    sellComp = true;
-    sellIdle = true;
     claimAllowed = true;
 
     idleTokenHelper = IIdleTokenHelper(0x04Ce60ed10F6D2CfF3AA015fc7b950D13c113be5);
@@ -126,8 +129,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     // this automatically claims the crops
     IIdleTokenV3_1(idleUnderlying).redeemIdleToken(balance);
 
-    liquidateComp();
-    liquidateIdle();
+    liquidateRewards();
   }
 
   function withdrawToVault(uint256 amountUnderlying) public restricted {
@@ -151,8 +153,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     if (claimAllowed) {
       claim();
     }
-    liquidateComp();
-    liquidateIdle();
+    liquidateRewards();
 
     // this updates the virtual price
     investAllUnderlying();
@@ -171,49 +172,61 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
 
   function claim() internal {
     IIdleTokenV3_1(idleUnderlying).redeemIdleToken(0);
-  }
 
-  function liquidateComp() internal {
-    if (!sellComp) {
-      // Profits can be disabled for possible simplified and rapid exit
-      emit ProfitsNotCollected(comp);
-      return;
-    }
-
-    // no profit notification, comp is liquidated to IDLE and will be notified there
-
-    uint256 compBalance = IERC20(comp).balanceOf(address(this));
-    if (compBalance > 0) {
-      emit Liquidating(address(comp), compBalance);
-      IERC20(comp).safeApprove(uniswapRouterV2, 0);
-      IERC20(comp).safeApprove(uniswapRouterV2, compBalance);
-      // we can accept 1 as the minimum because this will be called only by a trusted worker
-      IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        compBalance, 1, uniswapComp, address(this), block.timestamp
-      );
+    uint256 claimableAave = IStakedAave(stkaave).stakerRewardsToClaim(address(this));
+    if (claimableAave > 0) {
+      IStakedAave(stkaave).claimRewards(address(this), claimableAave);
     }
   }
 
-  function liquidateIdle() internal {
-    if (!sellIdle) {
-      // Profits can be disabled for possible simplified and rapid exit
-      emit ProfitsNotCollected(idle);
-      return;
+  function liquidateRewards() internal {
+    for (uint256 i=0;i<rewardTokens.length;i++) {
+      address token = rewardTokens[i];
+      if (!sell[token]) {
+        // Profits can be disabled for possible simplified and rapid exit
+        emit ProfitsNotCollected(token);
+        continue;
+      }
+
+      uint256 balance = IERC20(token).balanceOf(address(this));
+      if (balance > 0) {
+        emit Liquidating(token, balance);
+        address routerV2;
+        if(useUni[token]) {
+          routerV2 = uniswapRouterV2;
+        } else {
+          routerV2 = sushiswapRouterV2;
+        }
+        IERC20(token).safeApprove(routerV2, 0);
+        IERC20(token).safeApprove(routerV2, balance);
+        // we can accept 1 as the minimum because this will be called only by a trusted worker
+        IUniswapV2Router02(routerV2).swapExactTokensForTokens(
+          balance, 1, reward2WETH[token], address(this), block.timestamp
+        );
+      }
     }
 
-    uint256 rewardBalance = IERC20(idle).balanceOf(address(this));
-    notifyProfitInRewardToken(rewardBalance);
+    uint256 wethBalance = IERC20(weth).balanceOf(address(this));
+    notifyProfitInRewardToken(wethBalance);
 
-    uint256 idleBalance = IERC20(idle).balanceOf(address(this));
-    if (idleBalance > 0) {
-      emit Liquidating(address(idle), idleBalance);
-      IERC20(idle).safeApprove(uniswapRouterV2, 0);
-      IERC20(idle).safeApprove(uniswapRouterV2, idleBalance);
+    uint256 remainingWethBalance = IERC20(weth).balanceOf(address(this));
+
+    if (remainingWethBalance > 0) {
+      emit Liquidating(weth, remainingWethBalance);
+      address routerV2;
+      if(useUni[address(underlying)]) {
+        routerV2 = uniswapRouterV2;
+      } else {
+        routerV2 = sushiswapRouterV2;
+      }
+      IERC20(weth).safeApprove(routerV2, 0);
+      IERC20(weth).safeApprove(routerV2, remainingWethBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
-      IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
-        idleBalance, 1, uniswapIdle, address(this), block.timestamp
+      IUniswapV2Router02(routerV2).swapExactTokensForTokens(
+        remainingWethBalance, 1, WETH2underlying, address(this), block.timestamp
       );
     }
+    uint256 balance = underlying.balanceOf(address(this));
   }
 
   /**
@@ -230,13 +243,33 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     return invested.add(IERC20(underlying).balanceOf(address(this)));
   }
 
-  function setLiquidation(bool _sellComp, bool _sellIdle, bool _claimAllowed) public onlyGovernance {
-    sellComp = _sellComp;
-    sellIdle = _sellIdle;
+  function setLiquidation(address _token, bool _sell) public onlyGovernance {
+     sell[_token] = _sell;
+  }
+
+  function setClaimAllowed(bool _claimAllowed) public onlyGovernance {
     claimAllowed = _claimAllowed;
   }
 
   function setProtected(bool _protected) public onlyGovernance {
     protected = _protected;
+  }
+
+  function setMultiSig(address _address) public onlyGovernance {
+    multiSig = _address;
+  }
+
+  function setRewardClaimable(bool flag) public onlyGovernance {
+    allowedRewardClaimable = flag;
+  }
+
+  // reward claiming by multiSig. Only the stkAave rewards are claimable!
+  function claimReward() public onlyMultiSigOrGovernance {
+    require(allowedRewardClaimable, "reward claimable is not allowed");
+    claim();
+    uint256 stkAaveBalance = IERC20(stkaave).balanceOf(address(this));
+    if (stkAaveBalance > 0){
+      IERC20(stkaave).safeTransfer(msg.sender, stkAaveBalance);
+    }
   }
 }

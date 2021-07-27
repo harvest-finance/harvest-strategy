@@ -18,7 +18,7 @@ describe("Mainnet IDLE USDC", function() {
   // external contracts
   let underlying;
 
-  // external setup, block number: 12323239
+  // external setup, block number: 12882710
   let underlyingWhale = "0xAe2D4617c862309A3d75A0fFB358c7a5009c673F";
 
   // parties in the protocol
@@ -43,7 +43,7 @@ describe("Mainnet IDLE USDC", function() {
     // Give whale some ether to make sure the following actions are good
     await send.ether(etherGiver, underlyingWhale, "1" + "000000000000000000");
 
-    farmerBalance = await underlying.balanceOf(underlyingWhale);
+    farmerBalance = "1000000" + "000000";
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -82,14 +82,14 @@ describe("Mainnet IDLE USDC", function() {
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
-        let blocksPerHour = 240;
+        let blocksPerHour = 2400;
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await vault.doHardWork({ from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
 
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", (newSharePrice.dividedBy(oldSharePrice)).toFixed());
+        console.log("growth: ", newSharePrice.toFixed()/oldSharePrice.toFixed());
 
         await Utils.advanceNBlock(blocksPerHour);
       }
