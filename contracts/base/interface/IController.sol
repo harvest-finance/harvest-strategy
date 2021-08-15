@@ -36,4 +36,5 @@ interface IController {
     function setFeeRewardForwarder(address _value) external;
 
     function addHardWorker(address _worker) external;
+    function addToWhitelist(address _target) external;
 }
