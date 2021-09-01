@@ -191,6 +191,7 @@ async function setupCoreProtocol(config) {
     await Utils.waitHours(13);
     await strategyAsUpgradable.upgrade({ from: config.governance });
     await vault.setVaultFractionToInvest(100, 100, { from: config.governance });
+    strategy = await config.strategyArtifact.at(await vault.strategy());
     console.log("Strategy upgrade completed.");
   } else {
     await controller.addVaultAndStrategy(
