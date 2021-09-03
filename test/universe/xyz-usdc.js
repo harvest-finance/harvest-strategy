@@ -9,6 +9,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const Strategy = artifacts.require("UniverseStrategyMainnet_XYZ_USDC");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
+const IStaking = artifacts.require("IStaking");
 
 //This test was developed at blockNumber 13134890
 
@@ -25,9 +26,11 @@ describe("Mainnet Universe XYZ/USDC", function() {
   let usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
+  let stakingAddr = "0x2d615795a8bdb804541C69798F13331126BA0c09";
   let sushiDex = "0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a";
   let bancorDex = "0x4bf11b89310db45ea1467e48e832606a6ec7b8735c470fff7cf328e182a7c37e";
   let stakingPool;
+  let iFarm;
 
   // parties in the protocol
   let governance;
@@ -43,6 +46,7 @@ describe("Mainnet Universe XYZ/USDC", function() {
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0xBBBdB106A806173d1eEa1640961533fF3114d69A");
+    iFarm = await IERC20.at(addresses.IFARM);
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -65,9 +69,15 @@ describe("Mainnet Universe XYZ/USDC", function() {
     await impersonates([governance, underlyingWhale]);
 
     await setupExternalContracts();
-    [controller, vault, strategy] = await setupCoreProtocol({
+    [controller, vault, strategy, rewardPool] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
+      "strategyArgs": [addresses.Storage, "vaultAddr", "poolAddr"],
+      "rewardPool" : true,
+      "rewardPoolConfig": {
+        type: 'PotPool',
+        rewardTokens: [addresses.IFARM]
+      },
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
@@ -81,6 +91,8 @@ describe("Mainnet Universe XYZ/USDC", function() {
 
     // whale send underlying to farmers
     await setupBalance();
+
+    stakingPool = await IStaking.at(stakingAddr);
   });
 
   describe("Happy path", function() {
@@ -88,6 +100,10 @@ describe("Mainnet Universe XYZ/USDC", function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
       let fTokenBalance = await vault.balanceOf(farmer1);
+
+      let vaultERC20 = await IERC20.at(vault.address);
+      await vaultERC20.approve(rewardPool.address, fTokenBalance, {from: farmer1});
+      await rewardPool.stake(fTokenBalance, {from: farmer1});
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
@@ -98,6 +114,16 @@ describe("Mainnet Universe XYZ/USDC", function() {
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
 
+        //Epochs get automatically initialized on interactions with the staking contract
+        //There is no compounding, so no interactions, so need manual initializaition in test
+        epoch = await stakingPool.getCurrentEpoch();
+        console.log("Epoch", new BigNumber(epoch).toFixed());
+        init = await stakingPool.epochIsInitialized(underlying.address, epoch);
+        if (!init) {
+          console.log("Initializing Epoch", new BigNumber(epoch).toFixed());
+          await stakingPool.manualEpochInit([underlying.address], epoch);
+        }
+
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await controller.doHardWork(vault.address, { from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());
@@ -105,25 +131,31 @@ describe("Mainnet Universe XYZ/USDC", function() {
         console.log("old shareprice: ", oldSharePrice.toFixed());
         console.log("new shareprice: ", newSharePrice.toFixed());
         console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
+        console.log("iFarm in reward pool: ", (new BigNumber(await iFarm.balanceOf(rewardPool.address))).toFixed());
 
         apr = (newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))*365;
         apy = ((newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
 
-        console.log("instant APR:", apr*100, "%");
-        console.log("instant APY:", (apy-1)*100, "%");
+        // console.log("instant APR:", apr*100, "%");
+        // console.log("instant APY:", (apy-1)*100, "%");
 
         await Utils.advanceNBlock(blocksPerHour);
       }
+      await rewardPool.exit({from: farmer1});
+      let farmerNewIFarm = new BigNumber(await iFarm.balanceOf(farmer1));
+      console.log("farmerNewIFarm:    ", farmerNewIFarm.toFixed());
+
       await vault.withdraw(fTokenBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
-      Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
+      // Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
 
       apr = (farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
       apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
 
-      console.log("earned!");
-      console.log("Overall APR:", apr*100, "%");
-      console.log("Overall APY:", (apy-1)*100, "%");
+      Utils.assertBNGt(farmerNewIFarm, 0);
+      console.log("earned iFARM!");
+      // console.log("Overall APR:", apr*100, "%");
+      // console.log("Overall APY:", (apy-1)*100, "%");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });

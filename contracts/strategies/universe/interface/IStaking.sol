@@ -7,5 +7,5 @@ interface IStaking {
     function balanceOf(address user, address token) external view returns(uint256);
     function getCurrentEpoch() external view returns(uint128);
     function epochIsInitialized(address token, uint128 epochId) external view returns(bool);
-    function manualEpochInit(address token, uint128 epochId) external;
+    function manualEpochInit(address[] calldata tokens, uint128 epochId) external;
 }
