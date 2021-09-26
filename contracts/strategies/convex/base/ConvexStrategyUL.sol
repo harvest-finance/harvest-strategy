@@ -62,15 +62,16 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     uint256 _depositArrayPosition,
     address _curveDeposit,
     uint256 _nTokens,
-    bool _metaPool
+    bool _metaPool,
+    uint256 _hodlRatio
   ) public initializer {
 
     // calculate profit sharing fee depending on hodlRatio
     uint256 psNum = 300;
-    if (hodlRatio() >= 3000) {
+    if (_hodlRatio >= 3000) {
       psNum = 0;
-    } else if (hodlRatio() > 0){
-      psNum = psNum.sub(hodlRatio().div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(hodlRatio()));
+    } else if (_hodlRatio > 0){
+      psNum = psNum.sub(_hodlRatio.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_hodlRatio));
     }
     
     BaseUpgradeableStrategyUL.initialize(

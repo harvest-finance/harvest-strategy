@@ -29,7 +29,8 @@ contract ConvexStrategyEURTMainnet is ConvexStrategyUL {
       0, //depositArrayPosition
       underlying,
       2, //nTokens
-      false //metaPool
+      false, //metaPool
+      1000 // hodlRatio 10%
     );
     rewardTokens = [crv, cvx];
     storedLiquidationPaths[crv][weth] = [crv, weth];

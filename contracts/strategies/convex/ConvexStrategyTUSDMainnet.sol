@@ -29,7 +29,8 @@ contract ConvexStrategyTUSDMainnet is ConvexStrategyUL {
       1, //depositArrayPosition
       metaCurveDeposit,
       4, //nTokens
-      true //metaPool
+      true, //metaPool
+      1000 // hodlRatio 10%
     );
     rewardTokens = [crv, cvx];
     storedLiquidationPaths[crv][weth] = [crv, weth];
