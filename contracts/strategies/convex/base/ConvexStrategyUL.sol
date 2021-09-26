@@ -65,16 +65,24 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     bool _metaPool
   ) public initializer {
 
+    // calculate profit sharing fee depending on hodlRatio
+    uint256 psNum = 300;
+    if (hodlRatio() >= 3000) {
+      psNum = 0;
+    } else if (hodlRatio() > 0){
+      psNum = psNum.sub(hodlRatio().div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(hodlRatio()));
+    }
+    
     BaseUpgradeableStrategyUL.initialize(
       _storage,
       _underlying,
       _vault,
       _rewardPool,
       weth,
-      300,  // profit sharing numerator
+      psNum,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
-      0, // sell floor
+      1e15, // sell floor
       12 hours, // implementation change delay
       address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
     );
@@ -98,6 +106,13 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function setHodlRatio(uint256 _value) public onlyGovernance {
+    uint256 psNum = 300;
+    if (_value >= 3000) {
+      psNum = 0;
+    } else if (_value > 0){
+      psNum = psNum.sub(_value.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_value));
+    }
+    _setProfitSharingNumerator(psNum);
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 
