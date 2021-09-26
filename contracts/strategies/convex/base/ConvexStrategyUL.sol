@@ -82,7 +82,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       psNum,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
-      1e15, // sell floor
+      0, // sell floor
       12 hours, // implementation change delay
       address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
     );
