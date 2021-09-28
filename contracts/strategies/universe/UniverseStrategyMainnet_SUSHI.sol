@@ -12,7 +12,6 @@ contract UniverseStrategyMainnet_SUSHI is UniverseStrategy {
   ) public initializer {
     address underlying = address(0x6B3595068778DD592e39A122f4f5a5cF09C90fE2);
     address xyz = address(0x618679dF9EfCd19694BB1daa8D00718Eacfa2883);
-    address usdc = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address rewardPool_sushi = address(0xe3e1860a5653c030818226e0cB1efb4a477A5F32);
     address stakingPool = address(0x2d615795a8bdb804541C69798F13331126BA0c09);
     bytes32 sushiDex = 0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a;

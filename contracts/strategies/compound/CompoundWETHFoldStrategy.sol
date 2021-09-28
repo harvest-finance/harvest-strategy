@@ -240,7 +240,6 @@ contract CompoundWETHFoldStrategy is IStrategy, RewardTokenProfitNotifier, Compo
     path[0] = address(comp);
     path[1] = address(underlying);
 
-    uint256 wethBefore = underlying.balanceOf(address(this));
     IUniswapV2Router02(uniswapRouterV2).swapExactTokensForTokens(
       balance,
       amountOutMin,
