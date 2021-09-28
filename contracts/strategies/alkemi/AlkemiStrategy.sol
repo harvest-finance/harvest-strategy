@@ -46,11 +46,13 @@ contract AlkemiStrategy is IStrategy, BaseUpgradeableStrategyUL {
     address _supplyContract,
     uint256 _hodlRatio
   ) public initializer {
-    uint256 psNum = 300;
+    uint256 profitSharingNumerator = 300;
     if (_hodlRatio >= 3000) {
-      psNum = 0;
+      profitSharingNumerator = 0;
     } else if (_hodlRatio > 0){
-      psNum = psNum.sub(_hodlRatio.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_hodlRatio));
+      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10))
+        .mul(hodlRatioBase)
+        .div(hodlRatioBase.sub(_hodlRatio));
     }
     BaseUpgradeableStrategyUL.initialize(
       _storage,
@@ -58,7 +60,7 @@ contract AlkemiStrategy is IStrategy, BaseUpgradeableStrategyUL {
       _vault,
       _rewardPool,
       _rewardToken,
-      psNum,  // profit sharing numerator
+      profitSharingNumerator,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       1e15, // sell floor
@@ -72,13 +74,16 @@ contract AlkemiStrategy is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function setHodlRatio(uint256 _value) public onlyGovernance {
-    uint256 psNum = 300;
+    require(_value <= hodlRatioBase, "Value cannot be higher than base");
+    uint256 profitSharingNumerator = 300;
     if (_value >= 3000) {
-      psNum = 0;
+      profitSharingNumerator = 0;
     } else if (_value > 0){
-      psNum = psNum.sub(_value.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_value));
+      profitSharingNumerator = profitSharingNumerator.sub(_value.div(10))
+        .mul(hodlRatioBase)
+        .div(hodlRatioBase.sub(_value));
     }
-    _setProfitSharingNumerator(psNum);
+    _setProfitSharingNumerator(profitSharingNumerator);
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 
