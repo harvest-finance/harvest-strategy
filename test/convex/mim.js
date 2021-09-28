@@ -2,8 +2,6 @@
 const Utils = require("../utilities/Utils.js");
 const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
 
-const addresses = require("../test-config.js");
-const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const IBooster = artifacts.require("IBooster");

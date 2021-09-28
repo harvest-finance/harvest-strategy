@@ -75,7 +75,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
       // = (300 - 100) * 10000 / 9000 = 222
       profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
-                                    .mul(holdRatioBase) // multiply with hodlRatioBase
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
                                     .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
     }
     
@@ -119,9 +119,9 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
       // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
       // = (300 - 100) * 10000 / 9000 = 222
-      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
-                                    .mul(holdRatioBase) // multiply with hodlRatioBase
-                                    .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
+      profitSharingNumerator = profitSharingNumerator.sub(_value.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_value)); // divide by hodlRatioBase minus hodlRatio
     }
     _setProfitSharingNumerator(profitSharingNumerator);
     setUint256(_HODL_RATIO_SLOT, _value);
