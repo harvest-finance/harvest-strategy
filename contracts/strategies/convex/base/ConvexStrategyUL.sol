@@ -67,11 +67,16 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   ) public initializer {
 
     // calculate profit sharing fee depending on hodlRatio
-    uint256 psNum = 300;
+    uint256 profitSharingNumerator = 300;
     if (_hodlRatio >= 3000) {
-      psNum = 0;
+      profitSharingNumerator = 0;
     } else if (_hodlRatio > 0){
-      psNum = psNum.sub(_hodlRatio.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_hodlRatio));
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(holdRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
     }
     
     BaseUpgradeableStrategyUL.initialize(
@@ -80,7 +85,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       _vault,
       _rewardPool,
       weth,
-      psNum,  // profit sharing numerator
+      profitSharingNumerator,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       0, // sell floor
@@ -107,13 +112,18 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function setHodlRatio(uint256 _value) public onlyGovernance {
-    uint256 psNum = 300;
+    uint256 profitSharingNumerator = 300;
     if (_value >= 3000) {
-      psNum = 0;
+      profitSharingNumerator = 0;
     } else if (_value > 0){
-      psNum = psNum.sub(_value.div(10)).mul(hodlRatioBase).div(hodlRatioBase.sub(_value));
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(holdRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
     }
-    _setProfitSharingNumerator(psNum);
+    _setProfitSharingNumerator(profitSharingNumerator);
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 
