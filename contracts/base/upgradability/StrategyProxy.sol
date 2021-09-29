@@ -20,7 +20,7 @@ contract StrategyProxy is BaseUpgradeabilityProxy {
 
     // the finalization needs to be executed on itself to update the storage of this proxy
     // it also needs to be invoked by the governance, not by address(this), so delegatecall is needed
-    (bool success, bytes memory result) = address(this).delegatecall(
+    (bool success,) = address(this).delegatecall(
       abi.encodeWithSignature("finalizeUpgrade()")
     );
 

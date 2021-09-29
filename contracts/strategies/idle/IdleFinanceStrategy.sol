@@ -226,7 +226,6 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
         remainingWethBalance, 1, WETH2underlying, address(this), block.timestamp
       );
     }
-    uint256 balance = underlying.balanceOf(address(this));
   }
 
   /**

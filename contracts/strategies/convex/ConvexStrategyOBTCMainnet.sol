@@ -57,7 +57,6 @@ contract ConvexStrategyOBTCMainnet is ConvexStrategyUL {
     address cvx = address(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     address bor = address(0xBC19712FEB3a26080eBf6f2F7849b417FdD792CA);
     address wbtc = address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
-    address bnt = address(0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C);
     bytes32 sushiDex = bytes32(0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a);
     bytes32 uniV3Dex = bytes32(0x8f78a54cb77f4634a5bf3dd452ed6a2e33432c73821be59208661199511cd94f);
     rewardTokens = [crv, cvx, bor];
