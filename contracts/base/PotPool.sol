@@ -21,8 +21,11 @@ contract IRewardDistributionRecipient is Ownable {
         // NotifyHelper
         rewardDistribution[0xE20c31e3d08027F5AfACe84A3A46B7b3B165053c] = true;
 
-        // FeeRewardForwarderV5
+        // FeeRewardForwarderV6
         rewardDistribution[0x153C544f72329c1ba521DDf5086cf2fA98C86676] = true;
+
+        // Community Multisig
+        rewardDistribution[0xF49440C1F012d041802b25A73e5B0B9166a75c02] = true;
 
         for(uint256 i = 0; i < _rewardDistributions.length; i++) {
           rewardDistribution[_rewardDistributions[i]] = true;
@@ -73,6 +76,11 @@ contract PotPool is IRewardDistributionRecipient, Controllable, ERC20, ERC20Deta
     event RewardPaid(address indexed user, address rewardToken, uint256 reward);
     event RewardDenied(address indexed user, address rewardToken, uint256 reward);
     event SmartContractRecorded(address indexed smartContractAddress, address indexed smartContractInitiator);
+
+    modifier onlyGovernanceOrRewardDistribution() {
+      require(msg.sender == governance() || rewardDistribution[msg.sender], "Not governance nor reward distribution");
+      _;
+    }
 
     modifier updateRewards(address account) {
       for(uint256 i = 0; i < rewardTokens.length; i++ ){
@@ -281,7 +289,7 @@ contract PotPool is IRewardDistributionRecipient, Controllable, ERC20, ERC20Deta
       }
     }
 
-    function addRewardToken(address rt) public onlyGovernance {
+    function addRewardToken(address rt) public onlyGovernanceOrRewardDistribution {
       require(getRewardTokenIndex(rt) == uint256(-1), "Reward token already exists");
       rewardTokens.push(rt);
     }
