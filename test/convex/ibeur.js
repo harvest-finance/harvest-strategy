@@ -6,23 +6,22 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const IBooster = artifacts.require("IBooster");
 
-const Strategy = artifacts.require("ConvexStrategyOBTCMainnet");
+const Strategy = artifacts.require("ConvexStrategyIbEURMainnet");
 
-//This test was developed at blockNumber 13191150
+//This test was developed at blockNumber 13295726
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Convex OBTC", function() {
+describe("Mainnet Convex IbEUR", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x5275817b74021E97c980E95EdE6bbAc0D0d6f3a2";
+  let underlyingWhale = "0x3Ee505bA316879d246a8fD2b3d7eE63b51B44FAB";
   let crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
   let cvx = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
-  let bor = "0xBC19712FEB3a26080eBf6f2F7849b417FdD792CA";
-  let wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+  let ibeur = "0x96E61422b6A9bA0e068B6c5ADd4fFaBC6a4aae27";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
   let booster;
@@ -40,7 +39,7 @@ describe("Mainnet Convex OBTC", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x2fE94ea3d5d4a175184081439753DE15AeF9d614");
+    underlying = await IERC20.at("0x19b080FE1ffA0553469D20Ca36219F17Fcf03859");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -64,16 +63,13 @@ describe("Mainnet Convex OBTC", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0x966A70A4d3719A6De6a94236532A0167d5246c72",
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
-      "upgradeStrategy": true,
       "underlying": underlying,
       "governance": governance,
       "liquidation": [{"sushi": [cvx, weth]},
                       {"sushi": [crv, weth]},
-                      {"sushi": [weth, wbtc]},
-                      {"uniV3": [bor, weth]}],
+                      {"sushi": [weth, ibeur]}],
 
     });
 

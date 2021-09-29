@@ -31,7 +31,8 @@ contract ConvexStrategyOBTCMainnet is ConvexStrategyUL {
       2, //depositArrayPosition
       obtcCurveDeposit,
       4, //nTokens
-      false //metaPool
+      false, //metaPool
+      1000 // hodlRatio 10%
     );
     rewardTokens = [crv, cvx, bor];
     storedLiquidationPaths[crv][weth] = [crv, weth];

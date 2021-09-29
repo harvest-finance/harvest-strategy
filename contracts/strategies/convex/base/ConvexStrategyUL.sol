@@ -62,16 +62,30 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     uint256 _depositArrayPosition,
     address _curveDeposit,
     uint256 _nTokens,
-    bool _metaPool
+    bool _metaPool,
+    uint256 _hodlRatio
   ) public initializer {
 
+    // calculate profit sharing fee depending on hodlRatio
+    uint256 profitSharingNumerator = 300;
+    if (_hodlRatio >= 3000) {
+      profitSharingNumerator = 0;
+    } else if (_hodlRatio > 0){
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
+    }
+    
     BaseUpgradeableStrategyUL.initialize(
       _storage,
       _underlying,
       _vault,
       _rewardPool,
       weth,
-      300,  // profit sharing numerator
+      profitSharingNumerator,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       0, // sell floor
@@ -98,6 +112,18 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function setHodlRatio(uint256 _value) public onlyGovernance {
+    uint256 profitSharingNumerator = 300;
+    if (_value >= 3000) {
+      profitSharingNumerator = 0;
+    } else if (_value > 0){
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_value.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_value)); // divide by hodlRatioBase minus hodlRatio
+    }
+    _setProfitSharingNumerator(profitSharingNumerator);
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 

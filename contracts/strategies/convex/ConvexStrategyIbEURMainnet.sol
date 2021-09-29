@@ -2,9 +2,9 @@ pragma solidity 0.5.16;
 
 import "./base/ConvexStrategyUL.sol";
 
-contract ConvexStrategyTUSDMainnet is ConvexStrategyUL {
+contract ConvexStrategyIbEURMainnet is ConvexStrategyUL {
 
-  address public tusd_unused; // just a differentiator for the bytecode
+  address public ibeur_unused; // just a differentiator for the bytecode
 
   constructor() public {}
 
@@ -12,24 +12,23 @@ contract ConvexStrategyTUSDMainnet is ConvexStrategyUL {
     address _storage,
     address _vault
   ) public initializer {
-    address underlying = address(0xEcd5e75AFb02eFa118AF914515D6521aaBd189F1);
-    address rewardPool = address(0x308b48F037AAa75406426dACFACA864ebd88eDbA);
+    address underlying = address(0x19b080FE1ffA0553469D20Ca36219F17Fcf03859);
+    address rewardPool = address(0xCd0559ADb6fAa2fc83aB21Cf4497c3b9b45bB29f);
     address crv = address(0xD533a949740bb3306d119CC777fa900bA034cd52);
     address cvx = address(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
-    address dai = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-    address metaCurveDeposit = address(0xA79828DF1850E8a3A3064576f380D90aECDD3359);
+    address ibeur = address(0x96E61422b6A9bA0e068B6c5ADd4fFaBC6a4aae27);
     bytes32 sushiDex = bytes32(0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a);
     ConvexStrategyUL.initializeBaseStrategy(
       _storage,
       underlying,
       _vault,
       rewardPool, //rewardPool
-      31,  // Pool id
-      dai,
-      1, //depositArrayPosition
-      metaCurveDeposit,
-      4, //nTokens
-      true, //metaPool
+      45,  // Pool id
+      ibeur,
+      0, //depositArrayPosition
+      underlying,
+      2, //nTokens
+      false, //metaPool
       1000 // hodlRatio 10%
     );
     rewardTokens = [crv, cvx];
@@ -37,7 +36,7 @@ contract ConvexStrategyTUSDMainnet is ConvexStrategyUL {
     storedLiquidationDexes[crv][weth] = [sushiDex];
     storedLiquidationPaths[cvx][weth] = [cvx, weth];
     storedLiquidationDexes[cvx][weth] = [sushiDex];
-    storedLiquidationPaths[weth][dai] = [weth, dai];
-    storedLiquidationDexes[weth][dai] = [sushiDex];
+    storedLiquidationPaths[weth][ibeur] = [weth, ibeur];
+    storedLiquidationDexes[weth][ibeur] = [sushiDex];
   }
 }
