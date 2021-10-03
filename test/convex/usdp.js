@@ -7,6 +7,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 const IBooster = artifacts.require("IBooster");
 
 const Strategy = artifacts.require("ConvexStrategyUSDPMainnet");
+const IUniV3Dex = artifacts.require("IUniV3Dex");
 
 //This test was developed at blockNumber 13340787
 
@@ -24,7 +25,9 @@ describe("Mainnet Convex USDP", function() {
   let dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
   let duck = "0x92E187a03B6CD19CB6AF293ba17F2745Fd2357D5";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
+  let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";  
+  let uniV3DexAddr = "0x1D35ba854575B576B3C0aB4e64E27Bf2D2c1D48A";
+  let uniV3Dex = "0x8f78a54cb77f4634a5bf3dd452ed6a2e33432c73821be59208661199511cd94f";
   let booster;
 
   // parties in the protocol
@@ -76,6 +79,9 @@ describe("Mainnet Convex USDP", function() {
                       {"sushi": [weth, dai]},
                       {"uniV3": [duck, weth]}],
     });
+
+    uniV3Dex = await IUniV3Dex.at(uniV3DexAddr);
+    await uniV3Dex.setFee(duck, weth, 10000, {from: governance});
 
     await strategy.setSellFloor(0, {from:governance});
 
