@@ -5,21 +5,21 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./interface/IMooniswap.sol";
-import "./interface/IFarmingRewardsV2.sol";
+import "../interface/IMooniswap.sol";
+import "../interface/IFarmingRewards.sol";
 
-import "../../base/interface/uniswap/IUniswapV2Router02.sol";
-import "../../base/interface/IStrategy.sol";
-import "../../base/interface/IVault.sol";
-import "../../base/interface/weth/Weth9.sol";
+import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
+import "../../../base/interface/IStrategy.sol";
+import "../../../base/interface/IVault.sol";
+import "../../../base/interface/weth/Weth9.sol";
 
-import "../../base/StrategyBase.sol";
+import "../../../base/StrategyBase.sol";
 
 /**
-* This strategy is for 1INCH / X 1inch LP tokens
-* 1INCH must be token0, and the other token is denoted X
+* This strategy is for ETH / X 1inch LP tokens
+* ETH must be token0, and the other token is denoted X
 */
-contract OneInchStrategy_1INCH_X is StrategyBase {
+contract OneInchStrategy_ETH_X is StrategyBase {
 
   // 1inch / ETH reward pool: 0x9070832CF729A5150BB26825c2927e7D343EabD9
 
@@ -65,7 +65,7 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
     token1 = IMooniswap(_underlying).token1();
     pool = _pool;
     require(token1 != address(0), "token1 must be non-zero");
-    require(IMooniswap(_underlying).token0() == oneInch, "token0 must be 1INCH");
+    require(IMooniswap(_underlying).token0() == address(0), "token0 must be 0x0 (Ether)");
     oneInchEthLP = _oneInchEthLP;
     uniswap_WETH2Token1 = [weth, token1];
 
@@ -92,8 +92,8 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
   * Withdraws underlying from the investment pool that mints crops.
   */
   function withdrawUnderlyingFromPool(uint256 amount) internal {
-    IFarmingRewardsV2(pool).withdraw(
-      Math.min(IFarmingRewardsV2(pool).balanceOf(address(this)), amount)
+    IFarmingRewards(pool).withdraw(
+      Math.min(IFarmingRewards(pool).balanceOf(address(this)), amount)
     );
   }
 
@@ -124,7 +124,7 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
     if (underlyingBalance > 0) {
       IERC20(underlying).safeApprove(pool, 0);
       IERC20(underlying).safeApprove(pool, underlyingBalance);
-      IFarmingRewardsV2(pool).stake(underlyingBalance);
+      IFarmingRewards(pool).stake(underlyingBalance);
     }
   }
 
@@ -140,7 +140,7 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
       emit ProfitsNotCollected(oneInch);
       return;
     }
-    IFarmingRewardsV2(pool).getAllRewards();
+    IFarmingRewards(pool).getReward();
     uint256 oneInchBalance = IERC20(oneInch).balanceOf(address(this));
     if (oneInchBalance < sellFloorOneInch) {
       emit ProfitsNotCollected(oneInch);
@@ -188,20 +188,13 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
     WETH9(weth).withdraw(remainingWethBalance);
     uint256 remainingEthBalance = address(this).balance;
 
-    // and now swapping this ETH back into 1inch
-    IMooniswap(oneInchEthLP).swap.value(remainingEthBalance)(address(0), oneInch, remainingEthBalance, amountOutMin, address(0));
-    uint256 oneInchAmount = IERC20(oneInch).balanceOf(address(this));
-
     IERC20(token1).safeApprove(underlying, 0);
     IERC20(token1).safeApprove(underlying, token1Amount);
 
-    IERC20(oneInch).safeApprove(underlying, 0);
-    IERC20(oneInch).safeApprove(underlying, oneInchAmount);
-
-    // adding liquidity: 1INCH + token1
-    IMooniswap(underlying).deposit(
-      [oneInchAmount, token1Amount],
-      [oneInchAmount.mul(slippageNumerator).div(slippageDenominator),
+    // adding liquidity: ETH + token1
+    IMooniswap(underlying).deposit.value(remainingEthBalance)(
+      [remainingEthBalance, token1Amount],
+      [remainingEthBalance.mul(slippageNumerator).div(slippageDenominator),
         token1Amount.mul(slippageNumerator).div(slippageDenominator)
       ]
     );
@@ -219,7 +212,7 @@ contract OneInchStrategy_1INCH_X is StrategyBase {
   * Investing all underlying.
   */
   function investedUnderlyingBalance() public view returns (uint256) {
-    return IFarmingRewardsV2(pool).balanceOf(address(this)).add(
+    return IFarmingRewards(pool).balanceOf(address(this)).add(
       IERC20(underlying).balanceOf(address(this))
     );
   }

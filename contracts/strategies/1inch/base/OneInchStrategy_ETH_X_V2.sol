@@ -5,21 +5,21 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./interface/IMooniswap.sol";
-import "./interface/IFarmingRewards.sol";
+import "../interface/IMooniswap.sol";
+import "../interface/IFarmingRewardsV2.sol";
 
-import "../../base/interface/uniswap/IUniswapV2Router02.sol";
-import "../../base/interface/IStrategy.sol";
-import "../../base/interface/IVault.sol";
-import "../../base/interface/weth/Weth9.sol";
+import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
+import "../../../base/interface/IStrategy.sol";
+import "../../../base/interface/IVault.sol";
+import "../../../base/interface/weth/Weth9.sol";
 
-import "../../base/StrategyBase.sol";
+import "../../../base/StrategyBase.sol";
 
 /**
 * This strategy is for ETH / X 1inch LP tokens
 * ETH must be token0, and the other token is denoted X
 */
-contract OneInchStrategy_ETH_X is StrategyBase {
+contract OneInchStrategy_ETH_X_V2 is StrategyBase {
 
   // 1inch / ETH reward pool: 0x9070832CF729A5150BB26825c2927e7D343EabD9
 
@@ -92,8 +92,8 @@ contract OneInchStrategy_ETH_X is StrategyBase {
   * Withdraws underlying from the investment pool that mints crops.
   */
   function withdrawUnderlyingFromPool(uint256 amount) internal {
-    IFarmingRewards(pool).withdraw(
-      Math.min(IFarmingRewards(pool).balanceOf(address(this)), amount)
+    IFarmingRewardsV2(pool).withdraw(
+      Math.min(IFarmingRewardsV2(pool).balanceOf(address(this)), amount)
     );
   }
 
@@ -124,7 +124,7 @@ contract OneInchStrategy_ETH_X is StrategyBase {
     if (underlyingBalance > 0) {
       IERC20(underlying).safeApprove(pool, 0);
       IERC20(underlying).safeApprove(pool, underlyingBalance);
-      IFarmingRewards(pool).stake(underlyingBalance);
+      IFarmingRewardsV2(pool).stake(underlyingBalance);
     }
   }
 
@@ -140,7 +140,7 @@ contract OneInchStrategy_ETH_X is StrategyBase {
       emit ProfitsNotCollected(oneInch);
       return;
     }
-    IFarmingRewards(pool).getReward();
+    IFarmingRewardsV2(pool).getAllRewards();
     uint256 oneInchBalance = IERC20(oneInch).balanceOf(address(this));
     if (oneInchBalance < sellFloorOneInch) {
       emit ProfitsNotCollected(oneInch);
@@ -212,7 +212,7 @@ contract OneInchStrategy_ETH_X is StrategyBase {
   * Investing all underlying.
   */
   function investedUnderlyingBalance() public view returns (uint256) {
-    return IFarmingRewards(pool).balanceOf(address(this)).add(
+    return IFarmingRewardsV2(pool).balanceOf(address(this)).add(
       IERC20(underlying).balanceOf(address(this))
     );
   }

@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./OneInchStrategy_1INCH_X.sol";
+import "./base/OneInchStrategy_1INCH_X.sol";
 
 
 /**
