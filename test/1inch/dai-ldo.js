@@ -33,6 +33,7 @@ describe("Mainnet DAI/LDO", function() {
   // Core protocol contracts
   let controller;
   let vault;
+  let strategy;
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0xC1A900Ae76dB21dC5aa8E418Ac0F4E888A4C7431");
@@ -66,7 +67,6 @@ describe("Mainnet DAI/LDO", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": null,
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,

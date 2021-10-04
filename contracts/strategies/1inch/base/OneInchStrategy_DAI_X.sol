@@ -12,8 +12,6 @@ import "../../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 import "../../../base/interface/IVault.sol";
 
 import "../../../base/StrategyBase.sol";
-import "hardhat/console.sol";
-
 
 /**
 * This strategy is for DAI / X 1inch LP tokens
@@ -27,9 +25,9 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   address public constant dai = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-  uint256 maxUint = uint256(~0);
-  uint256 slippageNumerator = 9;
-  uint256 slippageDenominator = 10;
+  uint256 internal constant maxUint = uint256(~0);
+  uint256 public constant slippageNumerator = 9;
+  uint256 public constant slippageDenominator = 10;
 
   // depositToken0 is DAI
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
@@ -164,12 +162,10 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     rewardTokensToCommon();
 
     uint256 rewardBalance = IERC20(weth).balanceOf(address(this));
-    console.log("rewardBalance", rewardBalance);
 
     // share 30% of the wrapped Ether as a profit sharing reward
     notifyProfitInRewardToken(rewardBalance);
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    console.log("remainingRewardBalance", remainingRewardBalance);
 
     if (remainingRewardBalance == 0) {
       return;
@@ -228,8 +224,6 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   function depositMooniSwap() internal {
     uint256 token1Amount = IERC20(depositToken()).balanceOf(address(this));
     uint256 daiAmount = IERC20(dai).balanceOf(address(this));
-    console.log("token1Amount", token1Amount);
-    console.log("daiAmount", daiAmount);
     if (!(daiAmount > 0 && token1Amount > 0)) {
       return;
     }
