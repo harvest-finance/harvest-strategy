@@ -221,8 +221,6 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       return;
     }
 
-    // TODO: check for sell floor is missing?
-
     // multiple reward tokens are supported -> liquidate all of them into common rewardToken (weth)
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];

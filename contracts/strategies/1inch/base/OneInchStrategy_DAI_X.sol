@@ -27,16 +27,18 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   address public weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
   uint256 maxUint = uint256(~0);
-
-  // depositToken0 is DAI
-  address public depositToken1;
-
-  address[] public rewardTokens;
-
   uint256 slippageNumerator = 9;
   uint256 slippageDenominator = 10;
 
-  constructor() public BaseUpgradeableStrategyUL() {}
+  // depositToken0 is DAI
+  // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
+  bytes32 internal constant _DEPOSIT_TOKEN_SLOT = 0x219270253dbc530471c88a9e7c321b36afda219583431e7b6c386d2d46e70c86;
+
+  address[] public rewardTokens;
+
+  constructor() public BaseUpgradeableStrategyUL() {
+    assert(_DEPOSIT_TOKEN_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositToken")) - 1));
+  }
 
   function initializeBaseStrategy(
     address _storage,
@@ -61,8 +63,8 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     );
 
     require(IVault(_vault).underlying() == _underlying, "vault does not support the required LP token");
-    depositToken1 = IMooniswap(_underlying).token1();
-    require(depositToken1 != address(0), "token1 must be non-zero");
+    _setDepositToken(IMooniswap(_underlying).token1());
+    require(depositToken() != address(0), "token1 must be non-zero");
     require(IMooniswap(_underlying).token0() == dai, "token0 must be dai");
 
     rewardTokens = new address[](0);
@@ -80,6 +82,17 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
      // To make sure that governance cannot come in and take away the coins
     require(!unsalvagableTokens(token), "token is defined as not salvagable");
     IERC20(token).safeTransfer(recipient, amount);
+  }
+
+  function emergencyExitRewardPool() internal {
+    withdrawUnderlyingFromPool(maxUint);
+    uint256 balance = IERC20(underlying()).balanceOf(address(this));
+    IERC20(underlying()).safeTransfer(vault(), balance);
+  }
+
+  function emergencyExit() public onlyGovernance {
+    emergencyExitRewardPool();
+    _setPausedInvesting(true);
   }
 
   /*
@@ -197,27 +210,27 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
       remainingRewardBalance,
       1,
       address(this), // target
-      storedLiquidationDexes[weth][depositToken1],
-      storedLiquidationPaths[weth][depositToken1]
+      storedLiquidationDexes[weth][depositToken()],
+      storedLiquidationPaths[weth][depositToken()]
     );
 
     depositMooniSwap();
   }
 
   function depositMooniSwap() internal {
-    int256 token1Amount = IERC20(depositToken1).balanceOf(address(this));
+    int256 token1Amount = IERC20(depositToken()).balanceOf(address(this));
     uint256 daiAmount = IERC20(dai).balanceOf(address(this));
     if (!(daiAmount > 0 && token1Amount > 0)) {
       return;
     }
 
-    IERC20(depositToken1).safeApprove(underlying(), 0);
-    IERC20(depositToken1).safeApprove(underlying(), token1Amount);
+    IERC20(depositToken()).safeApprove(underlying(), 0);
+    IERC20(depositToken()).safeApprove(underlying(), token1Amount);
 
     IERC20(oneInch).safeApprove(underlying(), 0);
     IERC20(oneInch).safeApprove(underlying(), oneInchAmount);
 
-    // adding liquidity: DAI + depositToken1
+    // adding liquidity: DAI + depositToken()
     IMooniswap(underlying()).deposit(
         [daiAmount, token1Amount],
         [
@@ -226,7 +239,6 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
         ]
     );
   }
-
   
   /*
   *   Get the reward, sell it in exchange for underlying, invest what you got.
@@ -268,5 +280,17 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   */
   function setSellFloor(uint256 floor) public onlyGovernance {
     _setSellFloor(floor);
+  }
+
+  function _setDepositToken(address _address) internal {
+    setAddress(_DEPOSIT_TOKEN_SLOT, _address);
+  }
+
+  function depositToken() public view returns (address) {
+    return getAddress(_DEPOSIT_TOKEN_SLOT);
+  }
+
+  function finalizeUpgrade() external onlyGovernance {
+    _finalizeUpgrade();
   }
 }
