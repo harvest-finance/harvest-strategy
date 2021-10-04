@@ -7,10 +7,11 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interface/IMooniswap.sol";
 import "../interface/IFarmingRewardsV2.sol";
 
-import "../../../base/interface/uniswap/IUniswapV2Router02.sol";
 import "../../../base/interface/IStrategy.sol";
+import "../../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 import "../../../base/interface/IVault.sol";
 import "../../../base/interface/weth/Weth9.sol";
+import "../../../base/interface/oneInch/IOneInchLiquidator.sol";
 
 import "../../../base/StrategyBase.sol";
 
@@ -25,6 +26,9 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
 
   address public dai = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
   address public weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+  address public eth = address(0x0000000000000000000000000000000000000000);
+  bytes32 oneInchDex = bytes32(0xd9bf0c0ec020d1a26ba6698a24db3a538215d8fbf30588bddde694887c4cb55e);
+  address oneInchLiquidator = address(0xA6031a6D87b82B2d60df9B78E578537a2AeAe93a);
 
   uint256 maxUint = uint256(~0);
   uint256 slippageNumerator = 9;
@@ -33,11 +37,14 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   // depositToken0 is DAI
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _DEPOSIT_TOKEN_SLOT = 0x219270253dbc530471c88a9e7c321b36afda219583431e7b6c386d2d46e70c86;
+  bytes32 internal constant _LIQUIDATE_DEPOSIT_TOKEN_VIA_DAI_SLOT = 0xe409979bbff331377f8c6e329d8221b165153f1b13926cd194bf26d1033513dd;
 
   address[] public rewardTokens;
+  mapping(address => mapping(address => address)) public storedOneInchPools;
 
   constructor() public BaseUpgradeableStrategyUL() {
     assert(_DEPOSIT_TOKEN_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositToken")) - 1));
+    assert(_LIQUIDATE_DEPOSIT_TOKEN_VIA_DAI_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.liquidateDepositTokenViaDai")) - 1));
   }
 
   function initializeBaseStrategy(
@@ -45,7 +52,8 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     address _underlying,
     address _vault,
     address _rewardPool,
-    uint256 _profitSharingNumerator
+    uint256 _profitSharingNumerator,
+    bool _liquidateDepositTokenViaDai
   ) public initializer {
 
     BaseUpgradeableStrategyUL.initialize(
@@ -66,6 +74,8 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     _setDepositToken(IMooniswap(_underlying).token1());
     require(depositToken() != address(0), "token1 must be non-zero");
     require(IMooniswap(_underlying).token0() == dai, "token0 must be dai");
+
+    _setLiquidateDepositTokenViaDai(_liquidateDepositTokenViaDai);
 
     rewardTokens = new address[](0);
   }
@@ -121,14 +131,15 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   function withdrawToVault(uint256 amountUnderlying) external restricted {
     withdrawUnderlyingFromPool(amountUnderlying);
     require(IERC20(underlying()).balanceOf(address(this)) >= amountUnderlying, "insufficient balance for the withdrawal");
-    IERC20(underlying()).safeTransfer(vault, amountUnderlying);
+    IERC20(underlying()).safeTransfer(vault(), amountUnderlying);
   }
 
   /**
   * Withdraws all the underlying tokens to the rewardPool().
   */
   function withdrawAllToVault() external restricted {
-    claimAndLiquidate();
+    IFarmingRewardsV2(rewardPool()).getAllRewards();
+    liquidateReward();
     withdrawUnderlyingFromPool(maxUint);
     uint256 balance = IERC20(underlying()).balanceOf(address(this));
     IERC20(underlying()).safeTransfer(vault(), balance);
@@ -159,25 +170,7 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
       return;
     }
 
-    // multiple reward tokens are supported -> liquidate all of them into common rewardToken (weth)
-    for(uint256 i = 0; i < rewardTokens.length; i++){
-      address rewardToken = rewardTokens[i];
-      uint256 rewardBalance = IERC20(rewardToken).balanceOf(address(this));
-      if (rewardBalance == 0 || storedLiquidationDexes[rewardToken][weth].length < 1) {
-        continue;
-      }
-
-      IERC20(rewardToken).safeApprove(universalLiquidator(), 0);
-      IERC20(rewardToken).safeApprove(universalLiquidator(), rewardBalance);
-      // we can accept 1 as the minimum because this will be called only by a trusted worker
-      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
-        rewardBalance,
-        1,
-        address(this), // target
-        storedLiquidationDexes[rewardToken][weth],
-        storedLiquidationPaths[rewardToken][weth]
-      );
-    }
+    rewardTokensToCommon();
 
     uint256 rewardBalance = IERC20(weth).balanceOf(address(this));
 
@@ -189,36 +182,100 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
       return;
     }
 
-    // convert half of the remaining rewardBalance back to the main deposit token DAI
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), remainingRewardBalance.div(2));
-    // we can accept 1 as minimum because this is called only by a trusted role
-    ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
-      remainingRewardBalance.div(2),
-      1,
-      address(this), // target
-      storedLiquidationDexes[weth][dai],
-      storedLiquidationPaths[weth][dai]
-    );
-
-    // the remaining half is converted into the second token
-    remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), remainingRewardBalance);
-    // we can accept 1 as minimum because this is called only by a trusted role
-    ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
-      remainingRewardBalance,
-      1,
-      address(this), // target
-      storedLiquidationDexes[weth][depositToken()],
-      storedLiquidationPaths[weth][depositToken()]
-    );
+    commonToDepositTokens(remainingRewardBalance);
 
     depositMooniSwap();
   }
 
+  /**
+  * swaps the common token (WETH) to the deposit tokens for reinvesting
+  */
+  function commonToDepositTokens(uint256 amount) internal {
+    // convert half of the remaining rewardBalance back to the main deposit token DAI
+    uint256 liquidateRewardToDaiBalance = amount.div(2);
+
+    if(liquidateDepositTokenViaDai()) {
+      // if we liquidate the deposit token via DAI then we swap all of the rewardBalance to DAI
+      liquidateRewardToDaiBalance = amount;
+    }
+
+    swapViaULorOneInchUL(weth, dai, liquidateRewardToDaiBalance);
+
+    if(liquidateDepositTokenViaDai()) {
+      // convert half of the dai balance to the second token
+      uint256 remainingRewardBalance = IERC20(dai).balanceOf(address(this));
+      swapViaULorOneInchUL(dai, depositToken(), remainingRewardBalance);
+    } else {
+      // the remaining half of the reward balance is converted into the second token
+      uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+      swapViaULorOneInchUL(weth, depositToken(), remainingRewardBalance);
+    }
+  }
+
+  /**
+  * swaps all the reward tokens to WETH
+  */
+  function rewardTokensToCommon() internal {
+    // multiple reward tokens are supported -> liquidate all of them into common rewardToken (weth)
+    for(uint256 i = 0; i < rewardTokens.length; i++){
+      address rewardToken = rewardTokens[i];
+      uint256 rewardBalance = IERC20(rewardToken).balanceOf(address(this));
+      if (rewardBalance == 0 || (storedLiquidationDexes[rewardToken][weth].length < 1 && storedLiquidationDexes[rewardToken][eth].length < 1)) {
+        continue;
+      }
+
+      swapViaULorOneInchUL(rewardToken, weth, rewardBalance);
+    }
+  }
+
+  function swapViaULorOneInchUL(address fromToken, address toToken, uint256 amount) internal {
+      bool toWethHasToBeWrapped = false;
+      if(toToken == weth) {
+        // check if a path for weth exists or if we have to wrap
+        toWethHasToBeWrapped = storedLiquidationDexes[fromToken][toToken].length < 1;
+      }
+      bytes32[] memory dexes = storedLiquidationDexes[rewardToken()][weth];
+      if(toWethHasToBeWrapped) {
+        dexes = storedLiquidationDexes[rewardToken()][eth];
+      }
+
+      if(dexes[0] == oneInchDex) {
+        // via 1inch
+        IERC20(fromToken).safeApprove(oneInchLiquidator, 0);
+        IERC20(fromToken).safeApprove(oneInchLiquidator, amount);
+
+        IOneInchLiquidator(oneInchLiquidator).changePool(fromToken, toToken, storedOneInchPools[fromToken][toToken]);
+        // we can accept 1 as the minimum because this will be called only by a trusted worker
+        IOneInchLiquidator(oneInchLiquidator).doSwap(
+          amount,
+          1,
+          address(this), // spender
+          address(this), // target
+          storedLiquidationPaths[fromToken][toToken]
+        );
+      } else {
+        // via UL that handles uni and sushi
+        IERC20(fromToken).safeApprove(universalLiquidator(), 0);
+        IERC20(fromToken).safeApprove(universalLiquidator(), amount);
+        // we can accept 1 as the minimum because this will be called only by a trusted worker
+        ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
+          amount,
+          1,
+          address(this), // target
+          storedLiquidationDexes[fromToken][toToken],
+          storedLiquidationPaths[fromToken][toToken]
+        );
+      }
+
+      // wrap if necessary
+      if(toWethHasToBeWrapped) {
+        // convert the received Ether into wrapped Ether
+        WETH9(weth).deposit.value(address(this).balance)();
+      }
+  }
+
   function depositMooniSwap() internal {
-    int256 token1Amount = IERC20(depositToken()).balanceOf(address(this));
+    uint256 token1Amount = IERC20(depositToken()).balanceOf(address(this));
     uint256 daiAmount = IERC20(dai).balanceOf(address(this));
     if (!(daiAmount > 0 && token1Amount > 0)) {
       return;
@@ -227,8 +284,8 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     IERC20(depositToken()).safeApprove(underlying(), 0);
     IERC20(depositToken()).safeApprove(underlying(), token1Amount);
 
-    IERC20(oneInch).safeApprove(underlying(), 0);
-    IERC20(oneInch).safeApprove(underlying(), oneInchAmount);
+    IERC20(dai).safeApprove(underlying(), 0);
+    IERC20(dai).safeApprove(underlying(), daiAmount);
 
     // adding liquidity: DAI + depositToken()
     IMooniswap(underlying()).deposit(
@@ -289,6 +346,15 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
   function depositToken() public view returns (address) {
     return getAddress(_DEPOSIT_TOKEN_SLOT);
   }
+
+  function _setLiquidateDepositTokenViaDai(bool _liquidateViaDai) internal {
+    setBoolean(_LIQUIDATE_DEPOSIT_TOKEN_VIA_DAI_SLOT, _liquidateViaDai);
+  }
+
+  function liquidateDepositTokenViaDai() public view returns (bool) {
+    return getBoolean(_LIQUIDATE_DEPOSIT_TOKEN_VIA_DAI_SLOT);
+  }
+
 
   function finalizeUpgrade() external onlyGovernance {
     _finalizeUpgrade();
