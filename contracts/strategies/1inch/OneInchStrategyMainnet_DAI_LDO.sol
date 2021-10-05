@@ -27,8 +27,7 @@ contract OneInchStrategy_DAI_LDO is OneInchStrategy_DAI_X {
       _storage,
       underlying,
       _vault,
-      rewardPool, //rewardPool
-      300  // profit sharing numerator
+      rewardPool //rewardPool
     );
 
     rewardTokens = [oneInch, ldo];

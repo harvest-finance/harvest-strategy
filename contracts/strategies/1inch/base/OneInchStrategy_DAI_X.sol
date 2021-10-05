@@ -43,8 +43,7 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
     address _storage,
     address _underlying,
     address _vault,
-    address _rewardPool,
-    uint256 _profitSharingNumerator
+    address _rewardPool
   ) public initializer {
 
     BaseUpgradeableStrategyUL.initialize(
@@ -53,7 +52,7 @@ contract OneInchStrategy_DAI_X is IStrategy, BaseUpgradeableStrategyUL {
       _vault,
       _rewardPool,
       weth,
-      _profitSharingNumerator,  // profit sharing numerator
+      300,  // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       0, // sell floor
