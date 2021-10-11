@@ -177,7 +177,7 @@ contract LQTYStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     /**
-     * @dev Can completely disable liquidation of DODO rewards. This can be
+     * @dev Can completely disable liquidation of reward tokens rewards. This can be
      *      useful in case of emergency exits.
      */
     function setSell(bool _sell) public onlyGovernance {
@@ -185,7 +185,7 @@ contract LQTYStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     /**
-     * @dev Set the minimum amount of DODO needed to trigger a sale (for a liquidation).
+     * @dev Set the minimum amount of reward tokens needed to trigger a sale (for a liquidation).
      */
     function setSellFloor(uint256 _sellFloor) public onlyGovernance {
         setSellFloor(_sellFloor);
