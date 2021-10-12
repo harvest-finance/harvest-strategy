@@ -13,6 +13,9 @@ import "../../base/interface/uniswap/IUniswapV2Pair.sol";
 import "../../base/interface/weth/Weth9.sol";
 import "../../base/PotPool.sol";
 import "./interface/IBAMM.sol";
+import "./interface/IStabilityPool.sol";
+
+import "hardhat/console.sol";
 
 contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
@@ -20,6 +23,7 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   using SafeERC20 for IERC20;
 
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+  uint constant public PRECISION = 1e18;
 
   // additional storage slots (on top of BaseUpgradeableStrategyUL ones) are defined here
   bytes32 internal constant _HODLVAULT_SLOT = 0xc26d330f887c749cb38ae7c37873ff08ac4bba7aec9113c82d48a0cf6cc145f2;
@@ -58,6 +62,12 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     setAddress(_HODLVAULT_SLOT, _hodlVault);
     setAddress(_POTPOOL_SLOT, _potPool);
   }
+
+  /**
+   * Include fallback function to receive Ether when withdrawing from B.AMM
+   * see failSafeSwapETHtoRewardToken function in this contract
+   */
+  function() external payable { }
 
   /*
   *   Governance or Controller can claim coins that are somehow transferred into the contract
@@ -120,6 +130,7 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
+    console.log('withdrawAllToVault');
     exitRewardPool();
     _hodlAndNotify();
     IERC20(underlying()).safeTransfer(vault(), IERC20(underlying()).balanceOf(address(this)));
@@ -161,12 +172,46 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function exitRewardPool() internal {
+      // console.log('exitRewardPool');
+      // address stabilityPool = IBAMM(rewardPool()).SP();
+
+      // uint lusdValue = IStabilityPool(stabilityPool).getCompoundedLUSDDeposit(rewardPool());
+      // uint ethValue = IStabilityPool(stabilityPool).getDepositorETHGain(rewardPool()).add(rewardPool().balance);
+      // console.log('lusdValue', lusdValue);
+      // console.log('ethValue', ethValue);
+
+      // uint total = IBAMM(rewardPool()).totalSupply();
+
+      // uint lusdAmount = lusdValue.mul(rewardPoolBalance()).div(total);
+      // uint ethAmount = ethValue.mul(rewardPoolBalance()).div(total);
+      // console.log('lusdAmount', lusdAmount);
+      // console.log('ethAmount', ethAmount);
+
+      // uint price = 3523440000000000000000;
+
+      // uint totalValue = lusdValue.add(ethValue.mul(price) / PRECISION);
+      // console.log('totalValue', totalValue);
+
+      // uint newShare = PRECISION;
+      // if(total > 0) newShare = total.mul(lusdAmount) / totalValue;
+      // console.log('newShare', newShare);
+
       uint256 bal = rewardPoolBalance();
+      // console.log('rewardPoolBalance before', bal);
       if (bal != 0) {
+          console.log('withdrawing all shares', bal);
+          console.log('shares are worth in LUSD:', rewardPoolLusdBalance());
           IBAMM(rewardPool()).withdraw(bal);
       }
+
+      console.log('ETH now in HodlStrategy', address(this).balance);
+
+
+      // console.log('withdrawing newShare', newShare);
+      // IBAMM(rewardPool()).withdraw(newShare);
+
       /**
-       * Note that the IBAMM does not implement an emergency exit
+       * @dev Note that the IBAMM does not implement an emergency exit
        * But deposits shouldn't be locked even if rewards are 0
        * The only case where deposits wouldn't be withdrawable is if 
        * bProtocol fails to correctly collaterize their LQTY trove with ETH
@@ -175,9 +220,13 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   function enterRewardPool() internal {
     uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
+    console.log('entireBalance', entireBalance);
     IERC20(underlying()).safeApprove(rewardPool(), 0);
     IERC20(underlying()).safeApprove(rewardPool(), entireBalance);
     IBAMM(rewardPool()).deposit(entireBalance);
+    console.log('depositing LUSD', entireBalance);
+    uint bal = IBAMM(rewardPool()).balanceOf(address(this));
+    console.log('rewardPool balance in B.AMM LUSD-ETH of this', bal);
   }
   
 
@@ -187,10 +236,12 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     // take profit
     uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    console.log('rewardBalance', rewardBalance);
     notifyProfitInRewardToken(rewardBalance);
 
     // check if any remaining reward balance exists, if not return
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    console.log('remainingRewardBalance', remainingRewardBalance);
     if (remainingRewardBalance == 0) {
       return;
     }
@@ -214,15 +265,23 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     * but the bProtocol smart contract code contains a payout for ETH too as a fail safe probably
     * in theory, there should not be any ETH there to pay out, but since they include that fail-safe we include one too
     * Thus we liquidate ETH to LQTY before hodling LQTY
+    * 
+    * bProtcol says about it:
+    * the auto compounding process is not atomic and might take some time. Hence, there might be ETH left overs in the time of withdrawals. 
+    * And as a user you will get it. since we went live it never was over 0.1% of total inventory, but in theory it could.
+    * hence as a user your choice is to either wait for the process to be completed, or to withdraw now and get some of your withdrawals in ETH. 
     */
   function failSafeSwapETHtoRewardToken() internal {
+    if(address(this).balance == 0) {
+      console.log('no ETH in contract, no fail safe needed');
+      return;
+    }
+
+    console.log('ETH in contract, fail safe needed!!', address(this).balance);
     // convert the received Ether into wrapped Ether
     WETH9(weth).deposit.value(address(this).balance)();
     // get weth balance
     uint256 wethBalance = IERC20(weth).balanceOf(address(this));
-    if(wethBalance == 0) {
-      return;
-    }
 
     // weth -> rewardToken
     IERC20(weth).safeApprove(universalLiquidator(), 0);
@@ -245,8 +304,34 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
       enterRewardPool();
     }
   }
+      // uint price = IBAMM(rewardPool()).fetchPrice();
+      // if(price == 0) {
+      //   return 0;
+      // }
+    // uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
+    // uint totalSupply = IBAMM(rewardPool()).totalSupply();
+    // uint totalLusd = bammLusdTotal();
+    // bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
+      // bal = IBAMM(rewardPool()).balanceOf(address(this));
+
+  function bammLusdTotal() internal view returns (uint256 total) {
+    address stabilityPool = IBAMM(rewardPool()).SP();
+    total = IStabilityPool(stabilityPool).getCompoundedLUSDDeposit(rewardPool());
+    console.log('This should increase: bammLusdTotal of stability Pool', total);
+  }
 
   function rewardPoolBalance() internal view returns (uint256 bal) {
-      bal = IBAMM(rewardPool()).getCompoundedLUSDDeposit(address(this));
+      // uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
+      // uint totalSupply = IBAMM(rewardPool()).totalSupply();
+      // uint totalLusd = bammLusdTotal();
+      // bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
+      bal = IBAMM(rewardPool()).balanceOf(address(this));
   }
+
+  function rewardPoolLusdBalance() public view returns (uint256 bal) {
+      uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
+      uint totalSupply = IBAMM(rewardPool()).totalSupply();
+      uint totalLusd = bammLusdTotal();
+      bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
+  }  
 }

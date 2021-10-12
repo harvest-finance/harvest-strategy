@@ -31,7 +31,7 @@ contract BProtocolHodlStrategyMainnet_LUSD is BProtocolHodlStrategy {
       _vault,
       rewardPool, // reward pool
       lqty, // reward token
-      address(0), // hodl vault for fLQTY
+      hodlVaultLqty, // hodl vault for fLQTY
       address(0) // distribution pool / pot pool -> must be set later manually
     );
 
