@@ -107,7 +107,7 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     // both are in the units of "underlying"
     // The second part is needed because there is the emergency exit mechanism
     // which would break the assumption that all the funds are always inside of the reward pool
-    return rewardPoolBalance().add(IERC20(underlying()).balanceOf(address(this)));
+    return rewardPoolLusdBalance().add(IERC20(underlying()).balanceOf(address(this)));
   }
 
   function setHodlVault(address _value) public onlyGovernance {
@@ -130,30 +130,41 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
-    console.log('withdrawAllToVault');
     exitRewardPool();
     _hodlAndNotify();
     IERC20(underlying()).safeTransfer(vault(), IERC20(underlying()).balanceOf(address(this)));
   }
 
   /*
-  *   Withdraws all the asset to the vault
+  *   Withdraws the desired amount of the asset to the vault
   */
   function withdrawToVault(uint256 amount) public restricted {
-    // Typically there wouldn't be any amount here
-    // however, it is possible because of the emergencyExit
+    // Typically there wouldn't be any amount here, but we keep it as a fail-safe
     uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
 
     if(amount > entireBalance){
       // While we have the check above, we still using SafeMath below
       // for the peace of mind (in case something gets changed in between)
       uint256 needToWithdraw = amount.sub(entireBalance);
-      uint256 toWithdraw = Math.min(rewardPoolBalance(), needToWithdraw);
-      IBAMM(rewardPool()).withdraw(toWithdraw);
+
+      uint256 toWithdraw = Math.min(rewardPoolLusdBalance(), needToWithdraw);
+
+      // convert LUSD to shares
+      uint256 oneSharePrice = rewardPoolLusdBalance().div(rewardPoolBalance());
+      uint256 sharesBalance = toWithdraw.div(oneSharePrice);
+      
+      IBAMM(rewardPool()).withdraw(sharesBalance);
     }
 
     IERC20(underlying()).safeTransfer(vault(), amount);
   }
+
+  function rewardPoolLusdBalance() public view returns (uint256 bal) {
+      uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
+      uint totalSupply = IBAMM(rewardPool()).totalSupply();
+      uint totalLusd = bammLusdTotal();
+      bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
+  }    
 
   function hodlVault() public view returns (address) {
     return getAddress(_HODLVAULT_SLOT);
@@ -172,32 +183,7 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function exitRewardPool() internal {
-      // console.log('exitRewardPool');
-      // address stabilityPool = IBAMM(rewardPool()).SP();
-
-      // uint lusdValue = IStabilityPool(stabilityPool).getCompoundedLUSDDeposit(rewardPool());
-      // uint ethValue = IStabilityPool(stabilityPool).getDepositorETHGain(rewardPool()).add(rewardPool().balance);
-      // console.log('lusdValue', lusdValue);
-      // console.log('ethValue', ethValue);
-
-      // uint total = IBAMM(rewardPool()).totalSupply();
-
-      // uint lusdAmount = lusdValue.mul(rewardPoolBalance()).div(total);
-      // uint ethAmount = ethValue.mul(rewardPoolBalance()).div(total);
-      // console.log('lusdAmount', lusdAmount);
-      // console.log('ethAmount', ethAmount);
-
-      // uint price = 3523440000000000000000;
-
-      // uint totalValue = lusdValue.add(ethValue.mul(price) / PRECISION);
-      // console.log('totalValue', totalValue);
-
-      // uint newShare = PRECISION;
-      // if(total > 0) newShare = total.mul(lusdAmount) / totalValue;
-      // console.log('newShare', newShare);
-
       uint256 bal = rewardPoolBalance();
-      // console.log('rewardPoolBalance before', bal);
       if (bal != 0) {
           console.log('withdrawing all shares', bal);
           console.log('shares are worth in LUSD:', rewardPoolLusdBalance());
@@ -205,10 +191,6 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
       }
 
       console.log('ETH now in HodlStrategy', address(this).balance);
-
-
-      // console.log('withdrawing newShare', newShare);
-      // IBAMM(rewardPool()).withdraw(newShare);
 
       /**
        * @dev Note that the IBAMM does not implement an emergency exit
@@ -220,13 +202,12 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   function enterRewardPool() internal {
     uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
-    console.log('entireBalance', entireBalance);
     IERC20(underlying()).safeApprove(rewardPool(), 0);
     IERC20(underlying()).safeApprove(rewardPool(), entireBalance);
     IBAMM(rewardPool()).deposit(entireBalance);
     console.log('depositing LUSD', entireBalance);
     uint bal = IBAMM(rewardPool()).balanceOf(address(this));
-    console.log('rewardPool balance in B.AMM LUSD-ETH of this', bal);
+    console.log('rewardPool balance in B.AMM LUSD-ETH of strategy after deposit', bal);
   }
   
 
@@ -236,12 +217,10 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     // take profit
     uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    console.log('rewardBalance', rewardBalance);
     notifyProfitInRewardToken(rewardBalance);
 
     // check if any remaining reward balance exists, if not return
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
-    console.log('remainingRewardBalance', remainingRewardBalance);
     if (remainingRewardBalance == 0) {
       return;
     }
@@ -273,11 +252,9 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     */
   function failSafeSwapETHtoRewardToken() internal {
     if(address(this).balance == 0) {
-      console.log('no ETH in contract, no fail safe needed');
       return;
     }
 
-    console.log('ETH in contract, fail safe needed!!', address(this).balance);
     // convert the received Ether into wrapped Ether
     WETH9(weth).deposit.value(address(this).balance)();
     // get weth balance
@@ -304,34 +281,13 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
       enterRewardPool();
     }
   }
-      // uint price = IBAMM(rewardPool()).fetchPrice();
-      // if(price == 0) {
-      //   return 0;
-      // }
-    // uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
-    // uint totalSupply = IBAMM(rewardPool()).totalSupply();
-    // uint totalLusd = bammLusdTotal();
-    // bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
-      // bal = IBAMM(rewardPool()).balanceOf(address(this));
 
   function bammLusdTotal() internal view returns (uint256 total) {
     address stabilityPool = IBAMM(rewardPool()).SP();
     total = IStabilityPool(stabilityPool).getCompoundedLUSDDeposit(rewardPool());
-    console.log('This should increase: bammLusdTotal of stability Pool', total);
   }
 
   function rewardPoolBalance() internal view returns (uint256 bal) {
-      // uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
-      // uint totalSupply = IBAMM(rewardPool()).totalSupply();
-      // uint totalLusd = bammLusdTotal();
-      // bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
       bal = IBAMM(rewardPool()).balanceOf(address(this));
   }
-
-  function rewardPoolLusdBalance() public view returns (uint256 bal) {
-      uint userBalanceLusdEth = IBAMM(rewardPool()).balanceOf(address(this));
-      uint totalSupply = IBAMM(rewardPool()).totalSupply();
-      uint totalLusd = bammLusdTotal();
-      bal = totalLusd.mul(userBalanceLusdEth).div(totalSupply);
-  }  
 }

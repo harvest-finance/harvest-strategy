@@ -9,10 +9,9 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 const BProtocolHodlStrategyMainnet_LUSD = artifacts.require("BProtocolHodlStrategyMainnet_LUSD");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 const IVault = artifacts.require("IVault");
+const IOracleMainnet = artifacts.require("IOracleMainnet");
 
-const ethers = require('ethers');
-
-let provider = ethers.getDefaultProvider();
+const D18 = new BigNumber(Math.pow(10, 18));
 
 // This test was developed at blockNumber 13392555
 
@@ -29,6 +28,8 @@ describe("Mainnet BProtocol LUSD HODL", function() {
   const lqty = "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D";
   const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   const feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
+  const priceOracleAddr = "0x48DC32eCA58106f06b41dE514F29780FFA59c279";
+  let priceOracle;
 
   const uniV3Dex = "0x8f78a54cb77f4634a5bf3dd452ed6a2e33432c73821be59208661199511cd94f";
   const bancorDex = "0x4bf11b89310db45ea1467e48e832606a6ec7b8735c470fff7cf328e182a7c37e";
@@ -52,6 +53,7 @@ describe("Mainnet BProtocol LUSD HODL", function() {
      // single asset staking -> underlying is lusd
     underlying = await IERC20.at(lusd);
     console.log("Fetching Underlying at: ", underlying.address);
+    priceOracle = await IOracleMainnet.at(priceOracleAddr);
   }
 
   async function setupBalance(){
@@ -117,25 +119,26 @@ describe("Mainnet BProtocol LUSD HODL", function() {
       let erc20Vault = await IERC20.at(vault.address);
       await erc20Vault.approve(potPool.address, fTokenBalance, {from: farmer1});
       await potPool.stake(fTokenBalance, {from: farmer1});
+      
+      console.log("-----------------------------");
 
-      console.log('farmerOldBalance', farmerOldBalance.toString());
-      console.log('farmerOldFLqty', farmerOldFLqty.toString());
-      console.log('in vault deposited B.AMM LUSD-ETH', new BigNumber(await vault.balanceOf(farmer1)).toFixed());
-      console.log('in potPool deposited fB.AMM LUSD-ETH', new BigNumber(await potPool.balanceOf(farmer1)).toFixed());
+      console.log('farmerOldBalance', farmerOldBalance.toFixed()/D18.toFixed());
+      console.log('farmerOldFLqty', farmerOldFLqty.toFixed()/D18.toFixed());
+      console.log('in potPool deposited pfLUSD', new BigNumber(await potPool.balanceOf(farmer1)).toFixed()/D18.toFixed());
+      
+      console.log("-----------------------------");
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
       let blocksPerHour = 2400;
       let oldSharePrice;
       let newSharePrice;
-      let oldFLqtyBalance;
-      let newFLqtyBalance;
       let oldPotPoolBalance;
       let newPotPoolBalance;
-      let oldRewardPoolLusdBalance;
-      let newRewardPoolLusdBalance;
+      let oldValue;
+      let newValue;
       for (let i = 0; i < hours; i++) {
-        console.log("loop ", i);
+        console.log(`---------- loop ${i} -----------------`);
 
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         oldHodlSharePrice = new BigNumber(await hodlVault.getPricePerFullShare());
@@ -148,28 +151,29 @@ describe("Mainnet BProtocol LUSD HODL", function() {
         newHodlSharePrice = new BigNumber(await hodlVault.getPricePerFullShare());
         newPotPoolBalance = new BigNumber(await hodlVault.balanceOf(potPool.address));
 
-        console.log("oldHodlSharePrice: ", oldHodlSharePrice.toFixed());
-        console.log("newHodlSharePrice: ", newHodlSharePrice.toFixed());
-        
-        console.log("old shareprice: ", oldSharePrice.toFixed());
-        console.log("new shareprice: ", newSharePrice.toFixed());
-        console.log("growth: ", newSharePrice.toFixed() / oldSharePrice.toFixed());
+        console.log("old shareprice: ", oldSharePrice.toFixed()/D18.toFixed());
+        console.log("new shareprice: ", newSharePrice.toFixed()/D18.toFixed());
 
-        apr = (newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))*365;
-        apy = ((newSharePrice.toFixed()/oldSharePrice.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
+        lqtyPrice = new BigNumber(await priceOracle.getPrice(lqty));
+        console.log("LQTY price:", lqtyPrice.toFixed()/D18.toFixed());
+
+        oldValue = (farmerOldBalance).plus((oldPotPoolBalance.times(oldHodlSharePrice).times(lqtyPrice)).div(1e36));
+        newValue = (farmerOldBalance).plus((newPotPoolBalance.times(newHodlSharePrice).times(lqtyPrice)).div(1e36));
+
+        console.log("old value: ", oldValue.toFixed()/D18.toFixed());
+        console.log("new value: ", newValue.toFixed()/D18.toFixed());
+        console.log("growth: ", newValue.toFixed() / oldValue.toFixed());
+
+        apr = (newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))*365;
+        apy = ((newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
 
         console.log("instant APR:", apr*100, "%");
         console.log("instant APY:", (apy-1)*100, "%");
 
-        console.log("fLQTY in potpool: ", newPotPoolBalance.toFixed());
-        console.log('reward pool LUSD balance', new BigNumber(await strategy.rewardPoolLusdBalance()).toFixed());
-        // console.log('in potPool deposited fB.AMM LUSD-ETH', new BigNumber(await potPool.balanceOf(farmer1)).toFixed());
-
+        console.log("fLQTY in potpool: ", newPotPoolBalance.toFixed()/D18.toFixed());
+      
         await Utils.advanceNBlock(blocksPerHour);
       }
-
-      console.log("in vault deposited B.AMM LUSD-ETH after: ", new BigNumber(await vault.balanceOf(farmer1)).toFixed());
-
       // wait until all reward can be claimed by the farmer
       await Utils.waitTime(86400 * 30 * 1000);
       // withdrawAll to make sure no doHardwork is called when we do withdraw later.
@@ -177,35 +181,55 @@ describe("Mainnet BProtocol LUSD HODL", function() {
 
       await Utils.advanceNBlock(1);
 
-      console.log('in potPool deposited fB.AMM LUSD-ETH after', new BigNumber(await potPool.balanceOf(farmer1)).toFixed());
       await potPool.exit({from: farmer1});
-      console.log('in potPool deposited fB.AMM LUSD-ETH after exit', new BigNumber(await potPool.balanceOf(farmer1)).toFixed());
-      console.log("in vault deposited B.AMM LUSD-ETH after: ", new BigNumber(await vault.balanceOf(farmer1)).toFixed());
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
+      
+      console.log("-----------------------------");
+      console.log("-------DONE LOOPING --------");
+      console.log("-----------------------------");
 
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
-      console.log('farmerOldBalance LUSD', farmerOldBalance.toFixed());
-      console.log('farmerNewBalance LUSD', farmerNewBalance.toFixed());
+      console.log('farmerOldBalance LUSD', farmerOldBalance.toFixed()/D18.toFixed());
+      console.log('farmerNewBalance LUSD', farmerNewBalance.toFixed()/D18.toFixed());
       let farmerNewFLqty = new BigNumber(await hodlVault.balanceOf(farmer1));
-      // Utils.assertBNEq(farmerNewBalance, farmerOldBalance);
+
       Utils.assertBNGt(farmerNewFLqty, farmerOldFLqty);
 
-      console.log("farmer had fLQTY before", farmerOldFLqty.toFixed());
-      console.log("farmer has fLQTY after ", farmerNewFLqty.toFixed());
+      console.log("-----------------------------");
 
-      apr = (farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
-      apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
+      console.log("Farmer had fLQTY before", farmerOldFLqty.toFixed()/D18.toFixed());
+      console.log("Farmer has fLQTY after ", farmerNewFLqty.toFixed()/D18.toFixed());
+
+      console.log("-----------------------------");
+
+      oldValue = farmerOldBalance;
+      newValue = (farmerOldBalance.times(newSharePrice)).div(D18.toFixed()).plus((farmerNewFLqty.times(newHodlSharePrice).times(lqtyPrice)).div(1e36));
+
+      console.log("Farmer total value before", oldValue.toFixed()/D18.toFixed());
+      console.log("Farmer total value after:", newValue.toFixed()/D18.toFixed());
+      console.log("Farmer total growth: ", newValue.toFixed() / oldValue.toFixed());
+      
+      console.log("-----------------------------");
+
+      Utils.assertBNGt(newValue, oldValue);
+
+      apr = (newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))*365;
+      apy = ((newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
 
       console.log("Overall APR:", apr*100, "%");
       console.log("Overall APY:", (apy-1)*100, "%");
+      
+      console.log("-----------------------------");
 
       console.log("potpool totalShare: ", (new BigNumber(await potPool.totalSupply())).toFixed());
-      console.log("fLQTY in potpool: ", (new BigNumber(await hodlVault.balanceOf(potPool.address))).toFixed());
-      console.log("Farmer earned LUSD: ", farmerNewBalance - farmerOldBalance);
-      console.log("Farmer got fLQTY from potpool: ", farmerNewFLqty.toFixed());
-      console.log("earned!");
+      console.log("fLQTY in potpool: ", (new BigNumber(await hodlVault.balanceOf(potPool.address))).toFixed()/D18.toFixed());
+      console.log("Farmer earned LUSD: ", (farmerNewBalance - farmerOldBalance).toFixed()/D18.toFixed());
+      console.log("Farmer got fLQTY from potpool: ", farmerNewFLqty.toFixed()/D18.toFixed());
 
-      // await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
+      console.log("-----------------------------");
+      console.log("--------- EARNED! -----------");
+
+      await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
     });
   });
 });
