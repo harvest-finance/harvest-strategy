@@ -174,13 +174,11 @@ describe("Mainnet BProtocol LUSD HODL", function() {
       
         await Utils.advanceNBlock(blocksPerHour);
       }
-      // wait until all reward can be claimed by the farmer
-      await Utils.waitTime(86400 * 30 * 1000);
       // withdrawAll to make sure no doHardwork is called when we do withdraw later.
       await vault.withdrawAll({ from: governance });
 
-      await Utils.advanceNBlock(1);
-
+      // wait until all reward can be claimed by the farmer
+      await Utils.waitTime(86400 * 30 * 1000);
       await potPool.exit({from: farmer1});
       await vault.withdraw(new BigNumber(await vault.balanceOf(farmer1)).toFixed(), { from: farmer1 });
       

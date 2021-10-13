@@ -150,8 +150,8 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
       uint256 toWithdraw = Math.min(rewardPoolLusdBalance(), needToWithdraw);
 
       // convert LUSD to shares
-      uint256 oneSharePrice = rewardPoolLusdBalance().div(rewardPoolBalance());
-      uint256 sharesBalance = toWithdraw.div(oneSharePrice);
+      uint256 oneSharePrice = rewardPoolLusdBalance().mul(1e18).div(rewardPoolBalance());
+      uint256 sharesBalance = toWithdraw.mul(1e18).div(oneSharePrice);
       
       IBAMM(rewardPool()).withdraw(sharesBalance);
     }
