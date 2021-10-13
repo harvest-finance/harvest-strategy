@@ -15,8 +15,6 @@ import "../../base/PotPool.sol";
 import "./interface/IBAMM.sol";
 import "./interface/IStabilityPool.sol";
 
-import "hardhat/console.sol";
-
 contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   using SafeMath for uint256;
@@ -185,12 +183,8 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
   function exitRewardPool() internal {
       uint256 bal = rewardPoolBalance();
       if (bal != 0) {
-          console.log('withdrawing all shares', bal);
-          console.log('shares are worth in LUSD:', rewardPoolLusdBalance());
           IBAMM(rewardPool()).withdraw(bal);
       }
-
-      console.log('ETH now in HodlStrategy', address(this).balance);
 
       /**
        * @dev Note that the IBAMM does not implement an emergency exit
@@ -205,9 +199,7 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     IERC20(underlying()).safeApprove(rewardPool(), 0);
     IERC20(underlying()).safeApprove(rewardPool(), entireBalance);
     IBAMM(rewardPool()).deposit(entireBalance);
-    console.log('depositing LUSD', entireBalance);
     uint bal = IBAMM(rewardPool()).balanceOf(address(this));
-    console.log('rewardPool balance in B.AMM LUSD-ETH of strategy after deposit', bal);
   }
   
 

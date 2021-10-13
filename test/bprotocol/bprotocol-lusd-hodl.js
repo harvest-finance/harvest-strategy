@@ -211,8 +211,8 @@ describe("Mainnet BProtocol LUSD HODL", function() {
 
       Utils.assertBNGt(newValue, oldValue);
 
-      apr = (newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))*365;
-      apy = ((newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour/272))+1)**365;
+      apr = (newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
+      apy = ((newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
 
       console.log("Overall APR:", apr*100, "%");
       console.log("Overall APY:", (apy-1)*100, "%");
