@@ -199,7 +199,6 @@ contract BProtocolHodlStrategy is IStrategy, BaseUpgradeableStrategyUL {
     IERC20(underlying()).safeApprove(rewardPool(), 0);
     IERC20(underlying()).safeApprove(rewardPool(), entireBalance);
     IBAMM(rewardPool()).deposit(entireBalance);
-    uint bal = IBAMM(rewardPool()).balanceOf(address(this));
   }
   
 
