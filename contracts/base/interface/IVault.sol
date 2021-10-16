@@ -24,7 +24,7 @@ interface IVault {
     function announceStrategyUpdate(address _strategy) external;
     function finalizeStrategyUpdate() external;
     function setVaultFractionToInvest(uint256 numerator, uint256 denominator) external;
-    
+
     function deposit(uint256 amountWei) external;
     function depositFor(uint256 amountWei, address holder) external;
 

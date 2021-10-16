@@ -180,7 +180,6 @@ async function setupCoreProtocol(config) {
     await vault.announceStrategyUpdate(strategy.address, { from: config.governance });
     console.log("Strategy switch announced. Waiting...");
     await Utils.waitHours(13);
-    await vault.finalizeStrategyUpdate({ from: config.governance });
     await vault.setStrategy(strategy.address, { from: config.governance });
     await vault.setVaultFractionToInvest(100, 100, { from: config.governance });
     console.log("Strategy switch completed.");
