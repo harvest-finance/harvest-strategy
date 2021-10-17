@@ -5,6 +5,7 @@ const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const WETH9 = artifacts.require("WETH9");
+const IVault = artifacts.require("IVault");
 
 //const Strategy = artifacts.require("");
 const IdleStrategyWETHMainnet = artifacts.require("IdleStrategyWETHMainnet");
@@ -59,11 +60,16 @@ describe("Mainnet IDLE WETH", function() {
     // impersonate accounts
     await impersonates([governance]);
 
+    // reinvest small fraction back into strategy to ensure working withdraw during strategy switch 
+    _vault = await IVault.at("0xFE09e53A81Fe2808bc493ea64319109B5bAa573e");
+    await _vault.setVaultFractionToInvest(1, 1000, { from: governance });
+    await _vault.doHardWork({ from: governance });
+
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": "0xFE09e53A81Fe2808bc493ea64319109B5bAa573e",
       "strategyArtifact": IdleStrategyWETHMainnet,
-      "finalizeStrategy": true,
+      "announceStrategy": true,
       "underlying": underlying,
       "governance": governance,
     });
