@@ -180,6 +180,7 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
   }
 
   function liquidateRewards() internal {
+    uint256 startingWethBalance = IERC20(weth).balanceOf(address(this));
     for (uint256 i=0;i<rewardTokens.length;i++) {
       address token = rewardTokens[i];
       if (!sell[token]) {
@@ -207,11 +208,14 @@ contract IdleFinanceStrategy is IStrategy, RewardTokenProfitNotifier {
     }
 
     uint256 wethBalance = IERC20(weth).balanceOf(address(this));
+    if (address(underlying) == weth) {
+      wethBalance = wethBalance.sub(startingWethBalance);
+    }
     notifyProfitInRewardToken(wethBalance);
 
     uint256 remainingWethBalance = IERC20(weth).balanceOf(address(this));
 
-    if (remainingWethBalance > 0) {
+    if (remainingWethBalance > 0 && address(underlying) != weth) {
       emit Liquidating(weth, remainingWethBalance);
       address routerV2;
       if(useUni[address(underlying)]) {
