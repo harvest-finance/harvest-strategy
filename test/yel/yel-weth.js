@@ -7,25 +7,19 @@ const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-const Strategy = artifacts.require("YelStrategyMainnet_YEL");
-const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
+const Strategy = artifacts.require("YelStrategyMainnet_YEL_WETH");
 
 //This test was developed at blockNumber 13595120
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet YEL single asset staking", function() {
+describe("Mainnet YEL YEL-WETH compounding", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xCc6fA8A63851FDF34a286662dA3d4F598c899FB1";
-  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
-
-  let sushiDex = "0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a";
-  let bancorDex = "0x4bf11b89310db45ea1467e48e832606a6ec7b8735c470fff7cf328e182a7c37e";
+  let underlyingWhale = "0x78A97188707a808044f0d3193af9b71254781CF8";
 
   // parties in the protocol
   let governance;
@@ -40,7 +34,7 @@ describe("Mainnet YEL single asset staking", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x7815bDa662050D84718B988735218CFfd32f75ea");
+    underlying = await IERC20.at("0xc83cE8612164eF7A13d17DDea4271DD8e8EEbE5d");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -69,20 +63,13 @@ describe("Mainnet YEL single asset staking", function() {
     await setupBalance();
 
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": null,
+      "existingVaultAddress": '0x81a276Cc1323A76ad0C71657139e6bCdC3C52b30',
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
+      "announceStrategy": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"sushi": [underlying.address, weth]}],
     });
-
-    feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-
-    let path = [underlying.address, weth, addresses.FARM];
-    let dexes = [sushiDex, bancorDex];
-
-    await feeForwarder.configureLiquidation(path, dexes, { from: governance });
   });
 
   describe("Happy path", function() {
