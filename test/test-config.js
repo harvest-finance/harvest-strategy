@@ -5,5 +5,12 @@ module.exports = {
   "Controller": "0x3cC47874dC50D98425ec79e647d83495637C55e3",
   "VaultImplementationV1": "0x9B3bE0cc5dD26fd0254088d03D8206792715588B",
   "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  "UniversalLiquidatorRegistry": "0x7882172921E99d590E097cD600554339fBDBc480"
+  "UniversalLiquidatorRegistry": "0x7882172921E99d590E097cD600554339fBDBc480",
+  "Factory": {
+    "MegaFactory": "0xE1EC9151Eb8D9a3451B8F623CE8b62632a6D4f4D",
+    "RegularVaultFactory": "0x3Bb28f8E936c48499A4BeBbE906E05e8Eae2Bef8",
+    "UniV3VaultFactory": "0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68",
+    "UpgradableStrategyFactory": "0x9Cf5ab89F48194C9EeaaCBB47cDEceE0e96110b7",
+    "PotPoolFactory": "0xF8B8a0B94c7e9E6ED12dcE16af268CC16818f83e"
+  }
 };
