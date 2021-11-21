@@ -31,7 +31,8 @@
     "@nomiclabs/hardhat-truffle5": "2.0.0",
     "@nomiclabs/hardhat-web3": "2.0.0",
     "@openzeppelin/contracts": "2.5.1",
+    "@openzeppelin/contracts-ethereum-package": "2.5.0",
     "@openzeppelin/upgrades": "2.8.0",
-    "@openzeppelin/contracts-ethereum-package": "2.5.0"
+    "prompt": "1.2.0"
   }
 }
