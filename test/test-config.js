@@ -11,6 +11,6 @@ module.exports = {
     "RegularVaultFactory": "0x3Bb28f8E936c48499A4BeBbE906E05e8Eae2Bef8",
     "UniV3VaultFactory": "0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68",
     "UpgradableStrategyFactory": "0x9Cf5ab89F48194C9EeaaCBB47cDEceE0e96110b7",
-    "PotPoolFactory": "0xF8B8a0B94c7e9E6ED12dcE16af268CC16818f83e"
+    "PotPoolFactory": "0xBb7239f73e68301A0140Cf8AA971C9eDb4aCa752"
   }
 };
