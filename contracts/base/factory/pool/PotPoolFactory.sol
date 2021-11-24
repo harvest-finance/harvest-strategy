@@ -30,7 +30,7 @@ contract PotPoolFactory is OwnableWhitelist, IPoolFactory {
       actualStorage,
       string(abi.encodePacked("p", tokenSymbol)),
       string(abi.encodePacked("p", tokenSymbol)),
-      18
+      ERC20Detailed(vault).decimals()
     );
 
     Ownable(pool).transferOwnership(actualGovernance);
