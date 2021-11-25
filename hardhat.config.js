@@ -12,17 +12,35 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      accounts: {
+        mnemonic: keys.mnemonic,
+      },
       allowUnlimitedContractSize: true,
       forking: {
         //url: "https://mainnet.infura.io/v3/" + keys.infuraKey,
-        url: "https://eth-mainnet.alchemyapi.io/v2/" + keys.alchemyKey,
-        blockNumber: 11807770, // <-- edit here
-      }
+        url: "https://eth-mainnet.alchemyapi.io/v2/" + keys.alchemyKeyMainnet,
+        // blockNumber: 13595120, // <-- edit here
+      },
+    },
+    mainnet: {
+      url: "https://eth-mainnet.alchemyapi.io/v2/" + keys.alchemyKeyMainnet,
+      accounts: {
+        mnemonic: keys.mnemonic,
+      },
+      gas: 9000000,
+      gasPrice: 100e9,
     }
   },
   solidity: {
-    compilers: [
-      {version: "0.5.16"},
+    compilers: [{
+        version: "0.5.16",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          },
+        }
+      }
     ]
   },
   mocha: {
@@ -31,5 +49,8 @@ module.exports = {
   gasReporter: {
     enabled: (process.env.REPORT_GAS) ? true : false,
     currency: 'USD'
+  },
+  etherscan: {
+    apiKey: keys.etherscanAPI,
   }
 };
