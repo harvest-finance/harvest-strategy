@@ -23,7 +23,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
 
   address public constant booster = address(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-  address public constant multiSigAddr = 0xF49440C1F012d041802b25A73e5B0B9166a75c02;
+  address public constant multiSigAddr = address(0xF49440C1F012d041802b25A73e5B0B9166a75c02);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -49,7 +49,6 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     assert(_HODL_VAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlVault")) - 1));
     assert(_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.nTokens")) - 1));
     assert(_METAPOOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.metaPool")) - 1));
-
   }
 
   function initializeBaseStrategy(
@@ -78,7 +77,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
                                     .mul(hodlRatioBase) // multiply with hodlRatioBase
                                     .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
     }
-    
+
     BaseUpgradeableStrategyUL.initialize(
       _storage,
       _underlying,
@@ -106,8 +105,8 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     _setCurveDeposit(_curveDeposit);
     _setNTokens(_nTokens);
     _setMetaPool(_metaPool);
-    setHodlRatio(1000);
-    setHodlVault(multiSigAddr);
+    setUint256(_HODL_RATIO_SLOT, 1000);
+    setAddress(_HODL_VAULT_SLOT, multiSigAddr);
     rewardTokens = new address[](0);
   }
 

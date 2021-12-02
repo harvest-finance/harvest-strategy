@@ -15,11 +15,15 @@ async function main() {
   const addresses = require("../test/test-config.js");
   const MegaFactory = artifacts.require("MegaFactory");
 
-  const {id, underlying, strategyImpl} = await prompt.get(['id', 'underlying', 'strategyImpl']);
+  const {id, underlying, strategyName} = await prompt.get(['id', 'underlying', 'strategyName']);
   const factory = await MegaFactory.at(addresses.Factory.MegaFactory);
 
+  const StrategyImpl = artifacts.require(strategyName);
+  const impl = await StrategyImpl.new();
+  console.log("Implementation deployed at:", impl.address);
+
   await factory.createRegularVaultUsingUpgradableStrategy(
-    id, underlying, strategyImpl
+    id, underlying, impl.address
   );
 
   const deployment = cleanupObj(await factory.completedDeployments(id));

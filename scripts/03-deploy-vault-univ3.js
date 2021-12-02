@@ -31,7 +31,7 @@ async function main() {
   deployment.Underlying = info.Underlying;
   deployment.DataContract = info.DataContract;
   deployment.FeeAmount = web3.utils.hexToNumber(info.FeeAmount);
-  deployment.PosId = [info.PosId];
+  deployment.PosId = [web3.utils.hexToNumber(info.PosId)];
 
   console.log("======");
   console.log(`${id}: ${JSON.stringify(deployment, null, 2)}`);
