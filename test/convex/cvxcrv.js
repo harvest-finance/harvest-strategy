@@ -8,7 +8,7 @@ const IBooster = artifacts.require("IBooster");
 
 const Strategy = artifacts.require("ConvexStrategycvxCRVMainnet");
 
-//This test was developed at blockNumber 13191150
+//This test was developed at blockNumber 13727630
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Convex cvxCRV", function() {
@@ -18,7 +18,7 @@ describe("Mainnet Convex cvxCRV", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x7a16fF8270133F063aAb6C9977183D9e72835428";
+  let underlyingWhale = "0x37f23097ad3c862DfE895139a63a33b1d236e89F";
   let crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
   let cvx = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -66,10 +66,7 @@ describe("Mainnet Convex cvxCRV", function() {
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"sushi": [cvx, weth]},
-                      {"sushi": [crv, weth]},
-                      {"sushi": [weth, crv]}],
-
+      "liquidation": [{"sushi": [weth, crv]}],
     });
 
     await strategy.setSellFloor(0, {from:governance});
