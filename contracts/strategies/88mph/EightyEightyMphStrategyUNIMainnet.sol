@@ -15,7 +15,10 @@ contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
     address underlying = address(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); // UNI
     address rewardPool = address(0x5dda04b2BDBBc3FcFb9B60cd9eBFd1b27f1A4fE3);
     address mph = address(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
+    address weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+
     bytes32 sushiDex = bytes32(0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a);
+    bytes32 uniV3Dex = bytes32(0x8f78a54cb77f4634a5bf3dd452ed6a2e33432c73821be59208661199511cd94f);
 
     EightyEightMphStrategy.initializeBaseStrategy(
       _storage,
@@ -23,15 +26,13 @@ contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
       underlying,
       rewardPool,
       mph,
-      5000 // percentage of rewards after profit fee to distribute as xMPH
+      500 // percentage of rewards after profit fee to distribute as xMPH
     );
 
-    rewardTokens = [crv, cvx];
-    storedLiquidationPaths[crv][weth] = [crv, weth];
-    storedLiquidationDexes[crv][weth] = [sushiDex];
-    storedLiquidationPaths[cvx][weth] = [cvx, weth];
-    storedLiquidationDexes[cvx][weth] = [sushiDex];
-    storedLiquidationPaths[weth][eurt] = [weth, eurt];
-    storedLiquidationDexes[weth][eurt] = [uniV3Dex];
+    rewardTokens = [mph];
+    storedLiquidationPaths[mph][weth] = [mph, weth];
+    storedLiquidationDexes[mph][weth] = [sushiDex];
+    storedLiquidationPaths[weth][underlying] = [weth, underlying];
+    storedLiquidationDexes[weth][underlying] = [uniV3Dex];
   }
 }

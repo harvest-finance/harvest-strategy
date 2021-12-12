@@ -13,6 +13,7 @@ import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
 import "../../../base/interface/weth/Weth9.sol";
 import "../interface/IDInterest.sol";
+import "../interface/IDInterestLens.sol";
 import "../interface/IxMph.sol";
 import "../interface/IVesting.sol";
 
@@ -25,12 +26,13 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
     address public constant xmph = address(0x1702F18c1173b791900F81EbaE59B908Da8F689b);
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
+    address public constant dInterestLens = address(0x8Fea3e2d505AAe5AF39186dC6E0d5DDBa49e751D);
+
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
     bytes32 internal constant _POTPOOL_SLOT = 0x7f4b50847e7d7a4da6a6ea36bfb188c77e9f093697337eb9a876744f926dd014;
+    bytes32 internal constant _XMPH_DISTRIBUTION_PERCENTAGE = 0x1b378bd6fdddc18469a043a7f60ed057610812f568a7eda4d5bdbfef720b0a60;
 
-    // strategy vars that should be reset on upgrade
-    // we do not want to bring the deposit related vars along because they are connected to the address of this strategy.
-    uint256 public depositMaturity = 0;
+    // strategy vars that should not be ported on upgrade
     /**
      * The depositId will be automatically set at the first time the strategy deposits into 88mph
      * subsequent deposits use a "top up deposit" method rather than creating a new one
@@ -43,6 +45,7 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     constructor() public BaseUpgradeableStrategy() {
         assert(_POTPOOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.potPool")) - 1));
+        assert(_XMPH_DISTRIBUTION_PERCENTAGE == bytes32(uint256(keccak256("eip1967.strategyStorage.xMphDistributionPercentage")) - 1));
     }
 
     // ---------------- Initializer ----------------
@@ -52,7 +55,8 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         address _vault,
         address _underlying,
         address _rewardPool,
-        address _potPool
+        address _potPool,
+        uint256 _xMphDistributionPercentage
     ) public initializer {
         require(IDInterest(_rewardPool).stablecoin() == underlying(), "Reward pool asset does not match underlying");
         
@@ -74,6 +78,7 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         );
 
         setAddress(_POTPOOL_SLOT, _potPool);
+        setUint256(_XMPH_DISTRIBUTION_PERCENTAGE, _xMphDistributionPercentage);
     }
 
     // ---------------- IStrategy methods ----------------
@@ -172,18 +177,25 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
     function emergencyExitRewardPool() {
         // don't claim rewards, just withdraw. Use maxInt to withdraw all
         uint256 maxInt = 2**256 - 1; // see https://forum.openzeppelin.com/t/using-the-maximum-integer-in-solidity/3000
-        bool early = block.timestamp < depositMaturity; // withdrawing after maturation​
+        bool early = block.timestamp < depositMaturity(); // withdrawing before or after maturation​
         IDInterest(rewardPool()).withdraw(depositID, maxInt, early);
     }
 
     /**
-     * Used to manually rollover a deposit to a new maturity date.
+     * Use to manually rollover a deposit to a new maturity date.
+     * This will create a new deposit using the principal + fixed-rate yield of the old deposit.
      * doHardWork can be triggered afterwards again if it failed previously because maturity was about to be reached
      */
-    function rolloverDeposit() public restricted {
+    function rolloverDeposit(bool confirmWithdrawalFeeWillBeWaived) public restricted {
         // Attention: it is imperative that 88mph waives the early withdrawal fee for the new depositID!
-        depositMaturity = block.timestamp + 365 days;
-        (depositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId(), depositMaturity);
+        // Fail if confirm flag is not passed in as true to ensure whoever triggers this understands that it must be arranged 
+        // for the withdrawal fee to be waived for the new deposit Id
+        require(confirmWithdrawalFeeWillBeWaived, "Withdrawal fee arrangement confirmation missing");
+
+        uint64 maturationTimestamp = block.timestamp + 365 days;
+        (depositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId(), maturationTimestamp);
+
+        require(depositId > 0, "depositId not set after rollover");
     }
 
     function setPotPool(address _value) public onlyGovernance {
@@ -193,6 +205,19 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     function potPool() public view returns (address) {
         return getAddress(_POTPOOL_SLOT);
+    }
+
+    /**
+     * Sets the percentage for the amount of rewards that will be distributed as xMPH to depositors (after fees)
+     * e.g. value of 50%: first 30% profit sharing fee is deducted, so of the left over 70% of rewards, 50% are distributed
+     * as xMPH, which would be 35% of the total rewards.
+     */
+    function setXMphDistributionPercentage(uint256 _value) public onlyGovernance {
+        setUint256(_XMPH_DISTRIBUTION_PERCENTAGE, _value);
+    }
+
+    function xMphDistributionPercentage() public view returns (uint256) {
+        return getUint256(_XMPH_DISTRIBUTION_PERCENTAGE);
     }
 
     /**
@@ -232,8 +257,18 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
     // ---------------- Internal methods ----------------
 
     function rewardPoolBalance() internal view returns (uint256 balance) {
-        // todo
-        balance = IDInterest(rewardPool()).stakes(address(this));
+        uint256 maxInt = 2**256 - 1; // see https://forum.openzeppelin.com/t/using-the-maximum-integer-in-solidity/3000
+
+        // we check for the maximum amount that we could withdraw after fees
+        (balance, ) = IDInterestLens(dInterestLens).withdrawableAmountOfDeposit(IDInterest(rewardPool()), depositId, maxInt);
+
+        // the withdrawableAmountOfDeposit method used of DInterestLens calculates the withdrawable amount based on the virtualTokenTotalSupply
+        // of the deposit. the virtualTokenTotalSupply includes the interest amount that becomes available after maturation.
+
+        // it does however only include this interest amount AFTER maturation, which is why we have to differentiate here:
+        // based on if the deposit has matured or not, we have to add the interest amount accrued up until here.
+
+
     }
 
     function claimRewards() internal {
@@ -254,15 +289,15 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         if(depositId() == 0) {
             // create a new deposit to get a depositId. Use maximum possible maturity (1 year)
-            depositMaturity = block.timestamp + 365 days;
+            uint64 maturationTimestamp = block.timestamp + 365 days;
             IERC20(underlying()).approve(rewardPool(), 0);
             IERC20(underlying()).approve(rewardPool(), entireBalance);
             depositId = IDInterest(rewardPool()).deposit(currentBalance, maturationTimestamp);
             // ensure depositId is valid
             require(depositId > 0, "depositId not set after deposit");
         } else {
-            // check if current depsot is about to reach maturity
-            if(block.timestamp > (depositMaturity - 14 days)) {
+            // check if current deposit has reached its maturity
+            if(block.timestamp > depositMaturity()) {
                 // time to roll over the deposit to a new depositId with extended maturity
                 // we revert here because we want this process to be kicked off manually.
                 // it is imperative that the withdrawal fee is waived for the new depositId - which we can not do
@@ -276,11 +311,15 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     }
 
+    function depositMaturity() internal returns(uint64){
+        return IDInterest(rewardPool).getDeposit(depositID).maturationTimestamp;
+    }
+
     function exitRewardPool() internal {
         claimRewards();
 
         uint256 maxInt = 2**256 - 1; // see https://forum.openzeppelin.com/t/using-the-maximum-integer-in-solidity/3000
-        bool early = block.timestamp < depositMaturity; // withdrawing after maturation​
+        bool early = block.timestamp < depositMaturity(); // withdrawing after or before maturation​
         IDInterest(rewardPool()).withdraw(depositID, maxInt, early);
     }
 
@@ -305,12 +344,6 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         _rewardsToRewardToken();
         _rewardsShareProfit();
         _rewardsToUnderlying();
-
-        // todos:
-
-        stake: rewardBalance * stakingAmountPercentage * (profitSharingDenumerator - profitSharingNumerator)
-        takeProfit: rewardBalance * profitSharingNumerator / stakingAmountPercentage * (profitSharingDenumerator - profitSharingNumerator)
-        rest reinvest 
     }
 
     function _rewardsToStaked() internal {
@@ -319,6 +352,18 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         if(mphBalance <= 0) {
             return;
         }
+
+        // formula to get the correct amount for staking takes into account that the profit sharing fee would have to be
+        // deducted first. Converting all the rewards to rewardToken and then swapping them back to stake is however 
+        // a waste of resources because some of the rewards are lost as fees and slippage during the swap. That's why we 
+        // use this a little bit more complicated way with improved results.
+        // formula: (rewardBalance * stakingAmountPercentage * (profitSharingDenumerator - profitSharingNumerator)) / 1000000
+        // e.g. (200 * 500 * (1000 - 300)) / 1000000 ) = (200 * 500 * 700)  / 1000000 = 70000000 / 1000000 = 70.
+        // 70 is 50% of 200 after the 30% profit sharing fee -> (200 - 60) / 2 = 70 -> correct
+        uint256 amountToStake = mphBalance.mul(xMphDistributionPercentage())
+                                          .mul((profitSharingDenumerator().sub(profitSharingNumerator())))
+                                          .div(1000000);
+
         // 1. stake MPH to xMPH
         IxMph(xMph).deposit(mphBalance);
 
@@ -356,7 +401,30 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             return;
         }
 
-        notifyProfitInRewardToken(rewardBalance);
+        // profit is deducted from the rewards before anything else. In this strategy however it is smart to first 
+        // execute staking and then swap to the reward token. Thus we have to calculate the initial value here that was 
+        // present before doing the staking to take the correct cut for the profit sharing fee
+
+        // e.g. if we would use the rewardBalance here, without any further calculations, we would take
+        // 130 * 300 / 1000 = 13 * 3 = 39 (see notifyProfitInRewardToken method) as fees
+        // which is wrong. the correct result must be
+        // 200 * 300 / 1000 = 20 * 3 = 60
+        // so we need to calculate the initial value present before staking
+
+        // first, we calculate the percentage that the current reward balance represents of the whole amount present for staking
+        // formula e.g. = 1000 - (500 * (1000 - 300) / 1000) = 1000 - (50 * 7) = 650
+        uint256 percentageLeft = (1000).sub(
+                                           xMphDistributionPercentage() // e.g. 500 
+                                          .mul((profitSharingDenumerator().sub(profitSharingNumerator()))) // e.g. 1000 - 300 = 700
+                                          .div(1000)
+                                        );
+
+        // based on the percentageLeft value we can now calculate the value that was present in rewards before staking
+        // formula: rewardBalance * 1000 / percentageLeft
+        // e.g. 130 * 1000 / 650 = 130 * 100 / 65 = 13000/65 = 200 -> correct
+        uint256 initialRewardBalance = rewardBalance.mul(1000).div(percentageLeft);
+
+        notifyProfitInRewardToken(initialRewardBalance);
     }
 
     function _rewardsToUnderlying() internal {
