@@ -62,19 +62,16 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         
         BaseUpgradeableStrategyUL.initialize(
             _storage,
-            _lqty,
+            _underlying,
             _vault,
-            _lqtyStaking,
-            // Rewards are actually given in LUSD and ETH. However, for
-            // improved liquidity usage simplification, we liquidate the
-            // rewards to WETH and use that as the reward token
-            _weth,
-            300, // Profit sharing numerator
-            1000, // Profit sharing denominator
-            true, // Sell
-            1e6, // Sell floor
-            12 hours, // Implementation change delay
-            address(0x7882172921E99d590E097cD600554339fBDBc480) // UL Registry
+            _rewardPool,
+            weth,
+            300,  // profit sharing numerator
+            1000, // profit sharing denominator
+            true, // sell
+            0, // sell floor
+            12 hours, // implementation change delay
+            address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
         );
 
         setAddress(_POTPOOL_SLOT, _potPool);
@@ -109,8 +106,25 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             // While we have the check above, we're still using SafeMath, just
             // for peace of mind (in case something gets changed in between)
             uint256 needToWithdraw = amount.sub(currentBalance);
-            uint256 toWithdraw = Math.min(rewardPoolBalance(), needToWithdraw);
-            ILQTYStaking(rewardPool()).unstake(toWithdraw);
+
+            // get deposit data
+            (uint264 virtualTokenTotalSupply,,,, uint64 depositMaturity,) = IDInterest(rewardPool()).getDeposit(depositId);
+
+            // check if we reached maturity
+            bool early = block.timestamp <= depositMaturity;
+
+            uint256 withdrawVirtualAmount = amount;
+
+            if(early) {
+                // before maturation, virtualTokenAmount passed in to IDInterest.withdraw does not match underlying 1:1
+                // to get the ratio of underlying to virtualToken, we can use virtualTokenTotalSupply to rewardPoolBalance()
+                uint256 withdrawVirtualAmount = needToWithdraw.mul(virtualTokenTotalSupply).div(rewardPoolBalance());
+            } 
+            // after maturation virtualAmount = 1:1 with underlying, so no else statement needed here
+
+            uint256 toWithdraw = Math.min(virtualTokenTotalSupply, withdrawVirtualAmount);
+
+            IDInterest(rewardPool()).withdraw(depositId, toWithdraw, early);
         }
 
         IERC20(underlying()).safeTransfer(vault(), amount);
@@ -192,10 +206,51 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         // for the withdrawal fee to be waived for the new deposit Id
         require(confirmWithdrawalFeeWillBeWaived, "Withdrawal fee arrangement confirmation missing");
 
+        // ensure deposit has reached maturity to get the fixed yield rate
+        require(block.timestamp > depositMaturity(), "Deposit has not reached maturity yet");
+
+        // fixed yield earnings are applied at rollover. They are added to the new deposit.
+        // but we have no fair way of distributing it, and if we just add it to the new deposit 
+        // some users might get lucky and some that just withdrew the day before are in a disadvantage.
+        // so we deduct it as profit sharing fee.
+
+        // 1. calculate the interest amount
+
+        // get the deposit
+        (uint264 virtualTokenTotalSupply, uint264 interestRate) = IDInterest(rewardPool()).getDeposit(depositId);
+
+        // we calculate the interest amount the same way as IDInterestLens does it
+        // see https://github.com/88mphapp/88mph-contracts/blob/5ab4ed0d4d4e83fd9a01e8f1ab5c4577b583d857/contracts/DInterestLens.sol#L49
+        uint256 depositAmount = virtualTokenTotalSupply.div(interestRate + 10**18);
+        uint256 interestAmount = virtualTokenTotalSupply.sub(depositAmount);
+
+        // 2. rollover the deposit
         uint64 maturationTimestamp = block.timestamp + 365 days;
-        (depositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId(), maturationTimestamp);
+        (depositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId, maturationTimestamp);
 
         require(depositId > 0, "depositId not set after rollover");
+
+        // 3. withdraw the interestAmount from the deposit
+        IDInterest(rewardPool()).withdraw(depositId, interestAmount, true);
+
+        // 4. convert underlying principal to reward token
+        _underlyingToRewardToken();
+
+        // 5. take fixed yield interest gains as profit
+        uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+        if (rewardBalance <= 0) {
+            return;
+        }
+
+        // to take the full amount we have to adjust the numbers a bit that we pass in to the notifyProfitInRewardToken method
+        // because in this situation we do not take a cut, we take the full fixed yield gains
+
+        // formula : rewardBalance * profitSharingDenominator / profitSharingNumerator
+        // e.g. 180 * 1000 / 300 = 180 * 10 / 3 = 1800 / 3 = 600
+        // notifyProfitInRewardToken will take 30% of 600, which is 180 -> correct
+        uint256 takeFullProfitBalance = rewardBalance * profitSharingDenominator() / profitSharingNumerator();
+
+        notifyProfitInRewardToken(takeFullProfitBalance);
     }
 
     function setPotPool(address _value) public onlyGovernance {
@@ -243,15 +298,18 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     function finalizeUpgrade() external onlyGovernance {
-        // Note we don't have to transfer the vesting NFT because all rewards are claimed at the upgrade
+        // Note we don't have to transfer the vesting NFT etc. because all rewards are claimed at the upgrade
+        // fixed yield will be lost in the upgrading process however
 
         _finalizeUpgrade();
 
         // Reset the liquidation paths - they need to be reset manually
-        storedLiquidationPaths[usdc][weth] = new address[](0);
-        storedLiquidationDexes[usdc][weth] = new bytes32[](0);
-        storedLiquidationPaths[weth][lqty] = new address[](0);
-        storedLiquidationDexes[weth][lqty] = new bytes32[](0);
+        storedLiquidationPaths[mph][rewardToken()] = new address[](0);
+        storedLiquidationDexes[mph][rewardToken()] = new bytes32[](0);
+        storedLiquidationPaths[rewardToken()][underlying()] = new address[](0);
+        storedLiquidationDexes[rewardToken()][underlying()] = new bytes32[](0);
+        storedLiquidationPaths[underlying()][rewardToken()] = new address[](0);
+        storedLiquidationDexes[underlying()][rewardToken()] = new bytes32[](0);
     }
 
     // ---------------- Internal methods ----------------
@@ -264,10 +322,32 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         // the withdrawableAmountOfDeposit method used of DInterestLens calculates the withdrawable amount based on the virtualTokenTotalSupply
         // of the deposit. the virtualTokenTotalSupply includes the interest amount that becomes available after maturation.
+        // it does however only include this interest amount AFTER maturation.
 
-        // it does however only include this interest amount AFTER maturation, which is why we have to differentiate here:
-        // based on if the deposit has matured or not, we have to add the interest amount accrued up until here.
+        // We do not distribute the fixed yield earnings because there is no fair way to distribute them:
+        // at time of withdrawal we can't predict how much interest will be earned at maturation
+        // at time of rollover, lucky users would get the gains if they hit the maturation date, whilst others might miss it
+        // even though those that miss it, might have been depositors for way longer.
 
+        // Thus, for the rewardPoolBalance we never want to include the interest.
+        // We have to handle two cases here, BEFORE and AFTER maturation.
+        // - the rewardPoolBalance BEFORE maturation has been reached will be correct like this - no further action needed
+        // - for the rewardPoolBalance AFTER maturation we have to subtract the interest amount 
+
+        if(block.timestamp > depositMaturity()) {
+            // maturity reached, we have to subtract the interest amount gains because we don't distribute those
+
+            // get the deposit
+            (uint264 virtualTokenTotalSupply, uint264 interestRate) = IDInterest(rewardPool()).getDeposit(depositId);
+
+            // we calculate the interest amount the same way as IDInterestLens does it
+            // see https://github.com/88mphapp/88mph-contracts/blob/5ab4ed0d4d4e83fd9a01e8f1ab5c4577b583d857/contracts/DInterestLens.sol#L49
+            uint256 depositAmount = virtualTokenTotalSupply.div(interestRate + 10**18);
+            uint256 interestAmount = virtualTokenTotalSupply.sub(depositAmount);
+
+            // now we subtract this interest amount
+            balance = balance.sub(interestAmount);
+        }
 
     }
 
@@ -287,7 +367,7 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             return;
         }
 
-        if(depositId() == 0) {
+        if(depositId == 0) {
             // create a new deposit to get a depositId. Use maximum possible maturity (1 year)
             uint64 maturationTimestamp = block.timestamp + 365 days;
             IERC20(underlying()).approve(rewardPool(), 0);
@@ -306,13 +386,13 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             } 
             
             // top up the existing deposit with waived early withdrawal fee
-            IDInterest(rewardPool()).topupDeposit(depositId(), currentBalance);
+            IDInterest(rewardPool()).topupDeposit(depositId, currentBalance);
         }
 
     }
 
-    function depositMaturity() internal returns(uint64){
-        return IDInterest(rewardPool).getDeposit(depositID).maturationTimestamp;
+    function depositMaturity() internal returns(uint64 depositMaturity){
+        (,,,, depositMaturity) = IDInterest(rewardPool).getDeposit(depositId);
     }
 
     function exitRewardPool() internal {
@@ -448,6 +528,24 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             address(this),
             storedLiquidationDexes[rewardToken()][underlying()],
             storedLiquidationPaths[rewardToken()][underlying()]
+        );
+    }
+
+    function _underlyingToRewardToken() internal {
+        uint256 underlyingBalance = IERC20(underlying()).balanceOf(address(this));
+        if(underlyingBalance <= 0) {
+            return;
+        }
+
+        // liquidate underlying to rewardToken
+        IERC20(underlying()).safeApprove(universalLiquidator(), 0);
+        IERC20(underlying()).safeApprove(universalLiquidator(), underlyingBalance);
+        ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
+            underlyingBalance,
+            1,
+            address(this),
+            storedLiquidationDexes[underlying()][rewardToken()],
+            storedLiquidationPaths[underlying()][rewardToken()]
         );
     }
 }

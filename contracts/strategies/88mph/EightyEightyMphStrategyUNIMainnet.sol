@@ -25,14 +25,21 @@ contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
       _vault,
       underlying,
       rewardPool,
-      mph,
+      address(0), // pot pool -> manually set it later
       500 // percentage of rewards after profit fee to distribute as xMPH
     );
 
-    rewardTokens = [mph];
+    // path 1, used for mph -> rewardToken
     storedLiquidationPaths[mph][weth] = [mph, weth];
     storedLiquidationDexes[mph][weth] = [sushiDex];
+
+    // path 2, used for reward token -> underlying
     storedLiquidationPaths[weth][underlying] = [weth, underlying];
     storedLiquidationDexes[weth][underlying] = [uniV3Dex];
+
+    // path 3, used for underlying -> reward token. This path is used at the rollover
+    // when we liquidate the fixed yield earnings to reward token
+    storedLiquidationPaths[underlying][weth] = [underlying, weth];
+    storedLiquidationDexes[underlying][weth] = [uniV3Dex];
   }
 }
