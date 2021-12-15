@@ -10,7 +10,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 const Strategy = artifacts.require("YelStrategyMainnet_YEL");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 
-//This test was developed at blockNumber 13029225
+//This test was developed at blockNumber 13595120
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet YEL single asset staking", function() {
@@ -20,7 +20,7 @@ describe("Mainnet YEL single asset staking", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x594355A2541E3d5FCcAA20A4145a3b1F8224b362";
+  let underlyingWhale = "0xCc6fA8A63851FDF34a286662dA3d4F598c899FB1";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
 
@@ -47,7 +47,8 @@ describe("Mainnet YEL single asset staking", function() {
   async function setupBalance(){
     let etherGiver = accounts[9];
     // Give whale some ether to make sure the following actions are good
-    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 10e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 10e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -63,6 +64,10 @@ describe("Mainnet YEL single asset staking", function() {
     await impersonates([governance, underlyingWhale]);
 
     await setupExternalContracts();
+
+    // whale send underlying to farmers
+    await setupBalance();
+
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
@@ -78,10 +83,6 @@ describe("Mainnet YEL single asset staking", function() {
     let dexes = [sushiDex, bancorDex];
 
     await feeForwarder.configureLiquidation(path, dexes, { from: governance });
-
-
-    // whale send underlying to farmers
-    await setupBalance();
   });
 
   describe("Happy path", function() {

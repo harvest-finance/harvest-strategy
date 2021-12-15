@@ -2,28 +2,24 @@
 const Utils = require("../utilities/Utils.js");
 const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/hh-utils.js");
 
+const addresses = require("../test-config.js");
+const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
-const IBooster = artifacts.require("IBooster");
 
-const Strategy = artifacts.require("ConvexStrategycvxCRVMainnet");
+const Strategy = artifacts.require("YelStrategyMainnet_YEL_WETH");
 
-//This test was developed at blockNumber 13727630
+//This test was developed at blockNumber 13595120
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Convex cvxCRV", function() {
+describe("Mainnet YEL YEL-WETH compounding", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x37f23097ad3c862DfE895139a63a33b1d236e89F";
-  let crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
-  let cvx = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
-  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
-  let booster;
+  let underlyingWhale = "0x78A97188707a808044f0d3193af9b71254781CF8";
 
   // parties in the protocol
   let governance;
@@ -38,14 +34,15 @@ describe("Mainnet Convex cvxCRV", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x9D0464996170c6B9e75eED71c68B99dDEDf279e8");
+    underlying = await IERC20.at("0xc83cE8612164eF7A13d17DDea4271DD8e8EEbE5d");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
   async function setupBalance(){
     let etherGiver = accounts[9];
     // Give whale some ether to make sure the following actions are good
-    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 10e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 10e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -61,20 +58,18 @@ describe("Mainnet Convex cvxCRV", function() {
     await impersonates([governance, underlyingWhale]);
 
     await setupExternalContracts();
-    [controller, vault, strategy] = await setupCoreProtocol({
-      "strategyArtifact": Strategy,
-      "strategyArtifactIsUpgradable": true,
-      "underlying": underlying,
-      "governance": governance,
-      "liquidation": [{"sushi": [weth, crv]}],
-    });
-
-    await strategy.setSellFloor(0, {from:governance});
-
-    booster = await IBooster.at("0xF403C135812408BFbE8713b5A23a04b3D48AAE31");
 
     // whale send underlying to farmers
     await setupBalance();
+
+    [controller, vault, strategy] = await setupCoreProtocol({
+      "existingVaultAddress": '0x81a276Cc1323A76ad0C71657139e6bCdC3C52b30',
+      "strategyArtifact": Strategy,
+      "strategyArtifactIsUpgradable": true,
+      "announceStrategy": true,
+      "underlying": underlying,
+      "governance": governance,
+    });
   });
 
   describe("Happy path", function() {
@@ -82,8 +77,6 @@ describe("Mainnet Convex cvxCRV", function() {
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
       let fTokenBalance = await vault.balanceOf(farmer1);
-      let cvxToken = await IERC20.at("0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B");
-      let hodlOldBalance = new BigNumber(await cvxToken.balanceOf(hodlVault));
 
       // Using half days is to simulate how we doHardwork in the real world
       let hours = 10;
@@ -92,8 +85,6 @@ describe("Mainnet Convex cvxCRV", function() {
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
-
-        await booster.earmarkRewards(await strategy.poolId());
 
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await controller.doHardWork(vault.address, { from: governance });
@@ -114,11 +105,6 @@ describe("Mainnet Convex cvxCRV", function() {
       await vault.withdraw(fTokenBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
       Utils.assertBNGt(farmerNewBalance, farmerOldBalance);
-
-      let hodlNewBalance = new BigNumber(await cvxToken.balanceOf(hodlVault));
-      console.log("CVX before", hodlOldBalance.toFixed());
-      console.log("CVX after ", hodlNewBalance.toFixed());
-      Utils.assertBNGt(hodlNewBalance, hodlOldBalance);
 
       apr = (farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
       apy = ((farmerNewBalance.toFixed()/farmerOldBalance.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
