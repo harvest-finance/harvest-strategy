@@ -11,7 +11,7 @@ import "../../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 
 import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
-import "../../../base/interface/weth/Weth9.sol";
+import "../../../base/PotPool.sol";
 import "../interface/IDInterest.sol";
 import "../interface/IDInterestLens.sol";
 import "../interface/IxMph.sol";
@@ -27,10 +27,12 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
     address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     address public constant dInterestLens = address(0x8Fea3e2d505AAe5AF39186dC6E0d5DDBa49e751D);
+    address public constant vesting = address(0xA907C7c3D13248F08A3fb52BeB6D1C079507Eb4B);
 
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
     bytes32 internal constant _POTPOOL_SLOT = 0x7f4b50847e7d7a4da6a6ea36bfb188c77e9f093697337eb9a876744f926dd014;
-    bytes32 internal constant _XMPH_DISTRIBUTION_PERCENTAGE = 0x1b378bd6fdddc18469a043a7f60ed057610812f568a7eda4d5bdbfef720b0a60;
+    bytes32 internal constant _STAKE_DISTRIBUTION_PERCENTAGE = 0x1305a4d3aa7056afe96cdbf3984ce5d5d9413aa39d58a2a319820236aed3ae8a;
+    bytes32 internal constant _MATURATION_TARGET = 0xad46db66b7828b5de54af48172e48dac6443d74b1a5eb70207ed0689ea9bb31f;
 
     // strategy vars that should not be ported on upgrade
     /**
@@ -43,9 +45,10 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     // ---------------- Constructor ----------------
 
-    constructor() public BaseUpgradeableStrategy() {
+    constructor() public BaseUpgradeableStrategyUL() {
         assert(_POTPOOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.potPool")) - 1));
-        assert(_XMPH_DISTRIBUTION_PERCENTAGE == bytes32(uint256(keccak256("eip1967.strategyStorage.xMphDistributionPercentage")) - 1));
+        assert(_STAKE_DISTRIBUTION_PERCENTAGE == bytes32(uint256(keccak256("eip1967.strategyStorage.stakeDistributionPercentage")) - 1));
+        assert(_MATURATION_TARGET == bytes32(uint256(keccak256("eip1967.strategyStorage.maturationTarget")) - 1));
     }
 
     // ---------------- Initializer ----------------
@@ -56,7 +59,8 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         address _underlying,
         address _rewardPool,
         address _potPool,
-        uint256 _xMphDistributionPercentage
+        uint256 _stakingDistributionPercentage,
+        uint64 _maturationTarget
     ) public initializer {
         require(IDInterest(_rewardPool).stablecoin() == underlying(), "Reward pool asset does not match underlying");
         
@@ -74,8 +78,10 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
         );
 
+
         setAddress(_POTPOOL_SLOT, _potPool);
-        setUint256(_XMPH_DISTRIBUTION_PERCENTAGE, _xMphDistributionPercentage);
+        setUint256(_STAKE_DISTRIBUTION_PERCENTAGE, _stakingDistributionPercentage);
+        setUint64(_MATURATION_TARGET, _maturationTarget);
     }
 
     // ---------------- IStrategy methods ----------------
@@ -108,7 +114,9 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             uint256 needToWithdraw = amount.sub(currentBalance);
 
             // get deposit data
-            (uint264 virtualTokenTotalSupply,,,, uint64 depositMaturity,) = IDInterest(rewardPool()).getDeposit(depositId);
+            uint256 virtualTokenTotalSupply;
+            uint64 depositMaturity;
+            (virtualTokenTotalSupply,,,, depositMaturity,) = IDInterest(rewardPool()).getDeposit(depositId);
 
             // check if we reached maturity
             bool early = block.timestamp <= depositMaturity;
@@ -118,7 +126,7 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             if(early) {
                 // before maturation, virtualTokenAmount passed in to IDInterest.withdraw does not match underlying 1:1
                 // to get the ratio of underlying to virtualToken, we can use virtualTokenTotalSupply to rewardPoolBalance()
-                uint256 withdrawVirtualAmount = needToWithdraw.mul(virtualTokenTotalSupply).div(rewardPoolBalance());
+                withdrawVirtualAmount = needToWithdraw.mul(virtualTokenTotalSupply).div(rewardPoolBalance());
             } 
             // after maturation virtualAmount = 1:1 with underlying, so no else statement needed here
 
@@ -188,11 +196,11 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         emergencyExitRewardPool();
     }
 
-    function emergencyExitRewardPool() {
+    function emergencyExitRewardPool() public onlyGovernance {
         // don't claim rewards, just withdraw. Use maxInt to withdraw all
         uint256 maxInt = 2**256 - 1; // see https://forum.openzeppelin.com/t/using-the-maximum-integer-in-solidity/3000
         bool early = block.timestamp < depositMaturity(); // withdrawing before or after maturation​
-        IDInterest(rewardPool()).withdraw(depositID, maxInt, early);
+        IDInterest(rewardPool()).withdraw(depositId, maxInt, early);
     }
 
     /**
@@ -217,7 +225,9 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         // 1. calculate the interest amount
 
         // get the deposit
-        (uint264 virtualTokenTotalSupply, uint264 interestRate) = IDInterest(rewardPool()).getDeposit(depositId);
+        uint256 virtualTokenTotalSupply;
+        uint256 interestRate;
+        (virtualTokenTotalSupply, interestRate,,,,) = IDInterest(rewardPool()).getDeposit(depositId);
 
         // we calculate the interest amount the same way as IDInterestLens does it
         // see https://github.com/88mphapp/88mph-contracts/blob/5ab4ed0d4d4e83fd9a01e8f1ab5c4577b583d857/contracts/DInterestLens.sol#L49
@@ -225,8 +235,10 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         uint256 interestAmount = virtualTokenTotalSupply.sub(depositAmount);
 
         // 2. rollover the deposit
-        uint64 maturationTimestamp = block.timestamp + 365 days;
-        (depositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId, maturationTimestamp);
+        uint64 maturationTimestamp = uint64(block.timestamp + maturationTarget());
+        uint256 newDepositId;
+        (newDepositId,) = IDInterest(rewardPool()).rolloverDeposit(depositId, maturationTimestamp);
+        depositId = uint64(newDepositId);
 
         require(depositId > 0, "depositId not set after rollover");
 
@@ -267,12 +279,25 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
      * e.g. value of 50%: first 30% profit sharing fee is deducted, so of the left over 70% of rewards, 50% are distributed
      * as xMPH, which would be 35% of the total rewards.
      */
-    function setXMphDistributionPercentage(uint256 _value) public onlyGovernance {
-        setUint256(_XMPH_DISTRIBUTION_PERCENTAGE, _value);
+    function setStakingDistributionPercentage(uint256 _value) public onlyGovernance {
+        setUint256(_STAKE_DISTRIBUTION_PERCENTAGE, _value);
     }
 
-    function xMphDistributionPercentage() public view returns (uint256) {
-        return getUint256(_XMPH_DISTRIBUTION_PERCENTAGE);
+    function stakingDistributionPercentage() public view returns (uint256) {
+        return getUint256(_STAKE_DISTRIBUTION_PERCENTAGE);
+    }
+
+    /**
+     * Sets the maturation target date for the fixed yield earnings of the deposit
+     * This can be used to adjust the maturation timespan before rolling over the deposit
+     * to a new maturation date
+     */
+    function setMaturationTarget(uint64 _value) public onlyGovernance {
+        setUint64(_MATURATION_TARGET, _value);
+    }
+
+    function maturationTarget() public view returns (uint64) {
+        return getUint64(_MATURATION_TARGET);
     }
 
     /**
@@ -338,7 +363,9 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             // maturity reached, we have to subtract the interest amount gains because we don't distribute those
 
             // get the deposit
-            (uint264 virtualTokenTotalSupply, uint264 interestRate) = IDInterest(rewardPool()).getDeposit(depositId);
+            uint256 virtualTokenTotalSupply;
+            uint256 interestRate;
+            (virtualTokenTotalSupply, interestRate,,,,) = IDInterest(rewardPool()).getDeposit(depositId);
 
             // we calculate the interest amount the same way as IDInterestLens does it
             // see https://github.com/88mphapp/88mph-contracts/blob/5ab4ed0d4d4e83fd9a01e8f1ab5c4577b583d857/contracts/DInterestLens.sol#L49
@@ -356,9 +383,9 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
             return;
         }
         // get vesting id
-        uint64 vestingId = IVesting(vesting()).depositIDToVestID[rewardPool()][depositID];
+        uint64 vestingId = IVesting(vesting).depositIDToVestID(rewardPool(), depositId);
         // claim
-        IVesting(vesting()).withdraw(vestingId);
+        IVesting(vesting).withdraw(vestingId);
     }
 
     function enterRewardPool() internal {
@@ -369,10 +396,10 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         if(depositId == 0) {
             // create a new deposit to get a depositId. Use maximum possible maturity (1 year)
-            uint64 maturationTimestamp = block.timestamp + 365 days;
+            uint64 maturationTimestamp = uint64(block.timestamp + maturationTarget());
             IERC20(underlying()).approve(rewardPool(), 0);
-            IERC20(underlying()).approve(rewardPool(), entireBalance);
-            depositId = IDInterest(rewardPool()).deposit(currentBalance, maturationTimestamp);
+            IERC20(underlying()).approve(rewardPool(), currentBalance);
+            (depositId, ) = IDInterest(rewardPool()).deposit(currentBalance, maturationTimestamp, 0, "");
             // ensure depositId is valid
             require(depositId > 0, "depositId not set after deposit");
         } else {
@@ -391,8 +418,8 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     }
 
-    function depositMaturity() internal returns(uint64 depositMaturity){
-        (,,,, depositMaturity) = IDInterest(rewardPool).getDeposit(depositId);
+    function depositMaturity() internal view returns(uint64 maturationTimestamp){
+        (,,,, maturationTimestamp,) = IDInterest(rewardPool()).getDeposit(depositId);
     }
 
     function exitRewardPool() internal {
@@ -400,7 +427,7 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         uint256 maxInt = 2**256 - 1; // see https://forum.openzeppelin.com/t/using-the-maximum-integer-in-solidity/3000
         bool early = block.timestamp < depositMaturity(); // withdrawing after or before maturation​
-        IDInterest(rewardPool()).withdraw(depositID, maxInt, early);
+        IDInterest(rewardPool()).withdraw(depositId, maxInt, early);
     }
 
     /**
@@ -440,17 +467,18 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
         // formula: (rewardBalance * stakingAmountPercentage * (profitSharingDenumerator - profitSharingNumerator)) / 1000000
         // e.g. (200 * 500 * (1000 - 300)) / 1000000 ) = (200 * 500 * 700)  / 1000000 = 70000000 / 1000000 = 70.
         // 70 is 50% of 200 after the 30% profit sharing fee -> (200 - 60) / 2 = 70 -> correct
-        uint256 amountToStake = mphBalance.mul(xMphDistributionPercentage())
-                                          .mul((profitSharingDenumerator().sub(profitSharingNumerator())))
+        uint256 amountToStake = mphBalance.mul(stakingDistributionPercentage())
+                                          .mul((profitSharingDenominator().sub(profitSharingNumerator())))
                                           .div(1000000);
 
         // 1. stake MPH to xMPH
-        IxMph(xMph).deposit(mphBalance);
+        uint256 stakedAmount = IxMph(xmph).deposit(amountToStake);
 
         // 2. distribute xMPH via pot pool
-        uint256 xMphBalance = IERC20(xMph).balanceOf(address(this));
-        IERC20(address(this)).safeTransfer(potPool(), xMphBalance);
-        PotPool(potPool()).notifyTargetRewardAmount(address(this), xMphBalance);
+        IERC20(xmph).safeApprove(potPool(), 0);
+        IERC20(xmph).safeApprove(potPool(), stakedAmount);
+        IERC20(xmph).safeTransfer(potPool(), stakedAmount);
+        PotPool(potPool()).notifyTargetRewardAmount(address(this), stakedAmount);
     }
 
     function _rewardsToRewardToken() internal {
@@ -493,9 +521,9 @@ contract EightyEightMphStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         // first, we calculate the percentage that the current reward balance represents of the whole amount present for staking
         // formula e.g. = 1000 - (500 * (1000 - 300) / 1000) = 1000 - (50 * 7) = 650
-        uint256 percentageLeft = (1000).sub(
+        uint256 percentageLeft = uint256(1000).sub(
                                            xMphDistributionPercentage() // e.g. 500 
-                                          .mul((profitSharingDenumerator().sub(profitSharingNumerator()))) // e.g. 1000 - 300 = 700
+                                          .mul((profitSharingDenominator().sub(profitSharingNumerator()))) // e.g. 1000 - 300 = 700
                                           .div(1000)
                                         );
 

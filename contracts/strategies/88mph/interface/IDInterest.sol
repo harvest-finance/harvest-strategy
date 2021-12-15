@@ -8,7 +8,7 @@ interface IDInterest {
         @param depositAmount The amount of deposit, in stablecoin
         @param maturationTimestamp The Unix timestamp of maturation, in seconds
         @param minimumInterestAmount If the interest amount is less than this, revert
-        @param uri The metadata URI for the minted NFT
+        param  uri The metadata URI for the minted NFT
         @return depositID The ID of the created deposit
         @return interestAmount The amount of fixed-rate interest
      */
@@ -16,7 +16,7 @@ interface IDInterest {
         uint256 depositAmount,
         uint64 maturationTimestamp,
         uint256 minimumInterestAmount,
-        string uri
+        string calldata
     ) external returns (uint64 depositID, uint256 interestAmount);
 
      /**
@@ -80,4 +80,10 @@ interface IDInterest {
     //     uint64 maturationTimestamp; // Unix timestamp after which the deposit may be withdrawn, in seconds
     //     uint64 fundingID; // The ID of the associated Funding struct. 0 if not funded.
     // }
+
+     /**
+        @notice Returns the stablecoin ERC20 token contract
+        @return The stablecoin
+     */
+    function stablecoin() external view returns (address);
 }

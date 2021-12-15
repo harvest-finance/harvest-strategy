@@ -26,7 +26,8 @@ contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
       underlying,
       rewardPool,
       address(0), // pot pool -> manually set it later
-      500 // percentage of rewards after profit fee to distribute as xMPH
+      500, // percentage of rewards after profit fee to distribute as xMPH,
+      180 days // maturation target
     );
 
     // path 1, used for mph -> rewardToken
