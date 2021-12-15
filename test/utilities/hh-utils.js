@@ -24,8 +24,6 @@ async function impersonates(targetAccounts){
 }
 
 async function setupCoreProtocol(config) {
-  // Set vault (or Deploy new vault), underlying, underlying Whale,
-  // amount the underlying whale should send to farmers
   if(config.existingVaultAddress != null){
     vault = await IVault.at(config.existingVaultAddress);
     console.log("Fetching Vault at: ", vault.address);
@@ -210,8 +208,42 @@ async function depositVault(_farmer, _underlying, _vault, _amount) {
   await _vault.deposit(_amount, { from: _farmer });
 }
 
+async function setupFactory() {
+  const MegaFactory = artifacts.require("MegaFactory");
+  const PotPoolFactory = artifacts.require("PotPoolFactory");
+  const RegularVaultFactory = artifacts.require("RegularVaultFactory");
+  const UpgradableStrategyFactory = artifacts.require("UpgradableStrategyFactory");
+  const OwnableWhitelist = artifacts.require("OwnableWhitelist");
+
+  const vaultFactory = await RegularVaultFactory.new();
+  const potPoolFactory = await PotPoolFactory.new();
+  const megaFactory = await MegaFactory.new(
+    "0xc95CbE4ca30055c787CB784BE99D6a8494d0d197", // storage
+    "0xF49440C1F012d041802b25A73e5B0B9166a75c02" // multisig
+  );
+  const upgradableStrategyFactory = await UpgradableStrategyFactory.new();
+
+  const uniV3FactoryAddress = "0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68";
+  const uniV3Factory = await OwnableWhitelist.at(uniV3FactoryAddress);
+
+  await megaFactory.setVaultFactory(1 /* VaultType.Regular */, vaultFactory.address);
+  await megaFactory.setVaultFactory(2 /* VaultType.UniV3 */, uniV3FactoryAddress); // deployed separately
+
+  await uniV3Factory.setWhitelist(megaFactory.address, true);
+
+  await megaFactory.setPotPoolFactory(potPoolFactory.address);
+  await megaFactory.setStrategyFactory(1 /* StrategyType.Upgradable */, upgradableStrategyFactory.address);
+
+  await potPoolFactory.setWhitelist(megaFactory.address, true);
+  await vaultFactory.setWhitelist(megaFactory.address, true);
+  await upgradableStrategyFactory.setWhitelist(megaFactory.address, true);
+
+  return [megaFactory, potPoolFactory];
+}
+
 module.exports = {
   impersonates,
   setupCoreProtocol,
   depositVault,
+  setupFactory,
 };
