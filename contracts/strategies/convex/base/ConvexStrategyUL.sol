@@ -105,7 +105,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     _setCurveDeposit(_curveDeposit);
     _setNTokens(_nTokens);
     _setMetaPool(_metaPool);
-    setUint256(_HODL_RATIO_SLOT, 1000);
+    setUint256(_HODL_RATIO_SLOT, _hodlRatio);
     setAddress(_HODL_VAULT_SLOT, multiSigAddr);
     rewardTokens = new address[](0);
   }

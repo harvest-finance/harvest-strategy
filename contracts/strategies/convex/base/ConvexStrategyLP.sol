@@ -44,8 +44,22 @@ contract ConvexStrategyLP is IStrategy, BaseUpgradeableStrategy {
     address _underlying,
     address _vault,
     address _rewardPool,
-    uint256 _poolID
+    uint256 _poolID,
+    uint256 _hodlRatio
   ) public initializer {
+
+    // calculate profit sharing fee depending on hodlRatio
+    uint256 profitSharingNumerator = 300;
+    if (_hodlRatio >= 3000) {
+      profitSharingNumerator = 0;
+    } else if (_hodlRatio > 0){
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_hodlRatio.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_hodlRatio)); // divide by hodlRatioBase minus hodlRatio
+    }
 
     BaseUpgradeableStrategy.initialize(
       _storage,
@@ -53,7 +67,7 @@ contract ConvexStrategyLP is IStrategy, BaseUpgradeableStrategy {
       _vault,
       _rewardPool,
       weth,
-      300, // profit sharing numerator
+      profitSharingNumerator, // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       1e18, // sell floor
@@ -71,8 +85,8 @@ contract ConvexStrategyLP is IStrategy, BaseUpgradeableStrategy {
     WETH2deposit[lpComponentToken0] = new address[](0);
     WETH2deposit[lpComponentToken1] = new address[](0);
 
-    setHodlRatio(1000);
-    setHodlVault(multiSigAddr);
+    setUint256(_HODL_RATIO_SLOT, _hodlRatio);
+    setAddress(_HODL_VAULT_SLOT, multiSigAddr);
     rewardTokens = new address[](0);
   }
 
@@ -382,6 +396,18 @@ contract ConvexStrategyLP is IStrategy, BaseUpgradeableStrategy {
   }
 
   function setHodlRatio(uint256 _value) public onlyGovernance {
+    uint256 profitSharingNumerator = 300;
+    if (_value >= 3000) {
+      profitSharingNumerator = 0;
+    } else if (_value > 0){
+      // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
+      // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
+      // = (300 - 100) * 10000 / 9000 = 222
+      profitSharingNumerator = profitSharingNumerator.sub(_value.div(10)) // subtract hodl ratio from profit sharing numerator
+                                    .mul(hodlRatioBase) // multiply with hodlRatioBase
+                                    .div(hodlRatioBase.sub(_value)); // divide by hodlRatioBase minus hodlRatio
+    }
+    _setProfitSharingNumerator(profitSharingNumerator);
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 

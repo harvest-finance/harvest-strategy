@@ -23,7 +23,8 @@ contract ConvexStrategyLPMainnet_CRV_cvxCRV is ConvexStrategyLP {
       underlying,
       _vault,
       rewardPool,
-      2  // Pool id
+      2,  // Pool id
+      1000 // hodlRatio, 10%
     );
     reward2WETH[sushi] = [sushi, weth];
     reward2WETH[cvx] = [cvx, weth];

@@ -10,7 +10,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("ComplifiStrategyClaimMainnet_COMFI_WETH");
 
-//This test was developed at blockNumber 13138170
+//This test was developed at blockNumber 13765750
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Complifi: COMFI:WETH Vesting claim", function() {
@@ -57,7 +57,7 @@ describe("Complifi: COMFI:WETH Vesting claim", function() {
     farmer1 = accounts[1];
 
     // impersonate accounts
-    await impersonates([governance, treasury, msig]);
+    await impersonates([governance, treasury]);
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
@@ -69,15 +69,13 @@ describe("Complifi: COMFI:WETH Vesting claim", function() {
       "governance": governance,
     });
 
-    await strategy.finalizeUpgrade({from:governance});
+    // await strategy.finalizeUpgrade({from:governance});
     // whale send underlying to farmers
     await setupBalance();
   });
 
   describe("Happy path", function() {
     it("Rewards should be claimed", async function() {
-      // progress blocks to after "unlockBlock" at 13150000
-      await Utils.advanceNBlock(12000);
       console.log("Strategy address:", strategy.address);
 
       let governanceBalanceBefore = new BigNumber(await comfiToken.balanceOf(governance));
