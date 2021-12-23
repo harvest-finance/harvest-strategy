@@ -9,7 +9,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const Strategy = artifacts.require("ConvexStrategyLPMainnet_CVX_ETH");
 
-//This test was developed at blockNumber 13748700
+//This test was developed at blockNumber 13861290
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Convex CVX/ETH", function() {
@@ -19,7 +19,7 @@ describe("Mainnet Convex CVX/ETH", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x777999bE819FfEceE44A995560A9D0e97780a30c";
+  let underlyingWhale = "0x947B7742C403f20e5FaCcDAc5E092C943E7D0277";
   let hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
 
   // parties in the protocol
@@ -43,7 +43,7 @@ describe("Mainnet Convex CVX/ETH", function() {
   async function setupBalance(){
     let etherGiver = accounts[9];
     // Give whale some ether to make sure the following actions are good
-    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 10e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -57,6 +57,8 @@ describe("Mainnet Convex CVX/ETH", function() {
 
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
+    let etherGiver = accounts[9];
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 10e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
