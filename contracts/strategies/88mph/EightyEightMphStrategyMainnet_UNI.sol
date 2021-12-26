@@ -2,7 +2,7 @@ pragma solidity 0.5.16;
 
 import "./base/EightyEightMphStrategy.sol";
 
-contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
+contract EightyEightMphStrategyMainnet_UNI is EightyEightMphStrategy {
 
   address public eightyEightyMphUni_unused; // just a differentiator for the bytecode
 
@@ -14,7 +14,7 @@ contract EightyEightMphUNIMainnet is EightyEightMphStrategy {
   ) public initializer {
     address underlying = address(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984); // UNI
     address rewardPool = address(0x5dda04b2BDBBc3FcFb9B60cd9eBFd1b27f1A4fE3);
-    address mph = address(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
+    address mph = address(0x8888801aF4d980682e47f1A9036e589479e835C5);
     address weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     bytes32 sushiDex = bytes32(0xcb2d20206d906069351c89a2cb7cdbd96c71998717cd5a82e724d955b654f67a);

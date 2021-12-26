@@ -10,9 +10,15 @@ Mainnet fork testing environment as well as efficiency due to caching.
 3. Create a file `dev-keys.json`:
   ```
     {
-      "alchemyKey": "<your-alchemy-key>"
+      "alchemyKeyMainnet": "<your-alchemy-key>"
     }
   ```
+4. You'll also have to add a `mnemonic` for your account or comment out the part `mnemonic: keys.mnemonic` in hardhat.config.js:
+  ```
+    {
+      "alchemyKeyMainnet": "<your-alchemy-key>"
+      "mnemonic": "<your-account-mnemonic>"
+    }
 
 ## Run
 
