@@ -282,8 +282,8 @@ describe("Mainnet 88mph UNI single asset fixed yield farming", () => {
     Utils.assertBNGt(farmerNewBalance, farmerBalance);
     Utils.assertBNGt(farmerNewXMph, farmerOldXMph);
 
-    oldValue = (fTokenBalance.times(1e18).times(underlyingPrice)).div(1e36);
-    newValue = (fTokenBalance.times(newSharePrice).times(underlyingPrice)).div(1e36).plus((farmerNewXMph.times(newHodlSharePrice).times(mphPrice)).div(1e36));
+    oldValue = (new BigNumber(farmerBalance).times(1e18).times(underlyingPrice)).div(1e36).plus((farmerOldXMph.times(newHodlSharePrice).times(mphPrice)).div(1e36));
+    newValue = (farmerNewBalance.times(1e18).times(underlyingPrice)).div(1e36).plus((farmerNewXMph.times(newHodlSharePrice).times(mphPrice)).div(1e36));
 
     apr = (newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour*hours/272))*365;
     apy = ((newValue.toFixed()/oldValue.toFixed()-1)*(24/(blocksPerHour*hours/272))+1)**365;
