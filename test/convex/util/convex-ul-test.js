@@ -6,8 +6,6 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 const IBooster = artifacts.require("IBooster");
 
-const Strategy = artifacts.require("ConvexStrategyFRAXMainnet");
-
 const boosterAddress = "0xF403C135812408BFbE8713b5A23a04b3D48AAE31";
 const hodlVault = "0xF49440C1F012d041802b25A73e5B0B9166a75c02";
 const crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
@@ -18,7 +16,7 @@ const governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
 class ConvexULTest {
     constructor(){}
 
-    async setupTest (underlyingAddress, underlyingWhale, liquidationPaths) {
+    async setupTest (underlyingAddress, underlyingWhale, liquidationPaths, strategyArtifact) {
         this.accounts = await web3.eth.getAccounts();
         this.farmer1 = this.accounts[1];
     
@@ -29,7 +27,7 @@ class ConvexULTest {
         await this.setupExternalContracts(underlyingAddress);
 
         [this.controller, this.vault, this.strategy] = await setupCoreProtocol({
-            "strategyArtifact": Strategy,
+            "strategyArtifact": strategyArtifact,
             "strategyArtifactIsUpgradable": true,
             "underlying": this.underlying,
             "governance": governance,
