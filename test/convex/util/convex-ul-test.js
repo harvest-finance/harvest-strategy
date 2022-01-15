@@ -23,6 +23,7 @@ class ConvexULTest {
         // impersonate accounts
         await impersonates([governance, underlyingWhale]);
         await web3.eth.sendTransaction({ from: this.accounts[8], to: governance, value: 10e18});
+        await web3.eth.sendTransaction({ from: this.accounts[7], to: governance, value: 10e18});
     
         await this.setupExternalContracts(underlyingAddress);
 
