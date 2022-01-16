@@ -39,7 +39,7 @@ contract ConvexStrategyFRAXMainnet is ConvexStrategyUL {
     storedLiquidationPaths[crv][weth] = [crv, weth];
     storedLiquidationDexes[crv][weth] = [sushiDex];
     storedLiquidationPaths[fxs][weth] = [fxs, frax, weth];
-    storedLiquidationDexes[fxs][weth] = [uniDex, uniDex];
+    storedLiquidationDexes[fxs][weth] = [uniDex, sushiDex];
     storedLiquidationPaths[cvx][weth] = [cvx, weth];
     storedLiquidationDexes[cvx][weth] = [sushiDex];
     storedLiquidationPaths[weth][dai] = [weth, dai];

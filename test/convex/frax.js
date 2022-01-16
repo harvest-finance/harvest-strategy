@@ -18,7 +18,8 @@ describe("Mainnet Convex FRAX", function() {
   const liquidationPaths = [
     {"sushi": [cvx, weth]},
     {"sushi": [crv, weth]},
-    {"uni": [fxs, frax, weth]},
+    {"uni": [fxs, frax]},
+    {"sushi": [weth, frax]},
     {"sushi": [weth, dai]}
   ];
 
