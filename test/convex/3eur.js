@@ -13,9 +13,11 @@ describe("Mainnet Convex 3EUR", function() {
   const underlying = "0xb9446c4Ef5EBE66268dA6700D26f96273DE3d571";
   const underlyingWhale = "0xaf07eBA6f1421F18DcAbfA5172887dEc46b2A2Ef";
   const eurt = "0xC581b735A1688071A1746c968e0798D642EDE491";
+  const angle = "0x31429d1856aD1377A8A0079410B297e1a9e214c2";
   const liquidationPaths = [
     {"sushi": [cvx, weth]},
     {"sushi": [crv, weth]},
+    {"sushi": [angle, weth]},
     {"uniV3": [weth, eurt]}
   ];
 

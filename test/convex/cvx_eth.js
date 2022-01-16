@@ -5,21 +5,16 @@ const cvx = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
 const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 //This test was developed at blockNumber 14005054
-const strategyArtifact = artifacts.require("ConvexStrategyFRAXMainnet");
+const strategyArtifact = artifacts.require("ConvexStrategyCVX_ETHMainnet");
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Convex FRAX", function() {
+describe("Mainnet Convex CVX_ETH", () => {
   // test setup
-  const underlying = "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B";
-  const underlyingWhale = "0x80AF4D533d298BF79280C2C9A6646cD99925009D";
-  const dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
-  const frax = "0x853d955aCEf822Db058eb8505911ED77F175b99e";
-  const fxs = "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0";
+  const underlying = "0x3A283D9c08E8b55966afb64C515f5143cf907611";
+  const underlyingWhale = "0x38eE5F5A39c01cB43473992C12936ba1219711ab";
   const liquidationPaths = [
-    {"sushi": [cvx, weth]},
     {"sushi": [crv, weth]},
-    {"uni": [fxs, frax, weth]},
-    {"sushi": [weth, dai]}
+    {"sushi": [cvx, weth]},
   ];
 
   let convexULTest = new ConvexULTest();

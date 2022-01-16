@@ -220,7 +220,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
-      if (rewardBalance == 0 || storedLiquidationDexes[token][weth].length < 1) {
+      if (rewardBalance == 0 || storedLiquidationDexes[token][rewardToken()].length < 1) {
         continue;
       }
 
@@ -232,6 +232,13 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
           continue;
         }
       }
+
+      if(token == rewardToken()) {
+        // one of the reward tokens is the same as the token that we liquidate to -> 
+        // no liquidation necessary
+        continue;
+      }
+
       IERC20(token).safeApprove(universalLiquidator(), 0);
       IERC20(token).safeApprove(universalLiquidator(), rewardBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
@@ -239,12 +246,12 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
         rewardBalance,
         1,
         address(this), // target
-        storedLiquidationDexes[token][weth],
-        storedLiquidationPaths[token][weth]
+        storedLiquidationDexes[token][rewardToken()],
+        storedLiquidationPaths[token][rewardToken()]
       );
     }
 
-    uint256 rewardBalance = IERC20(weth).balanceOf(address(this));
+    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
 
     notifyProfitInRewardToken(rewardBalance);
     uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
@@ -253,17 +260,19 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       return;
     }
 
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
-    IERC20(rewardToken()).safeApprove(universalLiquidator(), remainingRewardBalance);
+    if(depositToken() != rewardToken()) {
+      IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
+      IERC20(rewardToken()).safeApprove(universalLiquidator(), remainingRewardBalance);
 
-    // we can accept 1 as minimum because this is called only by a trusted role
-    ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
-      remainingRewardBalance,
-      1,
-      address(this), // target
-      storedLiquidationDexes[weth][depositToken()],
-      storedLiquidationPaths[weth][depositToken()]
-    );
+      // we can accept 1 as minimum because this is called only by a trusted role
+      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
+        remainingRewardBalance,
+        1,
+        address(this), // target
+        storedLiquidationDexes[rewardToken()][depositToken()],
+        storedLiquidationPaths[rewardToken()][depositToken()]
+      );
+    }
 
     uint256 tokenBalance = IERC20(depositToken()).balanceOf(address(this));
     if (tokenBalance > 0) {

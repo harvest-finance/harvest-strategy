@@ -12,11 +12,11 @@ describe("Mainnet Convex EURT_USD", function() {
   // test setup
   const underlying = "0x3b6831c0077a1e44ED0a21841C3bC4dC11bCE833";
   const underlyingWhale = "0xA75204De25E91F82c5B0B849B247515153AC61e9";
-  const eurt = "0xC581b735A1688071A1746c968e0798D642EDE491";
+  const dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
   const liquidationPaths = [
     {"sushi": [cvx, weth]},
     {"sushi": [crv, weth]},
-    {"uniV3": [weth, eurt]}
+    {"sushi": [weth, dai]}
   ];
 
   let convexULTest = new ConvexULTest();
