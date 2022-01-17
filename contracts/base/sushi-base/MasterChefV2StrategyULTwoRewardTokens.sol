@@ -20,17 +20,6 @@ contract MasterChefV2StrategyULTwoRewardTokens is
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    // config parameters for BaseUpgradebaleStrategyUL
-    // the constant values will be replaced during compile time, so no GAS issues during deploy/runtime
-    // but makes is easier to read/change parameters
-    address private constant UL_REGISTRY =
-        address(0x7882172921E99d590E097cD600554339fBDBc480);
-    uint256 private constant PROFIT_SHARING_NUMERATOR = 300;
-    uint256 private constant PROFIT_SHARING_DENOMINATOR = 1000;
-    uint256 private constant IMPLEMENETAION_CHANGE_DELAY = 12 hours;
-    uint256 private constant SELL_FLOOR = 0;
-    bool private constant SELL = true;
-
     // additional storage slots (on top of BaseUpgradeableStrategyUL ones) are defined here
     bytes32 internal constant _POOLID_SLOT =
         0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
@@ -82,19 +71,21 @@ contract MasterChefV2StrategyULTwoRewardTokens is
             "Pool Info does not match underlying"
         );
 
-        BaseUpgradeableStrategyUL.initialize(
-            __storage,
-            _underlying,
-            _vault,
-            _rewardPool,
-            _rewardToken,
-            PROFIT_SHARING_NUMERATOR,
-            PROFIT_SHARING_DENOMINATOR,
-            SELL,
-            SELL_FLOOR,
-            IMPLEMENETAION_CHANGE_DELAY,
-            UL_REGISTRY
-        );
+        BaseUpgradeableStrategyUL.initialize({
+            _storage: __storage,
+            _underlying: _underlying,
+            _vault: _vault,
+            _rewardPool: _rewardPool,
+            _rewardToken: _rewardToken,
+            _profitSharingNumerator: 300,
+            _profitSharingDenominator: 1000,
+            _sell: true,
+            _sellFloor: 1e18,
+            _implementationChangeDelay: 12 hours,
+            _universalLiquidatorRegistry: address(
+                0x7882172921E99d590E097cD600554339fBDBc480
+            )
+        });
 
         _setPoolId(_poolID);
         _setRouterV2(_routerV2);
