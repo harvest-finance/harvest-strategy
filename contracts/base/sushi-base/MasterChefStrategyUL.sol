@@ -107,6 +107,11 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
         }
     }
 
+    function _harvestPoolRewards() internal {
+        // claim rewards by withdrawing 0
+        IMasterChef(rewardPool()).withdraw(poolId(), 0);
+    }
+
     function _emergencyExitRewardPool() internal {
         uint256 bal = _rewardPoolBalance();
         if (bal != 0) {
@@ -371,7 +376,7 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
      *   when the investing is being paused by governance.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        _exitRewardPool();
+        _harvestPoolRewards();
         _liquidateReward();
         _investAllUnderlying();
     }
