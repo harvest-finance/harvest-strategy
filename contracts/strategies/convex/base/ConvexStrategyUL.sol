@@ -220,7 +220,10 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
-      if (rewardBalance == 0 || storedLiquidationDexes[token][rewardToken()].length < 1) {
+      
+      // if the token is the rewardToken then there won't be a path defined because liquidation is not necessary,
+      // but we still have to make sure that the toHodl part is executed.
+      if (rewardBalance == 0 || (storedLiquidationDexes[token][rewardToken()].length < 1) && token != rewardToken()) {
         continue;
       }
 

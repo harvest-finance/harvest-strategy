@@ -41,6 +41,13 @@ class ConvexULTest {
     
         // whale send underlying to farmers
         await this.setupBalance(underlyingWhale);
+
+        return {
+            controller: this.controller,
+            vault: this.vault,
+            strategy: this.strategy,
+            governance: governance
+        }
     }
     
     async testHappyPath () {

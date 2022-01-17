@@ -24,20 +24,20 @@ contract ConvexStrategyCVX_ETHMainnet is ConvexStrategyUL {
       _vault,
       rewardPool, // rewardPool
       64,  // Pool id: Info -> Rewards contract address -> read -> pid
-      weth, // depositToken
-      0, //depositArrayPosition. Find deposit transaction -> input params 
+      cvx, // depositToken
+      1, //depositArrayPosition. Find deposit transaction -> input params 
       curveDeposit, // deposit contract: usually underlying. Find deposit transaction -> interacted contract 
       2, //nTokens -> total number of deposit tokens
       false, //metaPool -> if LP token address == pool address (at curve)
       1000 // hodlRatio 10%
     );
 
+    _setRewardToken(cvx);
+
     // deposit token is the same as reward token, less liquidations necessary
-    // we only have to swap rewardTokens to weth and then we can deposit weth
+    // we only have to swap cvx -> crv
     rewardTokens = [crv, cvx];
-    storedLiquidationPaths[crv][weth] = [crv, weth];
-    storedLiquidationDexes[crv][weth] = [sushiDex];
-    storedLiquidationPaths[cvx][weth] = [cvx, weth];
-    storedLiquidationDexes[cvx][weth] = [sushiDex];
+    storedLiquidationPaths[crv][cvx] = [crv, weth, cvx];
+    storedLiquidationDexes[crv][cvx] = [sushiDex, sushiDex];
   }
 }
