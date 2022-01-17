@@ -126,7 +126,7 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
         IERC20(underlying_).safeApprove(rewardPool_, 0);
         IERC20(underlying_).safeApprove(rewardPool_, entireBalance);
 
-        IMasterChef(rewardPool()).deposit(poolId(), entireBalance);
+        IMasterChef(rewardPool_).deposit(poolId(), entireBalance);
     }
 
     function _liquidateReward() internal {
