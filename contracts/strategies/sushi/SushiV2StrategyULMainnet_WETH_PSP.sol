@@ -44,8 +44,8 @@ contract SushiV2StrategyULMainnet_WETH_PSP is
         });
 
         // sell all secondRewardTokens(=$SUSHI) for PSP
-        storedLiquidationPaths[sushi][psp] = [sushi, weth, psp];
-        storedLiquidationDexes[sushi][psp] = [sushiDex, sushiDex];
+        storedLiquidationPaths[sushi][psp] = [sushi, psp];
+        storedLiquidationDexes[sushi][psp] = [sushiDex];
 
         // sell 50% of rewardToken(=$PSP) for WETH, s.t. we can add liquidity
         storedLiquidationPaths[psp][weth] = [psp, weth];

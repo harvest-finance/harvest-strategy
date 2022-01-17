@@ -80,11 +80,6 @@ describe("Sushi: SUSHI:WETH DELETE ME", function () {
 			//{ "sushi": [sushi, weth] } does already exist, but added for completness
 			"liquidation": [{ "sushi": [sushi, weth] }],
 		});
-
-		let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-		let path = [sushi, weth, addresses.FARM];
-		let dexes = [sushiDexBytes32, bancorDexBytes32];
-		await feeForwarder.configureLiquidation(path, dexes, { from: governance });
 	});
 
 	describe("Happy path", function () {

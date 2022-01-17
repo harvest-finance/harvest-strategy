@@ -79,7 +79,7 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
 			"underlying": underlying,
 			"governance": governance,
 			//{ "sushi": [sushi, weth] } does already exist, but added for completness
-			"liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [weth, psp] }, { "sushi": [psp, weth] }],
+			"liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [psp, weth] }, { "sushi": [sushi, weth, psp] }],
 		});
 
 		let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
