@@ -16,8 +16,7 @@ describe("Mainnet Convex CVX_ETH", () => {
   const underlying = "0x3A283D9c08E8b55966afb64C515f5143cf907611";
   const underlyingWhale = "0x38eE5F5A39c01cB43473992C12936ba1219711ab";
   const liquidationPaths = [
-    {"sushi": [crv, weth]},
-    {"sushi": [weth, cvx]},
+    {"sushi": [crv, weth, cvx]},
   ];
 
   let convexULTest = new ConvexULTest();

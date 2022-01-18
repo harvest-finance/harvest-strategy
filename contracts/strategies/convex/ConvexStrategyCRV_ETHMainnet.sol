@@ -37,7 +37,7 @@ contract ConvexStrategyCRV_ETHMainnet is ConvexStrategyUL {
     // deposit token is the same as reward token, less liquidations necessary
     // we only have to swap cvx -> crv
     rewardTokens = [crv, cvx];
-    storedLiquidationPaths[cvx][crv] = [cvx, weth, crv];
-    storedLiquidationDexes[cvx][crv] = [sushiDex, sushiDex];
+    storedLiquidationPaths[cvx][crv] = [cvx, crv];
+    storedLiquidationDexes[cvx][crv] = [sushiDex];
   }
 }
