@@ -10,8 +10,6 @@ import "../../base/interface/IStrategy.sol";
 import "../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 import "./interface/IFeeSharingSystem.sol";
 
-import "hardhat/console.sol";
-
 contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   using SafeMath for uint256;
@@ -54,7 +52,7 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function rewardPoolBalance() internal view returns (uint256 bal) {
-      (bal,,) = IFeeSharingSystem(rewardPool()).userInfo(address(this));
+      bal = IFeeSharingSystem(rewardPool()).calculateSharesValueInLOOKS(address(this));
   }
 
   function exitRewardPool() internal {
@@ -79,6 +77,11 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
   function enterRewardPool() internal {
     uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
+
+    if(entireBalance < 1e18) {
+      // not enough LOOKS to deposit, must be at least 1 LOOK
+      return;
+    }
     IERC20(underlying()).safeApprove(rewardPool(), 0);
     IERC20(underlying()).safeApprove(rewardPool(), entireBalance);
 
@@ -164,11 +167,11 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
       // for the peace of mind (in case something gets changed in between)
       uint256 needToWithdrawLOOKS = amount.sub(entireBalance);
 
+      uint256 canWithdrawLOOKS = Math.min(rewardPoolBalance(), needToWithdrawLOOKS);
+
       // convert amount of underlying to withdraw to shares price
       uint256 oneShareInLOOKS = IFeeSharingSystem(rewardPool()).calculateSharePriceInLOOKS();
-      uint256 needToWithdrawShares = needToWithdrawLOOKS.div(oneShareInLOOKS);
-
-      uint256 sharesToWithdraw = Math.min(rewardPoolBalance(), needToWithdrawShares);
+      uint256 sharesToWithdraw = canWithdrawLOOKS.div(oneShareInLOOKS);
 
       // bool flag param for claiming reward tokens set to false
       IFeeSharingSystem(rewardPool()).withdraw(sharesToWithdraw, false);
@@ -191,15 +194,11 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
       return IERC20(underlying()).balanceOf(address(this));
     }
 
-    // using the calculateSharePriceInLOOKS instead of the calculateSharesValueInLOOKS is more exact
-    uint256 oneShareInLOOKS = IFeeSharingSystem(rewardPool()).calculateSharePriceInLOOKS();
-    uint256 balanceInLOOKS = rewardPoolBalance().mul(oneShareInLOOKS);
-
     // Adding the amount locked in the reward pool and the amount that is somehow in this contract
     // both are in the units of "underlying"
     // The second part is needed because there is the emergency exit mechanism
     // which would break the assumption that all the funds are always inside of the reward pool
-    return balanceInLOOKS.add(IERC20(underlying()).balanceOf(address(this)));
+    return rewardPoolBalance().add(IERC20(underlying()).balanceOf(address(this)));
   }
 
   /*
@@ -218,7 +217,6 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     uint256 pendingRewards = IFeeSharingSystem(rewardPool()).calculatePendingRewards(address(this));
-    console.log("doing hardwork, pending rewards in WETH:", pendingRewards);
     if (pendingRewards > 0) {
       IFeeSharingSystem(rewardPool()).harvest();
     }
