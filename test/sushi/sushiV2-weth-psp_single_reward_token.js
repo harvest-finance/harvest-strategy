@@ -7,21 +7,21 @@ const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-//const Strategy = artifacts.require("");
-const Strategy = artifacts.require("SushiStrategyULMainnet_SUSHI_WETH_DELETE_ME");
+const Strategy = artifacts.require("SushiV2StrategyULMainnet_WETH_PSP_SINGLE_REWARD_TOKEN");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 
 //This test was developed at blockNumber 13885848
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Sushi: SUSHI:WETH DELETE ME", function () {
+describe("Mainnet Sushiswap WETH-PSP single reward token", function () {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x88B521167CC35A22B51EA5caDD7DbCd4cc2Cbc57";
+  let underlyingWhale = "0xfceaec3f6b35272041331cfbc59dad069870509b";
+  let psp = "0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
 
@@ -43,7 +43,7 @@ describe("Sushi: SUSHI:WETH DELETE ME", function () {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x795065dCc9f64b5614C407a6EFDC400DA6221FB0");
+    underlying = await IERC20.at("0x458ae80894A0924Ac763C034977e330c565F1687");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -70,7 +70,6 @@ describe("Sushi: SUSHI:WETH DELETE ME", function () {
     // whale send underlying to farmers
     await setupBalance();
 
-    await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
@@ -78,8 +77,13 @@ describe("Sushi: SUSHI:WETH DELETE ME", function () {
       "underlying": underlying,
       "governance": governance,
       //{ "sushi": [sushi, weth] } does already exist, but added for completness
-      "liquidation": [{ "sushi": [sushi, weth] }],
+      "liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [weth, psp] }],
     });
+
+    let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
+    let path = [sushi, weth, addresses.FARM];
+    let dexes = [sushiDexBytes32, bancorDexBytes32];
+    await feeForwarder.configureLiquidation(path, dexes, { from: governance });
   });
 
   describe("Happy path", function () {
@@ -198,6 +202,7 @@ describe("Sushi: SUSHI:WETH DELETE ME", function () {
       await strategy.continueInvesting({ from: governance });
       isPausedInvesting = await strategy.pausedInvesting();
       assert.equal(isPausedInvesting, false);
+
     });
 
     it("unsalvagableTokens(address _token)", async function () {

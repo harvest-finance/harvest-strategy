@@ -5,24 +5,23 @@ const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/
 const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
-const { assertion } = require("@openzeppelin/test-helpers/src/expectRevert");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-const Strategy = artifacts.require("SushiV2StrategyULMainnet_WETH_PSP");
+//const Strategy = artifacts.require("");
+const Strategy = artifacts.require("SushiStrategyULMainnet_SUSHI_WETH");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 
 //This test was developed at blockNumber 13885848
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Sushiswap WETH-PSP", function () {
+describe("Mainnet Sushiswap SUSHI-WETH", function () {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xfceaec3f6b35272041331cfbc59dad069870509b";
-  let psp = "0xcAfE001067cDEF266AfB7Eb5A286dCFD277f3dE5";
+  let underlyingWhale = "0x88B521167CC35A22B51EA5caDD7DbCd4cc2Cbc57";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let feeForwarderAddr = "0x153C544f72329c1ba521DDf5086cf2fA98C86676";
 
@@ -42,10 +41,9 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
   let controller;
   let vault;
   let strategy;
-  let feeForwarder;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x458ae80894A0924Ac763C034977e330c565F1687");
+    underlying = await IERC20.at("0x795065dCc9f64b5614C407a6EFDC400DA6221FB0");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -72,6 +70,7 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
     // whale send underlying to farmers
     await setupBalance();
 
+    await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
       "existingVaultAddress": null,
       "strategyArtifact": Strategy,
@@ -79,18 +78,12 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
       "underlying": underlying,
       "governance": governance,
       //{ "sushi": [sushi, weth] } does already exist, but added for completness
-      "liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [psp, weth] }, { "sushi": [sushi, weth, psp] }],
+      "liquidation": [{ "sushi": [sushi, weth] }],
     });
-
-    let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-    let path = [psp, weth, addresses.FARM];
-    let dexes = [sushiDexBytes32, bancorDexBytes32];
-    await feeForwarder.configureLiquidation(path, dexes, { from: governance });
   });
 
   describe("Happy path", function () {
     it("Farmer should earn money", async function () {
-
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
       let fTokenBalance = await vault.balanceOf(farmer1);
@@ -130,7 +123,6 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
       console.log("Overall APY:", (apy - 1) * 100, "%");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
-
     });
   });
 
@@ -206,7 +198,6 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
       await strategy.continueInvesting({ from: governance });
       isPausedInvesting = await strategy.pausedInvesting();
       assert.equal(isPausedInvesting, false);
-
     });
 
     it("unsalvagableTokens(address _token)", async function () {
@@ -217,10 +208,6 @@ describe("Mainnet Sushiswap WETH-PSP", function () {
       // rewardToken is unsalvageable
       let isRewardTokenUnsalvagable = await strategy.unsalvagableTokens(await strategy.rewardToken());
       assert.equal(isRewardTokenUnsalvagable, true);
-
-      // secondRewardToken is unsalvageable
-      let isSecondRewardTokenUnsalvagable = await strategy.unsalvagableTokens(await strategy.getSecondRewardToken());
-      assert.equal(isSecondRewardTokenUnsalvagable, true);
     });
 
     it("Remove all deposited LP tokens", async function () {

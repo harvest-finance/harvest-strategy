@@ -5,15 +5,16 @@ const { impersonates, setupCoreProtocol, depositVault } = require("../utilities/
 const addresses = require("../test-config.js");
 const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
+const { assertion } = require("@openzeppelin/test-helpers/src/expectRevert");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-const Strategy = artifacts.require("SushiV2StrategyULMainnet_WETH_PSP_DELETE_ME");
+const Strategy = artifacts.require("SushiV2StrategyULMainnet_WETH_PSP");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
 
 //This test was developed at blockNumber 13885848
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Sushiswap WETH-PSP DELETE ME", function () {
+describe("Mainnet Sushiswap WETH-PSP two reward tokens", function () {
   let accounts;
 
   // external contracts
@@ -41,6 +42,7 @@ describe("Mainnet Sushiswap WETH-PSP DELETE ME", function () {
   let controller;
   let vault;
   let strategy;
+  let feeForwarder;
 
   async function setupExternalContracts() {
     underlying = await IERC20.at("0x458ae80894A0924Ac763C034977e330c565F1687");
@@ -77,17 +79,18 @@ describe("Mainnet Sushiswap WETH-PSP DELETE ME", function () {
       "underlying": underlying,
       "governance": governance,
       //{ "sushi": [sushi, weth] } does already exist, but added for completness
-      "liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [weth, psp] }],
+      "liquidation": [{ "sushi": [sushi, weth] }, { "sushi": [psp, weth] }, { "sushi": [sushi, weth, psp] }],
     });
 
     let feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-    let path = [sushi, weth, addresses.FARM];
+    let path = [psp, weth, addresses.FARM];
     let dexes = [sushiDexBytes32, bancorDexBytes32];
     await feeForwarder.configureLiquidation(path, dexes, { from: governance });
   });
 
   describe("Happy path", function () {
     it("Farmer should earn money", async function () {
+
       let farmerOldBalance = new BigNumber(await underlying.balanceOf(farmer1));
       await depositVault(farmer1, underlying, vault, farmerBalance);
       let fTokenBalance = await vault.balanceOf(farmer1);
@@ -127,6 +130,7 @@ describe("Mainnet Sushiswap WETH-PSP DELETE ME", function () {
       console.log("Overall APY:", (apy - 1) * 100, "%");
 
       await strategy.withdrawAllToVault({ from: governance }); // making sure can withdraw all for a next switch
+
     });
   });
 
@@ -213,6 +217,10 @@ describe("Mainnet Sushiswap WETH-PSP DELETE ME", function () {
       // rewardToken is unsalvageable
       let isRewardTokenUnsalvagable = await strategy.unsalvagableTokens(await strategy.rewardToken());
       assert.equal(isRewardTokenUnsalvagable, true);
+
+      // secondRewardToken is unsalvageable
+      let isSecondRewardTokenUnsalvagable = await strategy.unsalvagableTokens(await strategy.getSecondRewardToken());
+      assert.equal(isSecondRewardTokenUnsalvagable, true);
     });
 
     it("Remove all deposited LP tokens", async function () {
