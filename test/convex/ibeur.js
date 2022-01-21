@@ -60,6 +60,7 @@ describe("Mainnet Convex IbEUR", function() {
 
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
+    await web3.eth.sendTransaction({ from: accounts[8], to: governance, value: 10e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
