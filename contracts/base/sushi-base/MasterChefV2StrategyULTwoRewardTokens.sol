@@ -123,8 +123,24 @@ contract MasterChefV2StrategyULTwoRewardTokens is
     return getAddress(_SECOND_REWARD_TOKEN_SLOT);
   }
 
+  function setSell(bool s) public onlyGovernance {
+    _setSell(s);
+  }
+
+  function setSellFloor(uint256 floor) public onlyGovernance {
+    _setSellFloor(floor);
+  }
+
   /*///////////////////////////////////////////////////////////////
-      INTERNAL HELPER FUNCTIONS
+                  PROXY - FINALIZE UPGRADE
+  //////////////////////////////////////////////////////////////*/
+
+  function finalizeUpgrade() external onlyGovernance {
+    _finalizeUpgrade();
+  }
+
+  /*///////////////////////////////////////////////////////////////
+                  INTERNAL HELPER FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
   function _rewardPoolBalance() internal view returns (uint256 bal) {
@@ -339,7 +355,7 @@ contract MasterChefV2StrategyULTwoRewardTokens is
   }
 
   /*///////////////////////////////////////////////////////////////
-              PUBLIC EMERGENCY FUNCTIONS
+                  PUBLIC EMERGENCY FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
   function emergencyExit() public onlyGovernance {
@@ -352,7 +368,7 @@ contract MasterChefV2StrategyULTwoRewardTokens is
   }
 
   /*///////////////////////////////////////////////////////////////
-              ISTRATEGY FUNCTION IMPLEMENTATIONS
+                  ISTRATEGY FUNCTION IMPLEMENTATIONS
   //////////////////////////////////////////////////////////////*/
 
   /*

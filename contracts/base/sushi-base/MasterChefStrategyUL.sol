@@ -73,7 +73,7 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   /*///////////////////////////////////////////////////////////////
-        STORAGE SETTER AND GETTER
+                  STORAGE SETTER AND GETTER
   //////////////////////////////////////////////////////////////*/
 
   function _setPoolId(uint256 _value) internal {
@@ -92,8 +92,24 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     return getAddress(_ROUTERV2_SLOT);
   }
 
+    function setSell(bool s) public onlyGovernance {
+    _setSell(s);
+  }
+
+  function setSellFloor(uint256 floor) public onlyGovernance {
+    _setSellFloor(floor);
+  }
+
   /*///////////////////////////////////////////////////////////////
-          INTERNAL HELPER FUNCTIONS
+                  PROXY - FINALIZE UPGRADE
+  //////////////////////////////////////////////////////////////*/
+
+  function finalizeUpgrade() external onlyGovernance {
+    _finalizeUpgrade();
+  }
+
+  /*///////////////////////////////////////////////////////////////
+                  INTERNAL HELPER FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
   function _rewardPoolBalance() internal view returns (uint256 bal) {
@@ -275,7 +291,7 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   /*///////////////////////////////////////////////////////////////
-          				PUBLIC EMERGENCY FUNCTIONS
+                  PUBLIC EMERGENCY FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
   function emergencyExit() public onlyGovernance {
@@ -288,7 +304,7 @@ contract MasterChefStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   /*///////////////////////////////////////////////////////////////
-          				ISTRATEGY FUNCTION IMPLEMENTATIONS
+                  ISTRATEGY FUNCTION IMPLEMENTATIONS
   //////////////////////////////////////////////////////////////*/
 
   /*
