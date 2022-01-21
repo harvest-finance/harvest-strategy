@@ -15,9 +15,6 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-  address public constant uniswapRouterV2 = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
-
   constructor() public BaseUpgradeableStrategyUL() {
   }
 
@@ -169,20 +166,22 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
       uint256 canWithdrawLOOKS = Math.min(rewardPoolBalance(), needToWithdrawLOOKS);
 
+      // due to precision issues between shares -> LOOKS we might end up with getting a tiny amount
+      // of LOOKS less then requested. To ensure we have enough LOOKS after the withdrawal to cover
+      // the requested withdrawal amount, we add a small tolerance. 
+      // the exceeding balance will stay in the strategy until the next action such as hardWork or another withdrawal
+      uint256 tolerance = 1e7;
+      uint256 looksToWithdrawWithTolerance = canWithdrawLOOKS.add(tolerance);
+
       // convert amount of underlying to withdraw to shares price
       uint256 oneShareInLOOKS = IFeeSharingSystem(rewardPool()).calculateSharePriceInLOOKS();
-      uint256 sharesToWithdraw = canWithdrawLOOKS.div(oneShareInLOOKS);
+      uint256 sharesToWithdraw = looksToWithdrawWithTolerance.mul(1e36).div(oneShareInLOOKS).div(1e18);
 
       // bool flag param for claiming reward tokens set to false
       IFeeSharingSystem(rewardPool()).withdraw(sharesToWithdraw, false);
     }
 
-    uint256 underlyingBalance = IERC20(underlying()).balanceOf(address(this));
-
-    // recalculate to improve accuracy
-    uint256 underlyingAmountToWithdraw = Math.min(amount, underlyingBalance);
-
-    IERC20(underlying()).safeTransfer(vault(), underlyingAmountToWithdraw);
+    IERC20(underlying()).safeTransfer(vault(), amount);
   }
 
   /*

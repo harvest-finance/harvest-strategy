@@ -156,10 +156,11 @@ describe("Mainnet LooksRare Staking LOOKS", function() {
         await Utils.advanceNBlock(blocksPerHour);
       }
       // withdraw only part to check if the withdrawToVault method works
-      await vault.withdraw(new BigNumber(fTokenBalance).div(2), { from: farmer1 });
+      const halfBalance = new BigNumber(fTokenBalance).div(2);
+      await vault.withdraw(halfBalance, { from: farmer1 });
       let restfTokenBalance = await vault.balanceOf(farmer1);
       // make sure rest of the balance matches
-      Utils.assertBNGte(new BigNumber(fTokenBalance).div(2), restfTokenBalance);
+      Utils.assertBNGte(halfBalance, restfTokenBalance);
 
       await vault.withdraw(restfTokenBalance, { from: farmer1 });
       let farmerNewBalance = new BigNumber(await underlying.balanceOf(farmer1));
