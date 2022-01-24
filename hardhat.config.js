@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-truffle5");
+require("@nomiclabs/hardhat-ethers");
 require("hardhat-gas-reporter");
 
 const keys = require('./dev-keys.json');
@@ -19,7 +20,7 @@ module.exports = {
       forking: {
         //url: "https://mainnet.infura.io/v3/" + keys.infuraKey,
         url: "https://eth-mainnet.alchemyapi.io/v2/" + keys.alchemyKeyMainnet,
-        blockNumber: 13727630, // <-- edit here
+        // blockNumber: 13984950, // <-- edit here
       },
     },
     mainnet: {
@@ -27,8 +28,6 @@ module.exports = {
       accounts: {
         mnemonic: keys.mnemonic,
       },
-      gas: 9000000,
-      gasPrice: 100e9,
     },
   },
   solidity: {
