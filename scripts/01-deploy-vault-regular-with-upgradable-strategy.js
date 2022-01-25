@@ -30,14 +30,14 @@ async function main() {
 
   console.log("Implementation deployed at:", impl.creates);
 
-  // await type2Transaction(factory.createRegularVaultUsingUpgradableStrategy, id, underlying, impl.creates)
-  //
-  // const deployment = cleanupObj(await factory.completedDeployments(id));
-  // console.log("======");
-  // console.log(`${id}: ${JSON.stringify(deployment, null, 2)}`);
-  // console.log("======");
-  //
-  // console.log("Deployment complete. Add the JSON above to `harvest-api` (https://github.com/harvest-finance/harvest-api/blob/master/data/mainnet/addresses.json) repo and add entries to `tokens.js` and `pools.js`.");
+  await type2Transaction(factory.createRegularVaultUsingUpgradableStrategy, id, underlying, impl.creates)
+
+  const deployment = cleanupObj(await factory.completedDeployments(id));
+  console.log("======");
+  console.log(`${id}: ${JSON.stringify(deployment, null, 2)}`);
+  console.log("======");
+
+  console.log("Deployment complete. Add the JSON above to `harvest-api` (https://github.com/harvest-finance/harvest-api/blob/master/data/mainnet/addresses.json) repo and add entries to `tokens.js` and `pools.js`.");
 }
 
 main()
