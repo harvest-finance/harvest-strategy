@@ -1,5 +1,6 @@
 const prompt = require('prompt');
 const hre = require("hardhat");
+const { type2Transaction } = require('./utils.js');
 
 function cleanupObj(d) {
   for (let i = 0; i < 10; i++) delete d[String(i)];
@@ -16,9 +17,7 @@ async function main() {
   const {id, underlying} = await prompt.get(['id', 'underlying']);
   const factory = await MegaFactory.at(addresses.Factory.MegaFactory);
 
-  await factory.createRegularVault(
-    id, underlying
-  );
+  await type2Transaction(factory.createRegularVault, id, underlying);
 
   const deployment = cleanupObj(await factory.completedDeployments(id));
   console.log("======");

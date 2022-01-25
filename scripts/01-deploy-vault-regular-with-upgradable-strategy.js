@@ -1,5 +1,6 @@
 const prompt = require('prompt');
 const hre = require("hardhat");
+const { type2Transaction } = require('./utils.js');
 
 function cleanupObj(d) {
   for (let i = 0; i < 10; i++) delete d[String(i)];
@@ -25,34 +26,11 @@ async function main() {
   const priorityFee = 2e9;
 
   const StrategyImpl = artifacts.require(strategyName);
-  const unsignedDeployment = await StrategyImpl.new.request();
-  const signer = await ethers.provider.getSigner(unsignedDeployment.from)
-  const impl = await signer.sendTransaction(
-    {
-      from: unsignedDeployment.from,
-      to: unsignedDeployment.to,
-      data: unsignedDeployment.data,
-      maxFeePerGas: feeData.maxFeePerGas,
-      maxPriorityFeePerGas: priorityFee,
-      gasLimit: 7e6
-    });
+  const impl = await type2Transaction(StrategyImpl.new);
 
   console.log("Implementation deployed at:", impl.creates);
 
-  const unsignedTx = await factory.createRegularVaultUsingUpgradableStrategy.request(
-    id, underlying, impl.creates
-  );
-  const signer = await ethers.provider.getSigner(unsignedTx.from)
-  const tx = await signer.sendTransaction(
-    {
-      from: unsignedTx.from,
-      to: unsignedTx.to,
-      data: unsignedTx.data,
-      maxFeePerGas: feeData.maxFeePerGas,
-      maxPriorityFeePerGas: priorityFee,
-      gasLimit: 7e6
-    });
-  await ethers.wait(tx)
+  await type2Transaction(factory.createRegularVaultUsingUpgradableStrategy, id, underlying, impl.creates)
 
   const deployment = cleanupObj(await factory.completedDeployments(id));
   console.log("======");

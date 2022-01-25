@@ -1,6 +1,7 @@
 const prompt = require('prompt');
 const hre = require("hardhat");
 const { web3 } = require("hardhat");
+const { type2Transaction } = require('./utils.js');
 
 function cleanupObj(d) {
   for (let i = 0; i < 10; i++) delete d[String(i)];
@@ -21,9 +22,7 @@ async function main() {
   const {id, positionTokenNumber} = await prompt.get(['id', 'positionTokenNumber']);
   const factory = await MegaFactory.at(addresses.Factory.MegaFactory);
 
-  await factory.createUniV3Vault(
-    id, positionTokenNumber
-  );
+  await type2Transaction(factory.createUniV3Vault, id, positionTokenNumber);
 
   const deployment = cleanupObj(await factory.completedDeployments(id));
   const uniV3VaultFactory = await IUniV3VaultFactory.at(addresses.Factory.UniV3VaultFactory);
