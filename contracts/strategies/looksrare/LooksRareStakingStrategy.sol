@@ -166,22 +166,27 @@ contract LooksRareStakingStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
       uint256 canWithdrawLOOKS = Math.min(rewardPoolBalance(), needToWithdrawLOOKS);
 
-      // due to precision issues between shares -> LOOKS we might end up with getting a tiny amount
-      // of LOOKS less then requested. To ensure we have enough LOOKS after the withdrawal to cover
-      // the requested withdrawal amount, we add a small tolerance. 
-      // the exceeding balance will stay in the strategy until the next action such as hardWork or another withdrawal
-      uint256 tolerance = 1e7;
-      uint256 looksToWithdrawWithTolerance = canWithdrawLOOKS.add(tolerance);
-
       // convert amount of underlying to withdraw to shares price
       uint256 oneShareInLOOKS = IFeeSharingSystem(rewardPool()).calculateSharePriceInLOOKS();
-      uint256 sharesToWithdraw = looksToWithdrawWithTolerance.mul(1e36).div(oneShareInLOOKS).div(1e18);
+      uint256 sharesToWithdraw = canWithdrawLOOKS.mul(1e36).div(oneShareInLOOKS).div(1e18);
 
       // bool flag param for claiming reward tokens set to false
       IFeeSharingSystem(rewardPool()).withdraw(sharesToWithdraw, false);
     }
 
-    IERC20(underlying()).safeTransfer(vault(), amount);
+
+    // due to precision issues between shares -> LOOKS we might end up with getting a tiny amount
+    // of LOOKS less then requested. This rounding "error" is forwarded to the user, but we need to make sure
+    // that it is not too big. We add a tolerance threshold to check for that.
+    uint256 tolerance = 1e8;
+    uint256 underlyingBalance = IERC20(underlying()).balanceOf(address(this));
+    require(underlyingBalance.add(tolerance) >= amount, "Withdrawn rewardPool amount too far from requested amount");
+
+    // recalculate to improve accuracy. we either transfer the requested amount,
+    // or a tiny bit less as a potential outcome of precision between shares -> LOOKS
+    uint256 underlyingAmountToWithdraw = Math.min(amount, underlyingBalance);
+
+    IERC20(underlying()).safeTransfer(vault(), underlyingAmountToWithdraw);
   }
 
   /*
