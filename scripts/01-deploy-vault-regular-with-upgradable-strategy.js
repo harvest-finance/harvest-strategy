@@ -19,12 +19,6 @@ async function main() {
   const {id, underlying, strategyName} = await prompt.get(['id', 'underlying', 'strategyName']);
   const factory = await MegaFactory.at(addresses.Factory.MegaFactory);
 
-  const feeData = await ethers.provider.getFeeData();
-  if (feeData.maxFeePerGas > 120e9) {
-    feeData.maxFeePerGas = 120e9
-  }
-  const priorityFee = 2e9;
-
   const StrategyImpl = artifacts.require(strategyName);
   const impl = await type2Transaction(StrategyImpl.new);
 
