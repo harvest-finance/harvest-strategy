@@ -61,8 +61,8 @@ Deploying a new UNI V3 vault (you must create a position token and SEND it to th
 ```
 npx hardhat run ./scripts/03-deploy-vault-univ3.js
 Uniswap V3 vault deployment.
-Prerequisite: create a position token using Uniswap V3, and SEND it to 0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68.
-For this, go to https://etherscan.io/address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88#writeProxyContract and do transferFrom(yourAddress, 0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68, <position-number>)
+Prerequisite: create a position token using Uniswap V3, and SEND it to 0x5eaAb98ce0Ca4EE3e0dF52EDb8f0EA02fC86038c.
+For this, go to https://etherscan.io/address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88#writeProxyContract and do transferFrom(yourAddress, 0x5eaAb98ce0Ca4EE3e0dF52EDb8f0EA02fC86038c, <position-number>)
 Specify a unique ID (for the JSON) and position token's number
 prompt: id:  test_univ3
 prompt: positionTokenNumber:  156967

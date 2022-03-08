@@ -9,7 +9,7 @@ module.exports = {
   "Factory": {
     "MegaFactory": "0xE1EC9151Eb8D9a3451B8F623CE8b62632a6D4f4D",
     "RegularVaultFactory": "0x3Bb28f8E936c48499A4BeBbE906E05e8Eae2Bef8",
-    "UniV3VaultFactory": "0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68",
+    "UniV3VaultFactory": "0x5eaAb98ce0Ca4EE3e0dF52EDb8f0EA02fC86038c",
     "UpgradableStrategyFactory": "0x9Cf5ab89F48194C9EeaaCBB47cDEceE0e96110b7",
     "PotPoolFactory": "0xBb7239f73e68301A0140Cf8AA971C9eDb4aCa752"
   }

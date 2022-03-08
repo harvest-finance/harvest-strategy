@@ -223,7 +223,7 @@ async function setupFactory() {
   );
   const upgradableStrategyFactory = await UpgradableStrategyFactory.new();
 
-  const uniV3FactoryAddress = "0xFF38184fF51EF92eEFEDFA6E993C2add40D41B68";
+  const uniV3FactoryAddress = "0x5eaAb98ce0Ca4EE3e0dF52EDb8f0EA02fC86038c";
   const uniV3Factory = await OwnableWhitelist.at(uniV3FactoryAddress);
 
   await megaFactory.setVaultFactory(1 /* VaultType.Regular */, vaultFactory.address);
