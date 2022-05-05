@@ -89,7 +89,7 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
       true, // sell
       0, // sell floor
       12 hours, // implementation change delay
-      address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
+      address(0x7882172921E99d590E097cD600554339fBDBc480) // UL Registry
     );
 
     address _lpt;
@@ -209,14 +209,18 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
     rewardTokens.push(_token);
   }
 
-  // We assume that all the tradings can be done on Sushiswap
+  /**
+   * liquidates rewards via defined dexes such as uni / sushi
+   * and converts accordingly for reinvesting underlying
+   */ 
   function _liquidateReward() internal {
     if (!sell()) {
-      // Profits can be disabled for possible simplified and rapoolId exit
+      // Profits can be disabled for possible simplified and rapid exit
       emit ProfitsNotCollected(sell(), false);
       return;
     }
 
+    // multiple reward tokens are supported -> liquidate all of them into common rewardToken (weth)
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
@@ -373,10 +377,6 @@ contract ConvexStrategyUL is IStrategy, BaseUpgradeableStrategyUL {
   /*
   *   Get the reward, sell it in exchange for underlying, invest what you got.
   *   It's not much, but it's honest work.
-  *
-  *   Note that although `onlyNotPausedInvesting` is not added here,
-  *   calling `investAllUnderlying()` affectively blocks the usage of `doHardWork`
-  *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
     IBaseRewardPool(rewardPool()).getReward();
