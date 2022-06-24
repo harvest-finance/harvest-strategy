@@ -17,8 +17,6 @@ contract NotionalStrategy_ETH is NotionalStrategy {
             address(0xabc07BF91469C5450D6941dD0770E6E6761B90d6), // nETH
             _vault,
             proxy, // notional proxy
-            address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
-            0x5122e01d819e58bb2e22528c0d68d310f0aa6fd7000200000000000000000163, // note2wethpid
             1 // currencyId
         );
     }

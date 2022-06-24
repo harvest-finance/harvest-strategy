@@ -21,8 +21,6 @@ contract NotionalStrategy_DAI is NotionalStrategy {
             address(0x6EbcE2453398af200c688C7c4eBD479171231818), // nDai
             _vault,
             proxy, // notional proxy
-            address(0xBA12222222228d8Ba445958a75a0704d566BF2C8), //balancer vault
-            0x5122e01d819e58bb2e22528c0d68d310f0aa6fd7000200000000000000000163, // note2wethpid
             2 // currencyId
         );
 

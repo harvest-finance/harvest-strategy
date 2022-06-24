@@ -20,18 +20,15 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
     bytes32 internal constant _CURRENCY_ID = 0x50e4d02f6a8e4ab57be67cc4efcac8a19562797dc2257fdc7515b53622905dde;
-    bytes32 internal constant _BVAULT_SLOT = 0x85cbd475ba105ca98d9a2db62dcf7cf3c0074b36303ef64160d68a3e0fdd3c67;
-    bytes32 internal constant _NOTE2WETH_POOLID_SLOT =
-        0x8eae010b847722fa95e85dfc0113c19f46531a85595a4a8aeb38cb97657d35c4;
     bytes32 internal constant _NTOKEN_UNDERLYING = 0xca1ad68fb46e1d177e14769fefa6ec6792476f949c8cd88042b7f02ed2f5d2e2;
 
-    address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant note = address(0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5);
+    address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant NOTE = address(0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5);
+    address public constant BVAULT = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
+    bytes32 constant NOTE2WETH_PID = 0x5122e01d819e58bb2e22528c0d68d310f0aa6fd7000200000000000000000163;
 
     constructor() public BaseUpgradeableStrategyUL() {
         assert(_CURRENCY_ID == bytes32(uint256(keccak256("eip1967.strategyStorage.currencyId")) - 1));
-        assert(_BVAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.bVault")) - 1));
-        assert(_NOTE2WETH_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.note2WethPoolId")) - 1));
         assert(_NTOKEN_UNDERLYING == bytes32(uint256(keccak256("eip1967.strategyStorage.nTokenUnderlying")) - 1));
     }
 
@@ -43,8 +40,6 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         address _underlying,
         address _vault,
         address _rewardPool, // always the notional proxy, could be constant,
-        address _bVault,
-        bytes32 _note2wethpid,
         uint16 _currencyId
     ) public initializer {
         BaseUpgradeableStrategyUL.initialize({
@@ -52,7 +47,7 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
             _underlying: _underlying,
             _vault: _vault,
             _rewardPool: _rewardPool,
-            _rewardToken: weth,
+            _rewardToken: WETH,
             _profitSharingNumerator: 300,
             _profitSharingDenominator: 1000,
             _sell: true,
@@ -66,8 +61,6 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         (, Types.Token memory underlyingToken) = NotionalProxy(_rewardPool).getCurrency(_currencyId);
 
         _setCurrencyId(bytes32(uint256(_currencyId)));
-        _setBVault(_bVault);
-        _setNote2WethPoolId(_note2wethpid);
         _setNTokenUnderlying(underlyingToken.tokenAddress);
     }
 
@@ -82,9 +75,7 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     function investedUnderlyingBalance() public view returns (uint256) {
-        uint256 underlyingBalance = IERC20(underlying()).balanceOf(address(this));
-
-        return underlyingBalance;
+        return IERC20(underlying()).balanceOf(address(this));
     }
 
     /* ========== Internal ========== */
@@ -96,22 +87,22 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         uint256 underlyingBalance;
 
         if (_nTokenUnderlying == address(0)) {
-            underlyingBalance = IERC20(weth).balanceOf(address(this));
-            WETH9(weth).withdraw(underlyingBalance);
+            underlyingBalance = IERC20(WETH).balanceOf(address(this));
+            WETH9(WETH).withdraw(underlyingBalance);
         } else {
             underlyingBalance = IERC20(_nTokenUnderlying).balanceOf(address(this));
             IERC20(_nTokenUnderlying).safeApprove(_rewardPool, 0);
             IERC20(_nTokenUnderlying).safeApprove(_rewardPool, underlyingBalance);
         }
 
-        Types.BalanceAction memory action = Types.BalanceAction(
-            Types.DepositActionType.DepositUnderlyingAndMintNToken,
-            currencyId(),
-            underlyingBalance,
-            0,
-            false,
-            false
-        );
+        Types.BalanceAction memory action = Types.BalanceAction({
+            actionType: Types.DepositActionType.DepositUnderlyingAndMintNToken,
+            currencyId: currencyId(),
+            depositActionAmount: underlyingBalance,
+            withdrawAmountInternalPrecision: 0,
+            withdrawEntireCashBalance: false,
+            redeemToUnderlying: false
+        });
         Types.BalanceAction[] memory actions = new Types.BalanceAction[](1);
         actions[0] = action;
 
@@ -127,20 +118,20 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     function _note2WETH() internal {
-        uint256 noteAmount = IERC20(note).balanceOf(address(this));
+        uint256 noteAmount = IERC20(NOTE).balanceOf(address(this));
 
         if (noteAmount == 0) {
             return;
         }
 
-        //swap note to weth on balancer
+        //swap NOTE to WETH on balancer
         IBVault.SingleSwap memory singleSwap;
         IBVault.SwapKind swapKind = IBVault.SwapKind.GIVEN_IN;
 
-        singleSwap.poolId = note2WethPoolId();
+        singleSwap.poolId = NOTE2WETH_PID;
         singleSwap.kind = swapKind;
-        singleSwap.assetIn = IAsset(note);
-        singleSwap.assetOut = IAsset(weth);
+        singleSwap.assetIn = IAsset(NOTE);
+        singleSwap.assetOut = IAsset(WETH);
         singleSwap.amount = noteAmount;
         singleSwap.userData = abi.encode(0);
 
@@ -150,16 +141,16 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         funds.recipient = address(uint160(address(this)));
         funds.toInternalBalance = false;
 
-        IERC20(note).safeApprove(bVault(), 0);
-        IERC20(note).safeApprove(bVault(), noteAmount);
+        IERC20(NOTE).safeApprove(BVAULT, 0);
+        IERC20(NOTE).safeApprove(BVAULT, noteAmount);
 
-        IBVault(bVault()).swap(singleSwap, funds, 1, block.timestamp);
+        IBVault(BVAULT).swap(singleSwap, funds, 1, block.timestamp);
     }
 
     function _liquidateReward() internal {
         _note2WETH();
 
-        uint256 rewardBalance = IERC20(weth).balanceOf(address(this));
+        uint256 rewardBalance = IERC20(WETH).balanceOf(address(this));
         if (!sell() || rewardBalance < sellFloor()) {
             // Profits can be disabled for possible simplified and rapid exit
             emit ProfitsNotCollected(sell(), rewardBalance < sellFloor());
@@ -167,7 +158,7 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         }
 
         notifyProfitInRewardToken(rewardBalance);
-        uint256 remainingRewardBalance = IERC20(weth).balanceOf(address(this));
+        uint256 remainingRewardBalance = IERC20(WETH).balanceOf(address(this));
         if (remainingRewardBalance == 0) {
             return;
         }
@@ -175,15 +166,15 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         address _nTokenUnderlying = nTokenUnderlying();
         if (_nTokenUnderlying != address(0)) {
             address _universalLiquidator = universalLiquidator();
-            IERC20(weth).safeApprove(_universalLiquidator, 0);
-            IERC20(weth).safeApprove(_universalLiquidator, remainingRewardBalance);
+            IERC20(WETH).safeApprove(_universalLiquidator, 0);
+            IERC20(WETH).safeApprove(_universalLiquidator, remainingRewardBalance);
 
             ILiquidator(_universalLiquidator).swapTokenOnMultipleDEXes(
                 remainingRewardBalance,
                 1,
                 address(this), // target
-                storedLiquidationDexes[weth][_nTokenUnderlying],
-                storedLiquidationPaths[weth][_nTokenUnderlying]
+                storedLiquidationDexes[WETH][_nTokenUnderlying],
+                storedLiquidationPaths[WETH][_nTokenUnderlying]
             );
         }
 
@@ -267,22 +258,6 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         return uint16(uint256(getBytes32(_CURRENCY_ID)));
     }
 
-    function _setBVault(address _address) internal {
-        setAddress(_BVAULT_SLOT, _address);
-    }
-
-    function bVault() public view returns (address) {
-        return getAddress(_BVAULT_SLOT);
-    }
-
-    function _setNote2WethPoolId(bytes32 _value) internal {
-        setBytes32(_NOTE2WETH_POOLID_SLOT, _value);
-    }
-
-    function note2WethPoolId() public view returns (bytes32) {
-        return getBytes32(_NOTE2WETH_POOLID_SLOT);
-    }
-
     function _setNTokenUnderlying(address _address) internal {
         setAddress(_NTOKEN_UNDERLYING, _address);
     }
@@ -292,6 +267,6 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
     }
 
     function() external payable {
-        require(msg.sender == weth, "direct eth transfer not allowed");
+        require(msg.sender == WETH, "direct eth transfer not allowed");
     }
 }
