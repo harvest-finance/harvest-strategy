@@ -29,4 +29,6 @@ interface ILiquidator {
   ) external;
 
   function getAllDexes() external view returns (bytes32[] memory);
+
+  function changeDexAddress(bytes32 name, address dexAddress) external;
 }
