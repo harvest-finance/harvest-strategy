@@ -3,15 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../base/interface/IStrategy.sol";
-import "../../base/interface/IVault.sol";
 import "../../base/upgradability/BaseUpgradeableStrategyUL.sol";
 
 import "./interfaces/Types.sol";
 import "./interfaces/NotionalProxy.sol";
-import "./interfaces/IBVault.sol";
 import "../../base/interface/weth/Weth9.sol";
 
 contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
@@ -24,8 +21,7 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
     address public constant WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address public constant NOTE = address(0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5);
-    address public constant BVAULT = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
-    bytes32 constant NOTE2WETH_PID = 0x5122e01d819e58bb2e22528c0d68d310f0aa6fd7000200000000000000000163;
+    bytes32 public constant BALDEX = 0x9e73ce1e99df7d45bc513893badf42bc38069f1564ee511b0c8988f72f127b13;
 
     constructor() public BaseUpgradeableStrategyUL() {
         assert(_CURRENCY_ID == bytes32(uint256(keccak256("eip1967.strategyStorage.currencyId")) - 1));
@@ -117,38 +113,26 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
         NotionalProxy(rewardPool()).nTokenClaimIncentives();
     }
 
-    function _note2WETH() internal {
-        uint256 noteAmount = IERC20(NOTE).balanceOf(address(this));
-
-        if (noteAmount == 0) {
-            return;
-        }
-
-        //swap NOTE to WETH on balancer
-        IBVault.SingleSwap memory singleSwap;
-        IBVault.SwapKind swapKind = IBVault.SwapKind.GIVEN_IN;
-
-        singleSwap.poolId = NOTE2WETH_PID;
-        singleSwap.kind = swapKind;
-        singleSwap.assetIn = IAsset(NOTE);
-        singleSwap.assetOut = IAsset(WETH);
-        singleSwap.amount = noteAmount;
-        singleSwap.userData = abi.encode(0);
-
-        IBVault.FundManagement memory funds;
-        funds.sender = address(this);
-        funds.fromInternalBalance = false;
-        funds.recipient = address(uint160(address(this)));
-        funds.toInternalBalance = false;
-
-        IERC20(NOTE).safeApprove(BVAULT, 0);
-        IERC20(NOTE).safeApprove(BVAULT, noteAmount);
-
-        IBVault(BVAULT).swap(singleSwap, funds, 1, block.timestamp);
-    }
-
     function _liquidateReward() internal {
-        _note2WETH();
+        uint256 noteAmount = IERC20(NOTE).balanceOf(address(this));
+        address _universalLiquidator = universalLiquidator();
+
+        if (noteAmount != 0) {
+            IERC20(NOTE).safeApprove(_universalLiquidator, 0);
+            IERC20(NOTE).safeApprove(_universalLiquidator, noteAmount);
+
+            address[] memory liquidationPaths = new address[](2);
+            liquidationPaths[0] = NOTE;
+            liquidationPaths[1] = WETH;
+
+            ILiquidator(_universalLiquidator).swapTokenOnDEX(
+                noteAmount,
+                1,
+                address(this), // target
+                BALDEX,
+                liquidationPaths
+            );
+        }
 
         uint256 rewardBalance = IERC20(WETH).balanceOf(address(this));
         if (!sell() || rewardBalance < sellFloor()) {
@@ -165,7 +149,6 @@ contract NotionalStrategy is IStrategy, BaseUpgradeableStrategyUL {
 
         address _nTokenUnderlying = nTokenUnderlying();
         if (_nTokenUnderlying != address(0)) {
-            address _universalLiquidator = universalLiquidator();
             IERC20(WETH).safeApprove(_universalLiquidator, 0);
             IERC20(WETH).safeApprove(_universalLiquidator, remainingRewardBalance);
 

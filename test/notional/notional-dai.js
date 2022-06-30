@@ -7,7 +7,8 @@ const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
-const IFeeForwarder = artifacts.require("IFeeRewardForwarderV6");
+const BalancerDex = artifacts.require("BalancerDex");
+const ILiquidator = artifacts.require("ILiquidator");
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("NotionalStrategy_DAI");
@@ -25,6 +26,8 @@ describe("Notional: DAI", function () {
   let underlyingWhale = "0x10bf1dcb5ab7860bab1c3320163c6dddf8dcc0e4";
   let dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  let note = "0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5";
+  let balDex = "0x7f0b29C16c08f1F650391fD7428A39228019a2d9";
 
   // parties in the protocol
   let governance;
@@ -74,11 +77,23 @@ describe("Notional: DAI", function () {
       strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
-      liquidation: [{ uni: [weth, dai] }],
+      liquidation: [{ uni: [weth, dai] }, { balancer: [note, weth] }],
     });
 
     // Else sellfloor will not be reached
     await strategy.setSellFloor(0, { from: governance });
+
+    let ulAddr = "0x875680A120597732F92Bf649cacfEb308e54dbA4";
+    let balancerVault = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
+    let balDexHex = "0x9e73ce1e99df7d45bc513893badf42bc38069f1564ee511b0c8988f72f127b13";
+
+    const balDex = await BalancerDex.new(balancerVault, { from: governance });
+    const universalLiquidator = await ILiquidator.at(ulAddr);
+    await universalLiquidator.changeDexAddress(balDexHex, balDex.address, { from: governance });
+
+    await balDex.changePoolId(weth, note, "0x5122e01d819e58bb2e22528c0d68d310f0aa6fd7000200000000000000000163", {
+      from: governance,
+    });
   });
 
   describe("Happy path", function () {
