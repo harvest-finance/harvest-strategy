@@ -21,4 +21,8 @@ interface ICurveDeposit_3token {
     uint256[3] calldata amounts,
     bool deposit
   ) external view returns(uint);
+  function calc_withdraw_one_coin(
+    uint256 _token_amount,
+    int128 i
+  ) external view returns(uint256);
 }
