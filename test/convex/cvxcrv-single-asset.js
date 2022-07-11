@@ -7,7 +7,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const Strategy = artifacts.require("ConvexStrategyCvxCRVMainnet_cvxCRV");
 
-//This test was developed at blockNumber 14848200
+//This test was developed at blockNumber 15120610
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Convex cvxCRV single asset", function() {
@@ -17,7 +17,7 @@ describe("Mainnet Convex cvxCRV single asset", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x785B9940eAf44be2B832C61816fF873B97A8ad63";
+  let underlyingWhale = "0x2B08254f95422d7FdBfDE173E453e1F7e31C405B";
   let crv = "0xD533a949740bb3306d119CC777fa900bA034cd52";
   let cvx = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
