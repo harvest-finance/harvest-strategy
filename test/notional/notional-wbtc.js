@@ -10,20 +10,20 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 const ILiquidator = artifacts.require("ILiquidator");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("NotionalStrategy_DAI");
+const Strategy = artifacts.require("NotionalStrategy_WBTC");
 
 //This test was developed at blockNumber 15120300
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Notional: DAI", function () {
+describe("Notional: WBTC", function () {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x10bf1Dcb5ab7860baB1C3320163C6dddf8DCC0e4";
-  let dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
+  let underlyingWhale = "0x2ae4c6aefd044df93959244d30764b6bb0474ff0";
+  let wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
   let note = "0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5";
 
@@ -40,7 +40,7 @@ describe("Notional: DAI", function () {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x6EbcE2453398af200c688C7c4eBD479171231818");
+    underlying = await IERC20.at("0x0Ace2DC3995aCD739aE5e0599E71A5524b93b886");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -51,7 +51,7 @@ describe("Notional: DAI", function () {
     await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
     await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 1e18});
 
-    farmerBalance = await underlying.balanceOf(underlyingWhale);
+    farmerBalance = new BigNumber(await underlying.balanceOf(underlyingWhale)).div(2);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
@@ -75,7 +75,7 @@ describe("Notional: DAI", function () {
       strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
-      liquidation: [{ balancer: [note, weth] }, {uniV3: [weth, dai]}],
+      liquidation: [{ balancer: [note, weth] }, { uniV3: [weth, wbtc]}],
     });
 
     // Else sellfloor will not be reached

@@ -3,14 +3,14 @@ pragma experimental ABIEncoderV2;
 
 import "./NotionalStrategy.sol";
 
-contract NotionalStrategy_DAI is NotionalStrategy {
+contract NotionalStrategy_WBTC is NotionalStrategy {
     constructor() public {}
 
     function initializeStrategy(address _storage, address _vault)
         public
         initializer
     {
-        address dai = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+        address wbtc = address(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
         address weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         address proxy = address(0x1344A36A1B56144C3Bc62E7757377D288fDE0369);
 
@@ -18,13 +18,13 @@ contract NotionalStrategy_DAI is NotionalStrategy {
 
         NotionalStrategy.initializeBaseStrategy(
             _storage,
-            address(0x6EbcE2453398af200c688C7c4eBD479171231818), // nDai
+            address(0x0Ace2DC3995aCD739aE5e0599E71A5524b93b886), // nWBTC
             _vault,
             proxy, // notional proxy
-            2 // currencyId
+            4 // currencyId
         );
 
-        storedLiquidationPaths[weth][dai] = [weth, dai];
-        storedLiquidationDexes[weth][dai] = [uniV3Dex];
+        storedLiquidationPaths[weth][wbtc] = [weth, wbtc];
+        storedLiquidationDexes[weth][wbtc] = [uniV3Dex];
     }
 }

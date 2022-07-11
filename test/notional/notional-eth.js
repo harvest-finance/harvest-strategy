@@ -7,12 +7,12 @@ const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
-const IFeeForwarder = artifacts.require("IFeeRewardForwarderV6");
+const ILiquidator = artifacts.require("ILiquidator");
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("NotionalStrategy_ETH");
 
-//This test was developed at blockNumber 12785750
+//This test was developed at blockNumber 15120300
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Notional: ETH", function () {
@@ -45,8 +45,8 @@ describe("Notional: ETH", function () {
     let etherGiver = accounts[9];
 
     // Give whale some ether to make sure the following actions are good
-    await send.ether(etherGiver, underlyingWhale, "1" + "0000000000000000000");
-    await send.ether(etherGiver, governance, "1" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 1e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -76,6 +76,14 @@ describe("Notional: ETH", function () {
 
     // Else sellfloor will not be reached
     await strategy.setSellFloor(0, { from: governance });
+
+    let ulAddr = "0x875680A120597732F92Bf649cacfEb308e54dbA4";
+    let balDexHex = "0x9e73ce1e99df7d45bc513893badf42bc38069f1564ee511b0c8988f72f127b13";
+    let balDexAddr = "0xd5ddBB899Ea14591c53779f0a24948BcC62aCb87";
+
+    const universalLiquidator = await ILiquidator.at(ulAddr);
+    await universalLiquidator.changeDexAddress(balDexHex, balDexAddr, { from: governance });
+
   });
 
   describe("Happy path", function () {
