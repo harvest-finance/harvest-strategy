@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "./NotionalStrategy.sol";
 
-contract NotionalStrategy_ETH is NotionalStrategy {
+contract NotionalStrategyMainnet_ETH is NotionalStrategy {
     constructor() public {}
 
     function initializeStrategy(address _storage, address _vault)
