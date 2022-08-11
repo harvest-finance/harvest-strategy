@@ -3,7 +3,6 @@ pragma solidity ^0.5.16;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../../base/interface/IStrategy.sol";
 import "../../base/interface/curve/ICurvePoolV2.sol";
 import "../../base/interface/curve/ICurveDeposit_3token.sol";
@@ -13,7 +12,7 @@ import "./interfaces/IStargateFarmingPool.sol";
 import "./interfaces/IStargateRouter.sol";
 import "./interfaces/IStargateToken.sol";
 
-contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
+contract StargateStrategy is BaseUpgradeableStrategy {
     using SafeMath for uint256;
 
     // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
@@ -32,8 +31,10 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
         address(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
     address public constant usdc =
         address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address public constant stg = 
+        address(0xAf5191B0De278C7286d6C7CC6ab6BB8A73bA2Cd6);
 
-    constructor() public BaseUpgradeableStrategy() ReentrancyGuard() {
+    constructor() public BaseUpgradeableStrategy() {
         assert(
             _DEPOSIT_TOKEN_SLOT ==
                 bytes32(
@@ -72,7 +73,6 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
         address _underlying,
         address _vault,
         address _rewardPool,
-        address _rewardToken,
         address _depositToken,
         address _stargateRouter,
         uint256 _stargatePoolId,
@@ -83,7 +83,7 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
             _underlying,
             _vault,
             _rewardPool,
-            _rewardToken,
+            usdc,
             300, // profit sharing numerator
             1000, // profit sharing denominator
             true, // sell
@@ -197,13 +197,21 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
     }
 
     function _liquidateReward() internal {
-        address _rewardToken = rewardToken();
-        uint256 rewardBalance = IERC20(_rewardToken).balanceOf(address(this));
 
-        if (rewardBalance > 0) {
-            IERC20(_rewardToken).safeApprove(curve_stg_pool, 0);
-            IERC20(_rewardToken).safeApprove(curve_stg_pool, rewardBalance);
-            ICurvePoolV2(curve_stg_pool).exchange(0, 1, rewardBalance, 1);
+        uint256 stgBalance = IERC20(stg).balanceOf(address(this));
+
+        if (stgBalance > 0) {
+            IERC20(stg).safeApprove(curve_stg_pool, 0);
+            IERC20(stg).safeApprove(curve_stg_pool, stgBalance);
+            ICurvePoolV2(curve_stg_pool).exchange(0, 1, stgBalance, 1);
+
+            address _rewardToken = rewardToken();
+            uint256 rewardBalance = IERC20(_rewardToken).balanceOf(address(this));
+
+            if (rewardBalance > 0) {
+                notifyProfitInRewardToken(rewardBalance);
+            }
+
             if (usdc != depositToken()) {
                 uint256 usdcBalance = IERC20(usdc).balanceOf(address(this));
                 IERC20(usdc).safeApprove(curve_3pool, 0);
@@ -236,7 +244,6 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
         external
         onlyNotPausedInvesting
         restricted
-        nonReentrant
     {
         _enterRewardPool();
     }
@@ -291,7 +298,7 @@ contract StargateStrategy is BaseUpgradeableStrategy, ReentrancyGuard {
         address _recipient,
         address _token,
         uint256 _amount
-    ) public onlyControllerOrGovernance nonReentrant {
+    ) public onlyControllerOrGovernance {
         // To make sure that governance cannot come in and take away the coins
         require(!unsalvagableTokens(_token), "The token must be salvageable");
         IERC20(_token).safeTransfer(_recipient, _amount);
