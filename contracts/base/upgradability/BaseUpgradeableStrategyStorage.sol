@@ -162,10 +162,6 @@ contract BaseUpgradeableStrategyStorage {
     setUint256(slot, _value ? 1 : 0);
   }
 
-  function getBoolean(bytes32 slot) internal view returns (bool) {
-    return (getUint256(slot) == 1);
-  }
-
   function setAddress(bytes32 slot, address _address) internal {
     // solhint-disable-next-line no-inline-assembly
     assembly {
@@ -180,6 +176,17 @@ contract BaseUpgradeableStrategyStorage {
     }
   }
 
+  function setBytes32(bytes32 slot, bytes32 _value) internal {
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      sstore(slot, _value)
+    }
+  }
+
+  function getBoolean(bytes32 slot) internal view returns (bool) {
+    return (getUint256(slot) == 1);
+  }
+
   function getAddress(bytes32 slot) internal view returns (address str) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
@@ -188,6 +195,13 @@ contract BaseUpgradeableStrategyStorage {
   }
 
   function getUint256(bytes32 slot) internal view returns (uint256 str) {
+    // solhint-disable-next-line no-inline-assembly
+    assembly {
+      str := sload(slot)
+    }
+  }
+
+  function getBytes32(bytes32 slot) internal view returns (bytes32 str) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       str := sload(slot)
