@@ -1,0 +1,15 @@
+{
+    "harvestGovernance": "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f",
+    "booster": "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
+    "underlyingWhale": "ADDRESS",
+    "holdVault": "0xF49440C1F012d041802b25A73e5B0B9166a75c02",
+    "lpTokens": {
+        "LPTOKEN1": {
+            "address": "ADDRESS",
+            "whale": "ADDRESS"
+        }
+    },
+    "relatedTokens": {
+        "TOKEN1": "ADDRESS"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "harvestGovernance": "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f",
+    "booster": "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
+    "underlyingWhale": "0x37f23097ad3c862DfE895139a63a33b1d236e89F",
+    "holdVault": "0xF49440C1F012d041802b25A73e5B0B9166a75c02",
+    "lpTokens": {
+        "B_stETH_STABLE": {
+            "address": "0x32296969Ef14EB0c6d29669C550D4a0449130230",
+            "whale": "0xcd4722b7c24c29e0413bdcd9e51404b4539d14ae"
+        }
+    },
+    "relatedTokens": {
+        "bal": "0xba100000625a3754423978a60c9317c58a424e3D",
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+}
