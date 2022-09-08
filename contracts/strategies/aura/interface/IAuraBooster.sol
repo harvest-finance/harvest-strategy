@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-interface IBooster {
+interface IAuraBooster {
     
     function deposit(uint256 _pid, uint256 _amount, bool _stake) external;
 

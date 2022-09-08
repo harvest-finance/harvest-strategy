@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-interface IBaseRewardPool {
+interface IAuraBaseRewardPool {
 
     function balanceOf(address account) external view returns(uint256 amount);
 
