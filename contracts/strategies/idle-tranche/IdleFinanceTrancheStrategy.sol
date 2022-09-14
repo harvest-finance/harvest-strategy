@@ -57,7 +57,7 @@ contract IdleFinanceTrancheStrategy is IStrategy, BaseUpgradeableStrategyUL {
             _profitSharingNumerator: 300,
             _profitSharingDenominator: 1000,
             _sell: true,
-            _sellFloor: 1e18,
+            _sellFloor: 0,
             _implementationChangeDelay: 12 hours,
             _universalLiquidatorRegistry: address(0x7882172921E99d590E097cD600554339fBDBc480)
         });
@@ -237,11 +237,30 @@ contract IdleFinanceTrancheStrategy is IStrategy, BaseUpgradeableStrategyUL {
     function withdrawToVault(uint256 amount) external restricted {
         uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
 
-        if (amount >= entireBalance) {
-            withdrawAllToVault();
-        } else {
-            IERC20(underlying()).safeTransfer(vault(), amount);
+        if (amount > entireBalance) {
+            address _rewardPool = rewardPool();
+            address tranche = IIdleCDO(_rewardPool).AATranche();
+            address _liquidityGauge = liquidityGauge();
+            uint256 tranchePrice = IIdleCDO(_rewardPool).tranchePrice(tranche);
+
+            uint256 amountToWithdraw = amount.sub(entireBalance);
+            uint256 trancheBalanceToWithdraw = amountToWithdraw.mul(ONE_TRANCHE_TOKEN).div(tranchePrice);
+
+            if(isSTETH()) {
+                trancheBalanceToWithdraw = IWstETH(WSTETH).getStETHByWstETH(trancheBalanceToWithdraw);
+            }
+
+            ILiquidityGaugeV3(_liquidityGauge).withdraw(trancheBalanceToWithdraw);
+            uint256 redeemed = IIdleCDO(_rewardPool).withdrawAA(trancheBalanceToWithdraw);
+            
+            if(isSTETH()) {
+                IERC20(STETH).safeApprove(WSTETH, 0);
+                IERC20(STETH).safeApprove(WSTETH, redeemed);
+                IWstETH(WSTETH).wrap(redeemed);
+            }
         }
+
+        IERC20(underlying()).safeTransfer(vault(), amount);
     }
 
     function salvage(
