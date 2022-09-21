@@ -4,12 +4,6 @@
     "balancerDex": "0xd5ddBB899Ea14591c53779f0a24948BcC62aCb87",
     "balancerDexOwner": "0x6a74649aCFD7822ae8Fb78463a9f2192752E5Aa2",
     "booster": "0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10",
-    "rewardPool": "0xDCee1C640cC270121faF145f231fd8fF1d8d5CD4",
-    "auraPoolId": "3",
-    "balancerPoolId": "0x32296969ef14eb0c6d29669c550d4a0449130230000200000000000000000080",
-    "depositArrayPosition": "1",
-    "balancerVault": "0xBA12222222228d8Ba445958a75a0704d566BF2C8",
-    "hodlRatio": "1000",
     "lpTokens": {
         "B_stETH_STABLE": {
             "address": "0x32296969Ef14EB0c6d29669C550D4a0449130230",
@@ -17,10 +11,8 @@
         }
     },
     "relatedTokens": {
-        "bal": "0xba100000625a3754423978a60c9317c58a424e3D",
         "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
-        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-        "wstETH": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     },
     "setBalancerDex": [
         {

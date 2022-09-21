@@ -39,7 +39,6 @@ contract AuraStrategyUL is
   uint256 public constant hodlRatioBase = 10000;
   address[] public poolAssets;
   address[] public rewardTokens;
-  bytes32[] public dexes;
 
   constructor() public BaseUpgradeableStrategyUL() {
     assert(_AURA_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.auraPoolId")) - 1));
@@ -63,7 +62,6 @@ contract AuraStrategyUL is
     address _depositToken,
     uint256 _depositArrayPosition,
     address _balancerDeposit,
-    address[] memory _poolAssets,
     uint256 _hodlRatio
   ) public initializer {
 
@@ -95,15 +93,11 @@ contract AuraStrategyUL is
       address(0x7882172921E99d590E097cD600554339fBDBc480) //UL Registry
     );
 
-    rewardTokens = new address[](0);
-    poolAssets = _poolAssets;
-
     address _lpt;
     address _depositReceipt;
     (_lpt,_depositReceipt,,,,) = IAuraBooster(booster).poolInfo(_auraPoolID);
     require(_lpt == underlying(), "Pool Info does not match underlying");
-    require(1 < _poolAssets.length && _poolAssets.length < 5, "_nTokens should be 2, 3 or 4");
-    _setNTokens(_poolAssets.length);
+    _setNTokens(poolAssets.length);
     _setDepositArrayIndex(_depositArrayPosition);
     _setAuraPoolId(_auraPoolID);
     _setBalancerPoolId(_balancerPoolID);
@@ -350,6 +344,9 @@ contract AuraStrategyUL is
       return;
     }
 
+    address universalRewardToken = rewardToken();
+    address universalDepositToken = depositToken();
+    address universalLiquidator = universalLiquidator();
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
@@ -357,8 +354,8 @@ contract AuraStrategyUL is
       // if the token is the rewardToken then there won't be a path defined because liquidation is not necessary,
       // but we still have to make sure that the toHodl part is executed.
       if (rewardBalance == 0 || 
-          (storedLiquidationDexes[token][rewardToken()].length < 1) && 
-           token != rewardToken()) {
+          (storedLiquidationDexes[token][universalRewardToken].length < 1) && 
+           token != universalRewardToken) {
         continue;
       }
 
@@ -371,46 +368,46 @@ contract AuraStrategyUL is
         }
       }
 
-      if(token == rewardToken()) {
+      if(token == universalRewardToken) {
         // one of the reward tokens is the same as the token that we liquidate to -> 
         // no liquidation necessary
         continue;
       }
-      IERC20(token).safeApprove(universalLiquidator(), 0);
-      IERC20(token).safeApprove(universalLiquidator(), rewardBalance);
+      IERC20(token).safeApprove(universalLiquidator, 0);
+      IERC20(token).safeApprove(universalLiquidator, rewardBalance);
       // we can accept 1 as the minimum because this will be called only by a trusted worker
-      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
+      ILiquidator(universalLiquidator).swapTokenOnMultipleDEXes(
         rewardBalance,
         1,
         address(this), // target
-        storedLiquidationDexes[token][rewardToken()],
-        storedLiquidationPaths[token][rewardToken()]
+        storedLiquidationDexes[token][universalRewardToken],
+        storedLiquidationPaths[token][universalRewardToken]
       );
     }
 
-    uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    uint256 rewardBalance = IERC20(universalRewardToken).balanceOf(address(this));
     notifyProfitInRewardToken(rewardBalance);
-    uint256 remainingRewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+    uint256 remainingRewardBalance = IERC20(universalRewardToken).balanceOf(address(this));
 
     if (remainingRewardBalance == 0) {
       return;
     }
 
-    if(depositToken() != rewardToken()) {
-      IERC20(rewardToken()).safeApprove(universalLiquidator(), 0);
-      IERC20(rewardToken()).safeApprove(universalLiquidator(), remainingRewardBalance);
+    if(universalDepositToken != universalRewardToken) {
+      IERC20(universalRewardToken).safeApprove(universalLiquidator, 0);
+      IERC20(universalRewardToken).safeApprove(universalLiquidator, remainingRewardBalance);
 
       // we can accept 1 as minimum because this is called only by a trusted role
-      ILiquidator(universalLiquidator()).swapTokenOnMultipleDEXes(
+      ILiquidator(universalLiquidator).swapTokenOnMultipleDEXes(
         remainingRewardBalance,
         1,
         address(this), // target
-        storedLiquidationDexes[rewardToken()][depositToken()],
-        storedLiquidationPaths[rewardToken()][depositToken()]
+        storedLiquidationDexes[universalRewardToken][universalDepositToken],
+        storedLiquidationPaths[universalRewardToken][universalDepositToken]
       );
     }
 
-    uint256 tokenBalance = IERC20(depositToken()).balanceOf(address(this));
+    uint256 tokenBalance = IERC20(universalDepositToken).balanceOf(address(this));
     if (tokenBalance > 0) {
       depositLP();
     }
@@ -419,10 +416,11 @@ contract AuraStrategyUL is
   function depositLP() 
     internal 
   {
-    uint256 tokenBalance = IERC20(depositToken()).balanceOf(address(this));
+    address universalDepositToken = depositToken();
+    uint256 tokenBalance = IERC20(universalDepositToken).balanceOf(address(this));
 
-    IERC20(depositToken()).safeApprove(balancerDeposit(), 0);
-    IERC20(depositToken()).safeApprove(balancerDeposit(), tokenBalance);
+    IERC20(universalDepositToken).safeApprove(balancerDeposit(), 0);
+    IERC20(universalDepositToken).safeApprove(balancerDeposit(), tokenBalance);
 
     // we can accept 0 as minimum, this will be called only by trusted roles
     
@@ -468,9 +466,10 @@ contract AuraStrategyUL is
   function _enterRewardPool() 
     internal 
   {
-    uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
-    IERC20(underlying()).safeApprove(booster, 0);
-    IERC20(underlying()).safeApprove(booster, entireBalance);
+    address lpToken = underlying();
+    uint256 entireBalance = IERC20(lpToken).balanceOf(address(this));
+    IERC20(lpToken).safeApprove(booster, 0);
+    IERC20(lpToken).safeApprove(booster, entireBalance);
     IAuraBooster(booster).depositAll(auraPoolId(), true); //deposit and stake
   }
 
@@ -491,11 +490,12 @@ contract AuraStrategyUL is
     public 
     restricted 
   {
+    address lpToken = underlying();
     if (address(rewardPool()) != address(0)) {
       exitRewardPool();
     }
     _liquidateReward();
-    IERC20(underlying()).safeTransfer(vault(), IERC20(underlying()).balanceOf(address(this)));
+    IERC20(lpToken).safeTransfer(vault(), IERC20(lpToken).balanceOf(address(this)));
   }
 
   /** Withdraws all the asset to the vault
@@ -504,9 +504,10 @@ contract AuraStrategyUL is
     public 
     restricted 
   {
+    address lpToken = underlying();
     // Typically there wouldn't be any amount here
     // however, it is possible because of the emergencyExit
-    uint256 entireBalance = IERC20(underlying()).balanceOf(address(this));
+    uint256 entireBalance = IERC20(lpToken).balanceOf(address(this));
 
     if(amount > entireBalance){
       // While we have the check above, we still using SafeMath below
@@ -515,17 +516,13 @@ contract AuraStrategyUL is
       uint256 toWithdraw = Math.min(_rewardPoolBalance(), needToWithdraw);
       partialWithdrawalRewardPool(toWithdraw);
     }
-    IERC20(underlying()).safeTransfer(vault(), amount);
+    IERC20(lpToken).safeTransfer(vault(), amount);
   }
 
   function partialWithdrawalRewardPool(uint256 amount) 
     internal 
   {
-    IAuraBaseRewardPool(rewardPool()).withdraw(amount, false);  //don't claim rewards at this point
-    uint256 depositBalance = IERC20(depositReceipt()).balanceOf(address(this));
-    if (depositBalance != 0) {
-      IAuraBooster(booster).withdrawAll(auraPoolId());
-    }
+    IAuraBaseRewardPool(rewardPool()).withdrawAndUnwrap(amount, false);  //don't claim rewards at this point
   }
 
   /** In case there are some issues discovered about the pool or underlying asset
@@ -545,11 +542,7 @@ contract AuraStrategyUL is
   {
     uint256 stakedBalance = _rewardPoolBalance();
     if (stakedBalance != 0) {
-        IAuraBaseRewardPool(rewardPool()).withdrawAll(false); //don't claim rewards
-    }
-    uint256 depositBalance = IERC20(depositReceipt()).balanceOf(address(this));
-    if (depositBalance != 0) {
-      IAuraBooster(booster).withdrawAll(auraPoolId());
+        IAuraBaseRewardPool(rewardPool()).withdrawAllAndUnwrap(false); //don't claim rewards
     }
   }
 
@@ -558,11 +551,7 @@ contract AuraStrategyUL is
   {
       uint256 stakedBalance = _rewardPoolBalance();
       if (stakedBalance != 0) {
-          IAuraBaseRewardPool(rewardPool()).withdrawAll(true);
-      }
-      uint256 depositBalance = IERC20(depositReceipt()).balanceOf(address(this));
-      if (depositBalance != 0) {
-        IAuraBooster(booster).withdrawAll(auraPoolId());
+          IAuraBaseRewardPool(rewardPool()).withdrawAllAndUnwrap(true);
       }
   }
 

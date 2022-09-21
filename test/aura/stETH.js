@@ -9,7 +9,7 @@ const IAuraBooster = artifacts.require("contracts/strategies/aura/interface/IAur
 const IBalancerDex = artifacts.require("contracts/base/interface/IBalancerDex.sol:IBalancerDex");
 
 const config = require('./import/stETH.config.json');
-const Strategy = artifacts.require("AuraStrategystETH");
+const Strategy = artifacts.require("AuraStrategyMainnet_stETH");
 
 //This test was developed at blockNumber 13727630
 
@@ -56,31 +56,14 @@ describe("Mainnet Aura auraB-stETH-STABLE pool", function() {
     // impersonate accounts
     await impersonates([governance, config.lpTokens.B_stETH_STABLE.whale, config.balancerDexOwner]);
 
-    const strategyArgs = [
-      addresses.Storage, 
-      config.lpTokens.B_stETH_STABLE.address, 
-      "vaultAddr",
-      config.rewardPool,
-      new BigNumber(config.auraPoolId),
-      config.balancerPoolId,
-      config.relatedTokens.wETH,
-      config.depositArrayPosition,
-      config.balancerVault,
-      [config.relatedTokens.wstETH, config.relatedTokens.wETH],
-      config.hodlRatio
-    ]
-
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"balancer": [config.relatedTokens.aura, config.relatedTokens.wETH]}],
-      "strategyArgs": strategyArgs
+      "liquidation": [{"balancer": [config.relatedTokens.aura, config.relatedTokens.wETH]}]
     });
-
-    await strategy.setSellFloor(0, {from:governance});
 
     booster = await IAuraBooster.at(config.booster);
 
