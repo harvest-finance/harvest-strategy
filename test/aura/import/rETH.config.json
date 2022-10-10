@@ -1,8 +1,8 @@
 {
     "lpTokens": {
-        "B_stETH_STABLE": {
-            "address": "0x32296969Ef14EB0c6d29669C550D4a0449130230",
-            "whale": "0x8627425d8B3c16d16683a1E1e17ff00A2596E05f"
+        "B_rETH_STABLE": {
+            "address": "0x1E19CF2D73a72Ef1332C882F20534B6519Be0276",
+            "whale": "0xcaff17d5c7C349bE300E93cbAF56bc868ef75982"
         }
     },
     "relatedTokens": {
