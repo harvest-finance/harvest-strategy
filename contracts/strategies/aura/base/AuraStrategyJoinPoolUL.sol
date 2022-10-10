@@ -13,7 +13,7 @@ import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
 import "../../../base/interface/balancer/IBVault.sol";
 
-contract AuraStrategyUL is 
+contract AuraStrategyJoinPoolUL is 
   IStrategy,
   BaseUpgradeableStrategyUL
 {
@@ -24,6 +24,7 @@ contract AuraStrategyUL is
   address public constant booster = address(0x7818A1DA7BD1E64c199029E86Ba244a9798eEE10);
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
   address public constant multiSigAddr = address(0xF49440C1F012d041802b25A73e5B0B9166a75c02);
+  address public constant bVault = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _AURA_POOLID_SLOT = 0xbc10a276e435b4e9a9e92986f93a224a34b50c1898d7551c38ef30a08efadec4;
@@ -31,7 +32,6 @@ contract AuraStrategyUL is
   bytes32 internal constant _DEPOSIT_TOKEN_SLOT = 0x219270253dbc530471c88a9e7c321b36afda219583431e7b6c386d2d46e70c86;
   bytes32 internal constant _DEPOSIT_RECEIPT_SLOT = 0x414478d5ad7f54ead8a3dd018bba4f8d686ba5ab5975cd376e0c98f98fb713c5;
   bytes32 internal constant _DEPOSIT_ARRAY_INDEX_SLOT = 0xf5304231d5b8db321cd2f83be554278488120895d3326b9a012d540d75622ba3;
-  bytes32 internal constant _BALANCER_DEPOSIT_SLOT = 0x76b08b2cd56227309b7289db7320e303755217a3f4b847eb8c47e7e8351bdc53;
   bytes32 internal constant _HODL_RATIO_SLOT = 0xb487e573671f10704ed229d25cf38dda6d287a35872859d096c0395110a0adb1;
   bytes32 internal constant _HODL_VAULT_SLOT = 0xc26d330f887c749cb38ae7c37873ff08ac4bba7aec9113c82d48a0cf6cc145f2;
   bytes32 internal constant _NTOKENS_SLOT = 0xbb60b35bae256d3c1378ff05e8d7bee588cd800739c720a107471dfa218f74c1;
@@ -46,7 +46,6 @@ contract AuraStrategyUL is
     assert(_DEPOSIT_TOKEN_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositToken")) - 1));
     assert(_DEPOSIT_RECEIPT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositReceipt")) - 1));
     assert(_DEPOSIT_ARRAY_INDEX_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositArrayIndex")) - 1));
-    assert(_BALANCER_DEPOSIT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.balancerDeposit")) - 1));
     assert(_HODL_RATIO_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlRatio")) - 1));
     assert(_HODL_VAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlVault")) - 1));
     assert(_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.nTokens")) - 1)); 
@@ -61,7 +60,6 @@ contract AuraStrategyUL is
     bytes32 _balancerPoolID,
     address _depositToken,
     uint256 _depositArrayPosition,
-    address _balancerDeposit,
     uint256 _hodlRatio
   ) public initializer {
 
@@ -103,7 +101,6 @@ contract AuraStrategyUL is
     _setBalancerPoolId(_balancerPoolID);
     _setDepositToken(_depositToken);
     _setDepositReceipt(_depositReceipt);
-    _setbalancerDeposit(_balancerDeposit);
     setUint256(_HODL_RATIO_SLOT, 1000);
     setAddress(_HODL_VAULT_SLOT, multiSigAddr);
   }
@@ -206,12 +203,6 @@ contract AuraStrategyUL is
     setUint256(_DEPOSIT_ARRAY_INDEX_SLOT, _value);
   }
 
-  function _setbalancerDeposit(address _address) 
-    internal 
-  {
-    setAddress(_BALANCER_DEPOSIT_SLOT, _address);
-  }
-
   //
   // Get Strategy Metadata Functions
   //
@@ -286,14 +277,6 @@ contract AuraStrategyUL is
     returns (uint256) 
   {
     return getUint256(_DEPOSIT_ARRAY_INDEX_SLOT);
-  }
-
-  function balancerDeposit() 
-    public 
-    view
-    returns (address) 
-  {
-    return getAddress(_BALANCER_DEPOSIT_SLOT);
   }
 
   //
@@ -417,20 +400,21 @@ contract AuraStrategyUL is
     internal 
   {
     address universalDepositToken = depositToken();
+    uint256 depositTokensAmount = nTokens();
     uint256 tokenBalance = IERC20(universalDepositToken).balanceOf(address(this));
 
-    IERC20(universalDepositToken).safeApprove(balancerDeposit(), 0);
-    IERC20(universalDepositToken).safeApprove(balancerDeposit(), tokenBalance);
+    IERC20(universalDepositToken).safeApprove(bVault, 0);
+    IERC20(universalDepositToken).safeApprove(bVault, tokenBalance);
 
     // we can accept 0 as minimum, this will be called only by trusted roles
     
-    IAsset[] memory assets = new IAsset[](nTokens());
-    for (uint256 i = 0; i < nTokens(); i++) {
+    IAsset[] memory assets = new IAsset[](depositTokensAmount);
+    for (uint256 i = 0; i < depositTokensAmount; i++) {
       assets[i] = IAsset(poolAssets[i]);
     }
 
     IBVault.JoinKind joinKind = IBVault.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT;
-    uint256[] memory amountsIn = new uint256[](nTokens());
+    uint256[] memory amountsIn = new uint256[](depositTokensAmount);
     amountsIn[depositArrayIndex()] = tokenBalance;
     uint256 minAmountOut = 1;
 
@@ -442,7 +426,7 @@ contract AuraStrategyUL is
     request.userData = userData;
     request.fromInternalBalance = false;
 
-    IBVault(balancerDeposit()).joinPool(
+    IBVault(bVault).joinPool(
       balancerPoolId(),
       address(this),
       address(this),
