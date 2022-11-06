@@ -2,8 +2,6 @@
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
@@ -27,6 +25,9 @@ contract AuraStrategyBatchSwapUL is
   address public constant weth = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
   address public constant multiSigAddr = address(0xF49440C1F012d041802b25A73e5B0B9166a75c02);
   address public constant bVault = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
+  address public constant bal = address(0xba100000625a3754423978a60c9317c58a424e3D);
+  address public constant aura = address(0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF);
+  bytes32 public constant balancerDex = bytes32(0x9e73ce1e99df7d45bc513893badf42bc38069f1564ee511b0c8988f72f127b13);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _AURA_POOLID_SLOT = 0xbc10a276e435b4e9a9e92986f93a224a34b50c1898d7551c38ef30a08efadec4;
@@ -96,7 +97,7 @@ contract AuraStrategyBatchSwapUL is
     _setAuraPoolId(_auraPoolID);
     _setDepositToken(_depositToken);
     _setDepositReceipt(_depositReceipt);
-    setUint256(_HODL_RATIO_SLOT, 1000);
+    setUint256(_HODL_RATIO_SLOT, _hodlRatio);
     setAddress(_HODL_VAULT_SLOT, multiSigAddr);
   }
 
@@ -424,11 +425,20 @@ contract AuraStrategyBatchSwapUL is
     IAuraBooster(booster).depositAll(auraPoolId(), true); //deposit and stake
   }
 
-  function addRewardToken(address _token) 
+  function addRewardToken(
+    address _token, 
+    address[] memory _path2Reward, 
+    bytes32 _dexOption
+  ) 
     public 
     onlyGovernance 
   {
+    address universalRewardToken = rewardToken();
+    require(_path2Reward[_path2Reward.length-1] == universalRewardToken, "Path should end with universal reward token");
+    require(_path2Reward[0] == _token, "Path should start with new reward token");
     rewardTokens.push(_token);
+    storedLiquidationPaths[_token][universalRewardToken] = _path2Reward;
+    storedLiquidationDexes[_token][universalRewardToken] = [_dexOption];
   }
 
   //
