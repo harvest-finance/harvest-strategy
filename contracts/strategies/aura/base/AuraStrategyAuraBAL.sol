@@ -25,10 +25,15 @@ contract AuraStrategyAuraBAL is
   address public constant multiSigAddr = address(0xF49440C1F012d041802b25A73e5B0B9166a75c02);
   address public constant bVault = address(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
   address public constant bbaUSD = address(0xA13a9247ea42D743238089903570127DdA72fE44);
+  address public constant bal = address(0xba100000625a3754423978a60c9317c58a424e3D);
+  address public constant aura = address(0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF);
+  bytes32 public constant balancerDex = bytes32(0x9e73ce1e99df7d45bc513893badf42bc38069f1564ee511b0c8988f72f127b13);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _AURA_DEPOSIT_SLOT = 0x07e8061d900dff7dd9a7168ace1714bd420d02893638da426d3d1cbb74ccd415;
-  bytes32 internal constant _BALANCER_POOLID_SLOT = 0xbf3f653715dd45c84a3367d2975f271307cb967d6ce603dc4f0def2ad909ca64;
+  bytes32 internal constant _BALANCER_SWAP_POOL_SLOT = 0x56b744750739ea05112ec41b396684174433dcdf4cb1df26871ea60f563ff5bc;
+  bytes32 internal constant _BALANCER_SWAP_POOLID_SLOT = 0x96eaba03b7d8704b74915e0bd104447ffbbd75f05f95be4c198737d1ed4d6459;
+  bytes32 internal constant _BALANCER_DEPOSIT_POOLID_SLOT = 0x0b9742b6ca158c800acf38380d6c693dbe9cf98c2e95790f40343ee6ba0d59da;
   bytes32 internal constant _DEPOSIT_TOKEN_SLOT = 0x219270253dbc530471c88a9e7c321b36afda219583431e7b6c386d2d46e70c86;
   bytes32 internal constant _DEPOSIT_RECEIPT_SLOT = 0x414478d5ad7f54ead8a3dd018bba4f8d686ba5ab5975cd376e0c98f98fb713c5;
   bytes32 internal constant _DEPOSIT_ARRAY_INDEX_SLOT = 0xf5304231d5b8db321cd2f83be554278488120895d3326b9a012d540d75622ba3;
@@ -45,7 +50,9 @@ contract AuraStrategyAuraBAL is
 
   constructor() public BaseUpgradeableStrategyUL() {
     assert(_AURA_DEPOSIT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.auraDeposit")) - 1));
-    assert(_BALANCER_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.balancerPoolId")) - 1));
+    assert(_BALANCER_SWAP_POOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.balancerSwapPool")) - 1));
+    assert(_BALANCER_SWAP_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.balancerSwapPoolId")) - 1));
+    assert(_BALANCER_DEPOSIT_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.balancerDepositPoolId")) - 1));
     assert(_DEPOSIT_TOKEN_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositToken")) - 1));
     assert(_DEPOSIT_ARRAY_INDEX_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositArrayIndex")) - 1));
     assert(_HODL_RATIO_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlRatio")) - 1));
@@ -60,7 +67,9 @@ contract AuraStrategyAuraBAL is
     address _vault,
     address _rewardPool,
     address _auraDeposit,
-    bytes32 _balancerPoolID,
+    address _balancerSwapPool,
+    bytes32 _balancerSwapPoolID,
+    bytes32 _balancerDepositPoolID,
     address _depositToken,
     uint256 _depositArrayPosition,
     uint256 _hodlRatio
@@ -99,10 +108,12 @@ contract AuraStrategyAuraBAL is
     _setSwapNTokens(swapAssets.length);
     _setDepositNTokens(poolAssets.length);
     _setAuraDeposit(_auraDeposit);
-    _setDepositArrayIndex(_depositArrayPosition);
-    _setBalancerPoolId(_balancerPoolID);
+    _setBalancerSwapPool(_balancerSwapPool);
+    _setBalancerSwapPoolId(_balancerSwapPoolID);
+    _setBalancerDepositPoolId(_balancerDepositPoolID);
     _setDepositToken(_depositToken);
-    setUint256(_HODL_RATIO_SLOT, 1000);
+    _setDepositArrayIndex(_depositArrayPosition);
+    setUint256(_HODL_RATIO_SLOT, _hodlRatio);
     setAddress(_HODL_VAULT_SLOT, multiSigAddr);
   }
 
@@ -171,12 +182,28 @@ contract AuraStrategyAuraBAL is
     setAddress(_AURA_DEPOSIT_SLOT, _address);
   }
 
-  /** Balancer deposit pool ID
-   */
-  function _setBalancerPoolId(bytes32 _value) 
+  function _setBalancerSwapPool(address _address) 
     internal 
   {
-    setBytes32(_BALANCER_POOLID_SLOT, _value);
+    setAddress(_BALANCER_SWAP_POOL_SLOT, _address);
+  }
+
+  /** 
+   * Balancer swap pool ID
+   */
+  function _setBalancerSwapPoolId(bytes32 _value) 
+    internal 
+  {
+    setBytes32(_BALANCER_SWAP_POOLID_SLOT, _value);
+  }
+
+  /** 
+   * Balancer deposit pool ID
+   */
+  function _setBalancerDepositPoolId(bytes32 _value) 
+    internal 
+  {
+    setBytes32(_BALANCER_DEPOSIT_POOLID_SLOT, _value);
   }
 
   function _setSwapNTokens(uint256 _value) internal {
@@ -236,12 +263,28 @@ contract AuraStrategyAuraBAL is
     return getAddress(_AURA_DEPOSIT_SLOT);
   }
 
-  function balancerPoolId() 
+  function balancerSwapPool() 
+    public 
+    view 
+    returns (address) 
+  {
+    return getAddress(_BALANCER_SWAP_POOL_SLOT);
+  }
+
+  function balancerSwapPoolId() 
     public 
     view 
     returns (bytes32) 
   {
-    return getBytes32(_BALANCER_POOLID_SLOT);
+    return getBytes32(_BALANCER_SWAP_POOLID_SLOT);
+  }
+
+  function balancerDepositPoolId() 
+    public 
+    view 
+    returns (bytes32) 
+  {
+    return getBytes32(_BALANCER_DEPOSIT_POOLID_SLOT);
   }
 
   function swapNTokens() 
@@ -423,51 +466,85 @@ contract AuraStrategyAuraBAL is
     );
   }
 
-  // Deposit WETH to Balancer and Receive 80BAL20WETH BPT
-  // Deposit 80BAL20WETH to Aura: auraBALBpt Depositor and Receive auraBALBpt
+  /**
+   * @dev There are two ways to receive auraBALBpt
+   *      1. Deposit WETH to Balancer and Receive 80BAL20WETH BPT
+   *         Deposit 80BAL20WETH to Aura: auraBALBpt Depositor and Receive auraBALBpt
+   *      2. Swap WETH to auraBALBpt directly
+   */
   function _convertCrvToAuraBAL() 
     internal 
   {
     address universalRewardToken = rewardToken();
-    uint256 depositTokensAmount = depositNTokens();
     uint256 tokenBalance = IERC20(universalRewardToken).balanceOf(address(this));
 
     IERC20(universalRewardToken).safeApprove(bVault, 0);
     IERC20(universalRewardToken).safeApprove(bVault, tokenBalance);
 
-    // we can accept 0 as minimum, this will be called only by trusted roles
+    address payable recipient = address(uint160(address(this)));
+    address underlyingToken = underlying();
+    bytes32 swapPoolId = balancerSwapPoolId();
+
+    // Try to swap more than deposit
+    uint256 underlyingBefore = IERC20(underlyingToken).balanceOf(address(this));
+    IBVault.FundManagement memory funds;
+    funds.sender = address(this);
+    funds.recipient = recipient;
+
+    IBVault.SingleSwap memory swapInfos = IBVault.SingleSwap(
+      swapPoolId, 
+      IBVault.SwapKind.GIVEN_IN,
+      IAsset(universalRewardToken),
+      IAsset(underlyingToken),
+      tokenBalance, 
+      bytes(""));
     
-    IAsset[] memory assets = new IAsset[](depositTokensAmount);
-    for (uint256 i = 0; i < depositTokensAmount; i++) {
-      assets[i] = IAsset(poolAssets[i]);
-    }
-
-    IBVault.JoinKind joinKind = IBVault.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT;
-    uint256[] memory amountsIn = new uint256[](depositTokensAmount);
-    amountsIn[depositArrayIndex()] = tokenBalance;
-    uint256 minAmountOut = 1;
-
-    bytes memory userData = abi.encode(joinKind, amountsIn, minAmountOut);
-
-    IBVault.JoinPoolRequest memory request;
-    request.assets = assets;
-    request.maxAmountsIn = amountsIn;
-    request.userData = userData;
-    request.fromInternalBalance = false;
-
-    IBVault(bVault).joinPool(
-      balancerPoolId(),
-      address(this),
-      address(this),
-      request
+    // Swap with the limit that we need to receive more than given in
+    IBVault(bVault).swap(
+      swapInfos,
+      funds,
+      tokenBalance,
+      999999999999999999
     );
+    uint256 underlyingAfter = IERC20(underlyingToken).balanceOf(address(this));
 
-    address depositor = auraDeposit();
-    address universalDepositToken = depositToken();
-    uint256 bptBalance = IERC20(universalDepositToken).balanceOf(address(this));
-    IERC20(universalDepositToken).safeApprove(depositor, 0);
-    IERC20(universalDepositToken).safeApprove(depositor, bptBalance);
-    IAuraDepositor(depositor).deposit(bptBalance, true); //deposit and stake
+    // If the underlying balance after swapping increased,
+    // The swap succeeds and the strategy received more from swapping
+    if (underlyingAfter <= underlyingBefore) {
+      // we can accept 0 as minimum, this will be called only by trusted roles
+      uint256 depositTokensAmount = depositNTokens();
+      IAsset[] memory depositAssets = new IAsset[](depositTokensAmount);
+      for (uint256 i = 0; i < depositTokensAmount; i++) {
+        depositAssets[i] = IAsset(poolAssets[i]);
+      }
+
+      IBVault.JoinKind joinKind = IBVault.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT;
+      uint256[] memory amountsIn = new uint256[](depositTokensAmount);
+      amountsIn[depositArrayIndex()] = tokenBalance;
+      uint256 minAmountOut = 1;
+
+      bytes memory userData = abi.encode(joinKind, amountsIn, minAmountOut);
+
+      IBVault.JoinPoolRequest memory request;
+      request.assets = depositAssets;
+      request.maxAmountsIn = amountsIn;
+      request.userData = userData;
+      request.fromInternalBalance = false;
+
+      IBVault(bVault).joinPool(
+        balancerDepositPoolId(),
+        address(this),
+        address(this),
+        request
+      );
+
+      address depositor = auraDeposit();
+      address universalDepositToken = depositToken();
+      uint256 bptBalance = IERC20(universalDepositToken).balanceOf(address(this));
+      IERC20(universalDepositToken).safeApprove(depositor, 0);
+      IERC20(universalDepositToken).safeApprove(depositor, bptBalance);
+      IAuraDepositor(depositor).deposit(bptBalance, true); //deposit and stake
+    }
   }
 
   /**   Stakes everything the strategy holds into the reward pool
@@ -495,11 +572,20 @@ contract AuraStrategyAuraBAL is
     IAuraBaseRewardPool(stakePool).stakeAll(); // Stake
   }
 
-  function addRewardToken(address _token) 
+  function addRewardToken(
+    address _token, 
+    address[] memory _path2Reward, 
+    bytes32 _dexOption
+  ) 
     public 
     onlyGovernance 
   {
+    address universalRewardToken = rewardToken();
+    require(_path2Reward[_path2Reward.length-1] == universalRewardToken, "Path should end with universal reward token");
+    require(_path2Reward[0] == _token, "Path should start with new reward token");
     rewardTokens.push(_token);
+    storedLiquidationPaths[_token][universalRewardToken] = _path2Reward;
+    storedLiquidationDexes[_token][universalRewardToken] = [_dexOption];
   }
 
   //
