@@ -2,7 +2,6 @@
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "hardhat/console.sol";
 import "./base/AuraStrategyBatchSwapUL.sol";
 
 contract AuraStrategyMainnet_bbaUSD is AuraStrategyBatchSwapUL {
