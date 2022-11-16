@@ -428,7 +428,7 @@ contract AuraStrategyBatchSwapUL is
   function addRewardToken(
     address _token, 
     address[] memory _path2Reward, 
-    bytes32 _dexOption
+    bytes32[] memory _dexOption
   ) 
     public 
     onlyGovernance 
@@ -436,9 +436,10 @@ contract AuraStrategyBatchSwapUL is
     address universalRewardToken = rewardToken();
     require(_path2Reward[_path2Reward.length-1] == universalRewardToken, "Path should end with universal reward token");
     require(_path2Reward[0] == _token, "Path should start with new reward token");
+    require(_dexOption.length == _path2Reward.length-1, "Inconsistent length for path/dexes");
     rewardTokens.push(_token);
     storedLiquidationPaths[_token][universalRewardToken] = _path2Reward;
-    storedLiquidationDexes[_token][universalRewardToken] = [_dexOption];
+    storedLiquidationDexes[_token][universalRewardToken] = _dexOption;
   }
 
   //
