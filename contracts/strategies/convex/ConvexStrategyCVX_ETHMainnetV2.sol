@@ -4,7 +4,7 @@ import "./base/ConvexStrategyUL_V2.sol";
 
 contract ConvexStrategyCVX_ETHMainnetV2 is ConvexStrategyUL_V2 {
 
-  address public crv_eth_v2_unused; // just a differentiator for the bytecode
+  address public cvx_eth_v2_unused; // just a differentiator for the bytecode
 
   constructor() public {}
 
