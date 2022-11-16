@@ -2,6 +2,8 @@
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
@@ -485,32 +487,44 @@ contract AuraStrategyAuraBAL is
     address underlyingToken = underlying();
     bytes32 swapPoolId = balancerSwapPoolId();
 
-    // Try to swap more than deposit
-    uint256 underlyingBefore = IERC20(underlyingToken).balanceOf(address(this));
+    // QueryBatchSwap and see if it can swap more than deposit
+    IBVault.BatchSwapStep[] memory swaps = new IBVault.BatchSwapStep[](1);
+    swaps[0] = IBVault.BatchSwapStep(swapPoolId, 0, 1, tokenBalance, "");
+
+    IAsset[] memory assets = new IAsset[](2);
+    assets[0] = IAsset(universalRewardToken);
+    assets[1] = IAsset(underlyingToken);
+
     IBVault.FundManagement memory funds;
     funds.sender = address(this);
     funds.recipient = recipient;
 
-    IBVault.SingleSwap memory swapInfos = IBVault.SingleSwap(
-      swapPoolId, 
-      IBVault.SwapKind.GIVEN_IN,
-      IAsset(universalRewardToken),
-      IAsset(underlyingToken),
-      tokenBalance, 
-      bytes(""));
-    
-    // Swap with the limit that we need to receive more than given in
-    IBVault(bVault).swap(
-      swapInfos,
-      funds,
-      tokenBalance,
-      999999999999999999
-    );
-    uint256 underlyingAfter = IERC20(underlyingToken).balanceOf(address(this));
+    int256[] memory assetDeltas = 
+      IBVault(bVault).queryBatchSwap(
+        IBVault.SwapKind.GIVEN_OUT, 
+        swaps,
+        assets, 
+        funds);
 
-    // If the underlying balance after swapping increased,
-    // The swap succeeds and the strategy received more from swapping
-    if (underlyingAfter <= underlyingBefore) {
+    // If swap requires less amount, execute swap. Otherwise deposit
+    if (uint256(assetDeltas[0]) < tokenBalance) {
+      IBVault.SingleSwap memory swapInfos = 
+        IBVault.SingleSwap(
+          swapPoolId, 
+          IBVault.SwapKind.GIVEN_IN,
+          IAsset(universalRewardToken),
+          IAsset(underlyingToken),
+          tokenBalance, 
+          bytes(""));
+      
+      // Swap with the limit that we need to receive more than given in
+      IBVault(bVault).swap(
+        swapInfos,
+        funds,
+        tokenBalance,
+        999999999999999999
+      );
+    } else {
       // we can accept 0 as minimum, this will be called only by trusted roles
       uint256 depositTokensAmount = depositNTokens();
       IAsset[] memory depositAssets = new IAsset[](depositTokensAmount);
@@ -575,7 +589,7 @@ contract AuraStrategyAuraBAL is
   function addRewardToken(
     address _token, 
     address[] memory _path2Reward, 
-    bytes32 _dexOption
+    bytes32[] memory _dexOption
   ) 
     public 
     onlyGovernance 
@@ -583,9 +597,10 @@ contract AuraStrategyAuraBAL is
     address universalRewardToken = rewardToken();
     require(_path2Reward[_path2Reward.length-1] == universalRewardToken, "Path should end with universal reward token");
     require(_path2Reward[0] == _token, "Path should start with new reward token");
+    require(_dexOption.length == _path2Reward.length-1, "Inconsistent length for path/dexes");
     rewardTokens.push(_token);
     storedLiquidationPaths[_token][universalRewardToken] = _path2Reward;
-    storedLiquidationDexes[_token][universalRewardToken] = [_dexOption];
+    storedLiquidationDexes[_token][universalRewardToken] = _dexOption;
   }
 
   //
