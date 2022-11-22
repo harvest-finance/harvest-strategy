@@ -1,0 +1,21 @@
+{
+    "lpTokens": {
+        "bb_a_USD": {
+            "address": "0xA13a9247ea42D743238089903570127DdA72fE44",
+            "whale": "0xd6f437d7a5bffb6d5949a683c4b1c9808f83f4c9"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    },
+    "setLiquidationPath": [
+        {
+            "dex": "0xd5ddBB899Ea14591c53779f0a24948BcC62aCb87",
+            "dexOwner": "0x6a74649aCFD7822ae8Fb78463a9f2192752E5Aa2",
+            "token0": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+            "token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "poolId": "0xcfca23ca9ca720b6e98e3eb9b6aa0ffc4a5c08b9000200000000000000000274"
+        }
+    ]
+}

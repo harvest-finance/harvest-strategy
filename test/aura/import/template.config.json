@@ -1,0 +1,20 @@
+{
+    "lpTokens": {
+        "LPTOKEN1": {
+            "address": "ADDRESS",
+            "whale": "ADDRESS"
+        }
+    },
+    "relatedTokens": {
+        "TOKEN1": "ADDRESS"
+    },    
+    "setLiquidationPath": [
+        {
+            "dex": "ADDRESS",
+            "dexOwner": "ADDRESS",
+            "token0": "ADDRESS",
+            "token1": "ADDRESS",
+            "poolId": "BYTES32_POOLID"
+        }
+    ]
+}
