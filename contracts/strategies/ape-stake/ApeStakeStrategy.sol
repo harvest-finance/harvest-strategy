@@ -74,17 +74,20 @@ contract ApeStakeStrategy is IStrategy, BaseUpgradeableStrategy {
     }
 
     function _liquidateReward() internal {
-        uint256 rewardBalance = IERC20(rewardToken()).balanceOf(address(this));
+        uint256 rewardBalanceBefore = IERC20(rewardToken()).balanceOf(address(this));
+        _claimRewards();
+        uint256 rewardBalanceAfter = IERC20(rewardToken()).balanceOf(address(this));
+        uint256 claimed = rewardBalanceAfter.sub(rewardBalanceBefore);
 
-        if (!sell() || rewardBalance < sellFloor()) {
+        if (!sell() || claimed < sellFloor()) {
             // Profits can be disabled for possible simplified and rapid exit
-            emit ProfitsNotCollected(sell(), rewardBalance < sellFloor());
+            emit ProfitsNotCollected(sell(), claimed < sellFloor());
             return;
         }
 
         // Since underlyingToken and rewardToken are same as APE
         // Don't do any swap here, just nofity the profit
-        notifyProfitInRewardToken(rewardBalance);
+        notifyProfitInRewardToken(claimed);
     }
 
     /* ========== External ========== */
@@ -131,10 +134,7 @@ contract ApeStakeStrategy is IStrategy, BaseUpgradeableStrategy {
      *   when the investing is being paused by governance.
      */
     function doHardWork() external onlyNotPausedInvesting restricted {
-        if(_rewardPoolBalance() > 0) {
-            _claimRewards();
-            _liquidateReward();
-        }
+        _liquidateReward();
         _investAllUnderlying();
     }
 
