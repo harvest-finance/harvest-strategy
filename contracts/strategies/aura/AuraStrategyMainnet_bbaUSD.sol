@@ -16,7 +16,7 @@ contract AuraStrategyMainnet_bbaUSD is AuraStrategyBatchSwapUL {
         address _vault // Harvest: Vault
     ) public initializer {
         address underlying = address(0xA13a9247ea42D743238089903570127DdA72fE44); // Balancer: Balancer Aave Boosted StablePool
-        address rewardPool = address(0x1e9F147241dA9009417811ad5858f22Ed1F9F9fd); // Aura: Balancer Aave Boosted StablePool Aura Deposit Vault
+        address rewardPool = address(0xFb6b1c1A1eA5618b3CfC20F81a11A97E930fA46B); // Aura: Balancer Aave Boosted StablePool Aura Deposit Vault
         bytes32 wETH_USDC = bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
         bytes32 USDC_bbaUSDC = bytes32(0x82698aecc9e28e9bb27608bd52cf57f704bd1b83000000000000000000000336);
         bytes32 bbaUSDC_bbaUSD = bytes32(0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d);
@@ -38,9 +38,9 @@ contract AuraStrategyMainnet_bbaUSD is AuraStrategyBatchSwapUL {
             underlying,
             _vault,
             rewardPool,
-            41, // Aura: PoolId
+            2, // Aura: PoolId
             weth, //Balancer: Deposit Token
-            1000
+            500
         );
     }
 }

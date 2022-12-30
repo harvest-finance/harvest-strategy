@@ -13,7 +13,7 @@ import "../../../base/interface/IStrategy.sol";
 import "../../../base/interface/IVault.sol";
 import "../../../base/interface/balancer/IBVault.sol";
 
-contract AuraStrategyAuraBAL is 
+contract AuraStrategyAuraBAL is
   IStrategy,
   BaseUpgradeableStrategyUL
 {
@@ -35,7 +35,6 @@ contract AuraStrategyAuraBAL is
   bytes32 internal constant _BALANCER_SWAP_POOLID_SLOT = 0x96eaba03b7d8704b74915e0bd104447ffbbd75f05f95be4c198737d1ed4d6459;
   bytes32 internal constant _BALANCER_DEPOSIT_POOLID_SLOT = 0x0b9742b6ca158c800acf38380d6c693dbe9cf98c2e95790f40343ee6ba0d59da;
   bytes32 internal constant _DEPOSIT_TOKEN_SLOT = 0x219270253dbc530471c88a9e7c321b36afda219583431e7b6c386d2d46e70c86;
-  bytes32 internal constant _DEPOSIT_RECEIPT_SLOT = 0x414478d5ad7f54ead8a3dd018bba4f8d686ba5ab5975cd376e0c98f98fb713c5;
   bytes32 internal constant _DEPOSIT_ARRAY_INDEX_SLOT = 0xf5304231d5b8db321cd2f83be554278488120895d3326b9a012d540d75622ba3;
   bytes32 internal constant _HODL_RATIO_SLOT = 0xb487e573671f10704ed229d25cf38dda6d287a35872859d096c0395110a0adb1;
   bytes32 internal constant _HODL_VAULT_SLOT = 0xc26d330f887c749cb38ae7c37873ff08ac4bba7aec9113c82d48a0cf6cc145f2;
@@ -57,8 +56,8 @@ contract AuraStrategyAuraBAL is
     assert(_DEPOSIT_ARRAY_INDEX_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositArrayIndex")) - 1));
     assert(_HODL_RATIO_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlRatio")) - 1));
     assert(_HODL_VAULT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.hodlVault")) - 1));
-    assert(_SWAP_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.swapNTokens")) - 1)); 
-    assert(_DEPOSIT_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositNTokens")) - 1)); 
+    assert(_SWAP_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.swapNTokens")) - 1));
+    assert(_DEPOSIT_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.depositNTokens")) - 1));
   }
 
   function initializeBaseStrategy(
@@ -76,10 +75,10 @@ contract AuraStrategyAuraBAL is
   ) public initializer {
 
     // calculate profit sharing fee depending on hodlRatio
-    uint256 profitSharingNumerator = 300;
-    if (_hodlRatio >= 3000) {
+    uint256 profitSharingNumerator = 150;
+    if (_hodlRatio >= 1500) {
       profitSharingNumerator = 0;
-    } 
+    }
     else if (_hodlRatio > 0) {
       // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
       // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
@@ -121,14 +120,14 @@ contract AuraStrategyAuraBAL is
   // Set Strategy Metadata Functions
   //
 
-  function setHodlRatio(uint256 _value) 
-    public 
-    onlyGovernance 
+  function setHodlRatio(uint256 _value)
+    public
+    onlyGovernance
   {
-    uint256 profitSharingNumerator = 300;
-    if (_value >= 3000) {
+    uint256 profitSharingNumerator = 150;
+    if (_value >= 1500) {
       profitSharingNumerator = 0;
-    } 
+    }
     else if (_value > 0){
       // (profitSharingNumerator - hodlRatio/10) * hodlRatioBase / (hodlRatioBase - hodlRatio)
       // e.g. with default values: (300 - 1000 / 10) * 10000 / (10000 - 1000)
@@ -141,17 +140,17 @@ contract AuraStrategyAuraBAL is
     setUint256(_HODL_RATIO_SLOT, _value);
   }
 
-  function setHodlVault(address _address) 
-    public 
-    onlyGovernance 
+  function setHodlVault(address _address)
+    public
+    onlyGovernance
   {
     setAddress(_HODL_VAULT_SLOT, _address);
   }
 
   /** Resumes the ability to invest into the underlying reward pools
    */
-  function continueInvesting() 
-    public 
+  function continueInvesting()
+    public
     onlyGovernance
   {
     _setPausedInvesting(false);
@@ -160,48 +159,48 @@ contract AuraStrategyAuraBAL is
   /** Can completely disable claiming UNI rewards and selling. Good for emergency withdraw in the
    *  simplest possible way.
    */
-  function setSell(bool s) 
-    public 
-    onlyGovernance 
+  function setSell(bool s)
+    public
+    onlyGovernance
   {
     _setSell(s);
   }
 
   /** Sets the minimum amount of CRV needed to trigger a sale.
    */
-  function setSellFloor(uint256 floor) 
-    public 
-    onlyGovernance 
+  function setSellFloor(uint256 floor)
+    public
+    onlyGovernance
   {
     _setSellFloor(floor);
   }
 
-  function _setAuraDeposit(address _address) 
-    internal 
+  function _setAuraDeposit(address _address)
+    internal
   {
     setAddress(_AURA_DEPOSIT_SLOT, _address);
   }
 
-  function _setBalancerSwapPool(address _address) 
-    internal 
+  function _setBalancerSwapPool(address _address)
+    internal
   {
     setAddress(_BALANCER_SWAP_POOL_SLOT, _address);
   }
 
-  /** 
+  /**
    * Balancer swap pool ID
    */
-  function _setBalancerSwapPoolId(bytes32 _value) 
-    internal 
+  function _setBalancerSwapPoolId(bytes32 _value)
+    internal
   {
     setBytes32(_BALANCER_SWAP_POOLID_SLOT, _value);
   }
 
-  /** 
+  /**
    * Balancer deposit pool ID
    */
-  function _setBalancerDepositPoolId(bytes32 _value) 
-    internal 
+  function _setBalancerDepositPoolId(bytes32 _value)
+    internal
   {
     setBytes32(_BALANCER_DEPOSIT_POOLID_SLOT, _value);
   }
@@ -214,14 +213,14 @@ contract AuraStrategyAuraBAL is
     setUint256(_DEPOSIT_NTOKENS_SLOT, _value);
   }
 
-  function _setDepositToken(address _address) 
-    internal 
+  function _setDepositToken(address _address)
+    internal
   {
     setAddress(_DEPOSIT_TOKEN_SLOT, _address);
   }
 
-  function _setDepositArrayIndex(uint256 _value) 
-    internal 
+  function _setDepositArrayIndex(uint256 _value)
+    internal
   {
     require(_value <= depositNTokens(), "Invalid index");
     setUint256(_DEPOSIT_ARRAY_INDEX_SLOT, _value);
@@ -231,90 +230,90 @@ contract AuraStrategyAuraBAL is
   // Get Strategy Metadata Functions
   //
 
-  function hodlRatio() 
-    public 
-    view 
-    returns (uint256) 
+  function hodlRatio()
+    public
+    view
+    returns (uint256)
   {
     return getUint256(_HODL_RATIO_SLOT);
   }
 
-  function hodlVault() 
-    public 
-    view 
-    returns (address) 
+  function hodlVault()
+    public
+    view
+    returns (address)
   {
     return getAddress(_HODL_VAULT_SLOT);
   }
 
-  function depositArbCheck() 
-    public 
-    view 
-    returns(bool) 
+  function depositArbCheck()
+    public
+    view
+    returns(bool)
   {
     return true;
   }
 
-  function auraDeposit() 
-    public 
-    view 
-    returns (address) 
+  function auraDeposit()
+    public
+    view
+    returns (address)
   {
     return getAddress(_AURA_DEPOSIT_SLOT);
   }
 
-  function balancerSwapPool() 
-    public 
-    view 
-    returns (address) 
+  function balancerSwapPool()
+    public
+    view
+    returns (address)
   {
     return getAddress(_BALANCER_SWAP_POOL_SLOT);
   }
 
-  function balancerSwapPoolId() 
-    public 
-    view 
-    returns (bytes32) 
+  function balancerSwapPoolId()
+    public
+    view
+    returns (bytes32)
   {
     return getBytes32(_BALANCER_SWAP_POOLID_SLOT);
   }
 
-  function balancerDepositPoolId() 
-    public 
-    view 
-    returns (bytes32) 
+  function balancerDepositPoolId()
+    public
+    view
+    returns (bytes32)
   {
     return getBytes32(_BALANCER_DEPOSIT_POOLID_SLOT);
   }
 
-  function swapNTokens() 
-    public 
-    view 
-    returns (uint256) 
+  function swapNTokens()
+    public
+    view
+    returns (uint256)
   {
     return getUint256(_SWAP_NTOKENS_SLOT);
   }
 
-  function depositNTokens() 
-    public 
-    view 
+  function depositNTokens()
+    public
+    view
     returns (uint256)
   {
     return getUint256(_DEPOSIT_NTOKENS_SLOT);
   }
 
-  function depositToken() 
-    public 
-    view 
-    returns (address) 
+  function depositToken()
+    public
+    view
+    returns (address)
   {
     return getAddress(_DEPOSIT_TOKEN_SLOT);
   }
 
-  function depositArrayIndex() 
-    public 
-    view 
-    returns (uint256) 
+  function depositArrayIndex()
+    public
+    view
+    returns (uint256)
   {
     return getUint256(_DEPOSIT_ARRAY_INDEX_SLOT);
   }
@@ -326,10 +325,10 @@ contract AuraStrategyAuraBAL is
   /** Note that we currently do not have a mechanism here to include the
    *  amount of reward that is accrued.
    */
-  function investedUnderlyingBalance() 
-    external 
-    view 
-    returns (uint256) 
+  function investedUnderlyingBalance()
+    external
+    view
+    returns (uint256)
   {
     return _rewardPoolBalance()
       .add(IERC20(underlying()).balanceOf(address(this)));
@@ -346,10 +345,10 @@ contract AuraStrategyAuraBAL is
    *  calling `_investAllUnderlying()` affectively blocks the usage of `doHardWork`
    *  when the investing is being paused by governance.
    */
-  function doHardWork() 
-    external 
-    onlyNotPausedInvesting 
-    restricted 
+  function doHardWork()
+    external
+    onlyNotPausedInvesting
+    restricted
   {
     IAuraBaseRewardPool(rewardPool()).getReward();
     _liquidateReward();
@@ -357,8 +356,8 @@ contract AuraStrategyAuraBAL is
   }
 
   // We assume that all the tradings can be done on Sushiswap
-  function _liquidateReward() 
-    internal 
+  function _liquidateReward()
+    internal
   {
     // Swap BAL into 80BAL20WETH
     // Deposit 80BAL20WETH into Aura: auraBALBpt Depositor
@@ -374,11 +373,11 @@ contract AuraStrategyAuraBAL is
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
-      
+
       // if the token is the rewardToken then there won't be a path defined because liquidation is not necessary,
       // but we still have to make sure that the toHodl part is executed.
-      if (rewardBalance == 0 || 
-          (storedLiquidationDexes[token][universalRewardToken].length < 1) && 
+      if (rewardBalance == 0 ||
+          (storedLiquidationDexes[token][universalRewardToken].length < 1) &&
            token != universalRewardToken) {
         continue;
       }
@@ -393,7 +392,7 @@ contract AuraStrategyAuraBAL is
       }
 
       if(token == universalRewardToken) {
-        // one of the reward tokens is the same as the token that we liquidate to -> 
+        // one of the reward tokens is the same as the token that we liquidate to ->
         // no liquidation necessary
         continue;
       } else if (token == bbaUSD) {
@@ -448,7 +447,7 @@ contract AuraStrategyAuraBAL is
     for (uint256 i = 0; i < batchSwapTokens; i++) {
       assets[i] = IAsset(swapAssets[i]);
     }
-    
+
     IBVault.FundManagement memory funds;
     funds.sender = address(this);
     funds.recipient = recipient;
@@ -472,8 +471,8 @@ contract AuraStrategyAuraBAL is
    *         Deposit 80BAL20WETH to Aura: auraBALBpt Depositor and Receive auraBALBpt
    *      2. Swap WETH to auraBALBpt directly
    */
-  function _convertCrvToAuraBAL() 
-    internal 
+  function _convertCrvToAuraBAL()
+    internal
   {
     address universalRewardToken = rewardToken();
     uint256 tokenBalance = IERC20(universalRewardToken).balanceOf(address(this));
@@ -497,24 +496,24 @@ contract AuraStrategyAuraBAL is
     funds.sender = address(this);
     funds.recipient = recipient;
 
-    int256[] memory assetDeltas = 
+    int256[] memory assetDeltas =
       IBVault(bVault).queryBatchSwap(
-        IBVault.SwapKind.GIVEN_OUT, 
+        IBVault.SwapKind.GIVEN_OUT,
         swaps,
-        assets, 
+        assets,
         funds);
 
     // If swap requires less amount, execute swap. Otherwise deposit
     if (uint256(assetDeltas[0]) < tokenBalance) {
-      IBVault.SingleSwap memory swapInfos = 
+      IBVault.SingleSwap memory swapInfos =
         IBVault.SingleSwap(
-          swapPoolId, 
+          swapPoolId,
           IBVault.SwapKind.GIVEN_IN,
           IAsset(universalRewardToken),
           IAsset(underlyingToken),
-          tokenBalance, 
+          tokenBalance,
           bytes(""));
-      
+
       // Swap with the limit that we need to receive more than given in
       IBVault(bVault).swap(
         swapInfos,
@@ -561,9 +560,9 @@ contract AuraStrategyAuraBAL is
 
   /**   Stakes everything the strategy holds into the reward pool
    */
-  function _investAllUnderlying() 
-    internal 
-    onlyNotPausedInvesting 
+  function _investAllUnderlying()
+    internal
+    onlyNotPausedInvesting
   {
     // this check is needed, because most of the SNX reward pools will revert if
     // you try to stake(0).
@@ -573,8 +572,8 @@ contract AuraStrategyAuraBAL is
   }
 
   // Reward => Deposit(WETH) => JoinPool Bpt => Deposit(Bpt) => StakeAll
-  function _enterRewardPool() 
-    internal 
+  function _enterRewardPool()
+    internal
   {
     address lpToken = underlying();
     address stakePool = rewardPool();
@@ -585,12 +584,12 @@ contract AuraStrategyAuraBAL is
   }
 
   function addRewardToken(
-    address _token, 
-    address[] memory _path2Reward, 
+    address _token,
+    address[] memory _path2Reward,
     bytes32[] memory _dexOption
-  ) 
-    public 
-    onlyGovernance 
+  )
+    public
+    onlyGovernance
   {
     address universalRewardToken = rewardToken();
     require(_path2Reward[_path2Reward.length-1] == universalRewardToken, "Path should end with universal reward token");
@@ -607,9 +606,9 @@ contract AuraStrategyAuraBAL is
 
   /** Withdraws all the asset to the vault
    */
-  function withdrawAllToVault() 
-    public 
-    restricted 
+  function withdrawAllToVault()
+    public
+    restricted
   {
     address lpToken = underlying();
     if (address(rewardPool()) != address(0)) {
@@ -621,9 +620,9 @@ contract AuraStrategyAuraBAL is
 
   /** Withdraws all the asset to the vault
    */
-  function withdrawToVault(uint256 amount) 
-    public 
-    restricted 
+  function withdrawToVault(uint256 amount)
+    public
+    restricted
   {
     address lpToken = underlying();
     // Typically there wouldn't be any amount here
@@ -640,8 +639,8 @@ contract AuraStrategyAuraBAL is
     IERC20(lpToken).safeTransfer(vault(), amount);
   }
 
-  function partialWithdrawalRewardPool(uint256 amount) 
-    internal 
+  function partialWithdrawalRewardPool(uint256 amount)
+    internal
   {
     IAuraBaseRewardPool(rewardPool()).withdraw(amount, false);  //don't claim rewards at this point
   }
@@ -650,16 +649,16 @@ contract AuraStrategyAuraBAL is
    *  Governance can exit the pool properly
    *  The function is only used for emergency to exit the pool
    */
-  function emergencyExit() 
-    public 
-    onlyGovernance 
+  function emergencyExit()
+    public
+    onlyGovernance
   {
     _emergencyExitRewardPool();
     _setPausedInvesting(true);
   }
 
-  function _emergencyExitRewardPool() 
-    internal 
+  function _emergencyExitRewardPool()
+    internal
   {
     uint256 stakedBalance = _rewardPoolBalance();
     if (stakedBalance != 0) {
@@ -667,8 +666,8 @@ contract AuraStrategyAuraBAL is
     }
   }
 
-  function exitRewardPool() 
-    internal 
+  function exitRewardPool()
+    internal
   {
     uint256 stakedBalance = _rewardPoolBalance();
     if (stakedBalance != 0) {
@@ -676,10 +675,10 @@ contract AuraStrategyAuraBAL is
     }
   }
 
-  function _rewardPoolBalance() 
-    internal 
-    view 
-    returns (uint256 balance) 
+  function _rewardPoolBalance()
+    internal
+    view
+    returns (uint256 balance)
   {
       balance = IAuraBaseRewardPool(rewardPool()).balanceOf(address(this));
   }
@@ -692,29 +691,29 @@ contract AuraStrategyAuraBAL is
    *  Note that they cannot come in take away coins that are used and defined in the strategy itself
    */
   function salvage(
-    address recipient, 
-    address token, 
+    address recipient,
+    address token,
     uint256 amount
-  ) 
-    external 
-    onlyControllerOrGovernance 
+  )
+    external
+    onlyControllerOrGovernance
   {
      // To make sure that governance cannot come in and take away the coins
     require(!unsalvagableTokens(token), "token is defined as not salvagable");
     IERC20(token).safeTransfer(recipient, amount);
   }
 
-  function unsalvagableTokens(address token) 
-    public 
-    view 
-    returns (bool) 
+  function unsalvagableTokens(address token)
+    public
+    view
+    returns (bool)
   {
     return (token == rewardToken() || token == underlying());
   }
 
-  function finalizeUpgrade() 
-    external 
-    onlyGovernance 
+  function finalizeUpgrade()
+    external
+    onlyGovernance
   {
     _finalizeUpgrade();
     setHodlVault(multiSigAddr);

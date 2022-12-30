@@ -21,7 +21,7 @@ contract AuraStrategyMainnet_stETHBbaUSD is AuraStrategyBatchSwapJoinPoolUL {
         address _vault // Harvest: Vault
     ) public initializer {
         address underlying = address(0x25Accb7943Fd73Dda5E23bA6329085a3C24bfb6a); // Balancer: Balancer 50wstETH-50bb-a-USD Pool
-        address rewardPool = address(0xe5d920029556a49a9cA4DD808CD62a1876C10eBA); // Aura: Balancer 50wstETH-50bb-a-USD Aura Deposit Vault
+        address rewardPool = address(0x8c9E4a04aDb0D543B33cAb644135BFcA523c40C8); // Aura: Balancer 50wstETH-50bb-a-USD Aura Deposit Vault
         bytes32 wETH_USDC = bytes32(0x96646936b91d6b9d7d0c47c496afbf3d6ec7b6f8000200000000000000000019);
         bytes32 USDC_bbaUSDC = bytes32(0x82698aecc9e28e9bb27608bd52cf57f704bd1b83000000000000000000000336);
         bytes32 bbaUSDC_bbaUSD = bytes32(0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d);
@@ -45,11 +45,11 @@ contract AuraStrategyMainnet_stETHBbaUSD is AuraStrategyBatchSwapJoinPoolUL {
             underlying,
             _vault,
             rewardPool,
-            51, // Aura: PoolId
+            9, // Aura: PoolId
             0x25accb7943fd73dda5e23ba6329085a3c24bfb6a000200000000000000000387, // Balancer: PoolId
             bbaUSD, //Balancer: Deposit Token
             1,
-            1000
+            500
         );
     }
 }

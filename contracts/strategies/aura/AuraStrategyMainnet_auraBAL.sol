@@ -17,8 +17,8 @@ contract AuraStrategyMainnet_auraBAL is AuraStrategyAuraBAL {
     ) public initializer {
         address underlying = address(0x616e8BfA43F920657B3497DBf40D6b1A02D4608d); // Aura: auraBAL
         address depositToken = address(0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56); // Balancer: B-80BAL-20WETH
-        address rewardPool = address(0x5e5ea2048475854a5702F5B8468A51Ba1296EFcC); // Aura: auraBAL Rewards
-        address auraDeposit = address(0xeAd792B55340Aa20181A80d6a16db6A0ECd1b827); // Aura: auraBALBpt Depositor 
+        address rewardPool = address(0x00A7BA8Ae7bca0B10A32Ea1f8e2a1Da980c6CAd2); // Aura: auraBAL Rewards
+        address auraDeposit = address(0x68655AD9852a99C87C0934c7290BB62CFa5D4123); // Aura: auraBALBpt Depositor
         address balancerSwapPool = address(0x0578292CB20a443bA1CdE459c985CE14Ca2bDEe5); // Balancer: 33auraBAL-33graviAURA-33WETH WeightedPool
         address usdc = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         address bbaUSDC = address(0x82698aeCc9E28e9Bb27608Bd52cF57f704BD1B83);
@@ -45,7 +45,7 @@ contract AuraStrategyMainnet_auraBAL is AuraStrategyAuraBAL {
             0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014, // Balancer: Deposit PoolId
             depositToken, //Balancer: Deposit Token
             1, // Balancer: Deposit Array Position
-            1000
+            500
         );
 
         bytes32 bbaUSD_bbaUSDC = bytes32(0xa13a9247ea42d743238089903570127dda72fe4400000000000000000000035d);

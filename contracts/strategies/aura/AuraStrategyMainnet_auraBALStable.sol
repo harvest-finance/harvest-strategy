@@ -16,7 +16,7 @@ contract AuraStrategyMainnet_auraBALStable is AuraStrategyJoinPoolUL {
         address _vault // Harvest: Vault
     ) public initializer {
         address underlying = address(0x3dd0843A028C86e0b760b1A76929d1C5Ef93a2dd); // Balancer: Balancer auraBAL Stable Pool
-        address rewardPool = address(0x2AEF2f950E507A23cc19a882DC9b33c03B55D3f2); // Aura: Balancer auraBAL Stable Pool Aura Deposit Vault
+        address rewardPool = address(0xACAdA51C320947E7ed1a0D0F6b939b0FF465E4c2); // Aura: Balancer auraBAL Stable Pool Aura Deposit Vault
         address b80Bal20wEth = address(0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56);
         address auraBal = address(0x616e8BfA43F920657B3497DBf40D6b1A02D4608d);
 
@@ -34,11 +34,11 @@ contract AuraStrategyMainnet_auraBALStable is AuraStrategyJoinPoolUL {
             underlying,
             _vault,
             rewardPool,
-            19, // Aura: PoolId
+            1, // Aura: PoolId
             0x3dd0843a028c86e0b760b1a76929d1c5ef93a2dd000200000000000000000249, // Balancer: PoolId
             auraBal, //Balancer: Deposit Token
             1, // Balancer: Deposit Array Position
-            1000
+            500
         );
     }
 }
