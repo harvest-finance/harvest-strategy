@@ -1,0 +1,12 @@
+{
+    "lpTokens": {
+        "PENDLE_ETH": {
+            "address": "0xFD1Cf6FD41F229Ca86ada0584c63C49C3d66BbC9",
+            "whale": "0x6449270bF9F6a50651E22c5d297527Ed640ad4E8"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "lpTokens": {
+        "wUSDR_USDC": {
+            "address": "0x831261f44931B7dA8ba0DcC547223c60BB75B47F",
+            "whale": "0x9F70eCf8cae680f0BDe6c0b7BdAEC348Ef9bE554"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+}

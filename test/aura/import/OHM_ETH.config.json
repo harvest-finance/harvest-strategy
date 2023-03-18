@@ -1,0 +1,12 @@
+{
+    "lpTokens": {
+        "OHM_ETH": {
+            "address": "0xD1eC5e215E8148D76F4460e4097FD3d5ae0A3558",
+            "whale": "0x42107B74f702467F219fCF28124CB7E8A85fd95f"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+}
