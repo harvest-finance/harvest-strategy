@@ -1,0 +1,13 @@
+{
+    "lpTokens": {
+        "rETH_BADGER": {
+            "address": "0x1ee442b5326009Bb18F2F472d3e0061513d1A0fF",
+            "whale": "0x854B004700885A61107B458f11eCC169A019b764"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "reth": "0xae78736Cd615f374D3085123A210448E74Fc6393"
+    }
+}

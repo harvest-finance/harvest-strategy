@@ -1,0 +1,29 @@
+{
+    "lpTokens": {
+        "B_auraBAL_STABLE": {
+            "address": "0x3dd0843A028C86e0b760b1A76929d1C5Ef93a2dd",
+            "whale": "0xF89bb80788a728688015765c8F4b75f96a87A5b3"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "auraBAL": "0x616e8BfA43F920657B3497DBf40D6b1A02D4608d"
+    },
+    "setLiquidationPath": [
+        {
+            "dex": "0xd5ddBB899Ea14591c53779f0a24948BcC62aCb87",
+            "dexOwner": "0x6a74649aCFD7822ae8Fb78463a9f2192752E5Aa2",
+            "token0": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+            "token1": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "poolId": "0xcfca23ca9ca720b6e98e3eb9b6aa0ffc4a5c08b9000200000000000000000274"
+        },
+        {
+            "dex": "0xd5ddBB899Ea14591c53779f0a24948BcC62aCb87",
+            "dexOwner": "0x6a74649aCFD7822ae8Fb78463a9f2192752E5Aa2",
+            "token0": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "token1": "0x616e8BfA43F920657B3497DBf40D6b1A02D4608d",
+            "poolId": "0x0578292cb20a443ba1cde459c985ce14ca2bdee5000100000000000000000269"
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "lpTokens": {
+        "wstETH_rETH_sfrxETH": {
+            "address": "0x5aEe1e99fE86960377DE9f88689616916D5DcaBe",
+            "whale": "0x71948948DC84640A9C655Bf2Fb525b26F97B1B8c"
+        }
+    },
+    "relatedTokens": {
+        "aura": "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF",
+        "wETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+}
