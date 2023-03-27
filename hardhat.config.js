@@ -4,7 +4,7 @@ require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-ethers");
 require("hardhat-gas-reporter");
 
-const keys = require('./dev-keys.json');
+const keys = require("./dev-keys.json");
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -20,7 +20,7 @@ module.exports = {
       forking: {
         //url: "https://mainnet.infura.io/v3/" + keys.infuraKey,
         url: "https://eth-mainnet.alchemyapi.io/v2/" + keys.alchemyKeyMainnet,
-        // blockNumber: 13984950, // <-- edit here
+        blockNumber: 16876134, // <-- edit here
       },
     },
     mainnet: {
@@ -31,12 +31,13 @@ module.exports = {
     },
   },
   solidity: {
-    compilers: [{
+    compilers: [
+      {
         version: "0.5.16",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
+            runs: 200,
           },
         },
       },
@@ -46,8 +47,8 @@ module.exports = {
     timeout: 2000000,
   },
   gasReporter: {
-    enabled: (process.env.REPORT_GAS) ? true : false,
-    currency: 'USD',
+    enabled: process.env.REPORT_GAS ? true : false,
+    currency: "USD",
   },
   etherscan: {
     apiKey: keys.etherscanAPI,

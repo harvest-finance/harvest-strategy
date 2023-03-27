@@ -94,15 +94,7 @@ describe("SolidlyStrategyMainnet_USDC_WETH", function () {
       strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
-      liquidation: [{ uniV3: [weth, usdc] }],
     });
-
-    feeForwarder = await IFeeRewardForwarder.at(feeForwarderAddr);
-
-    let path = [weth, usdc];
-    let dexes = [uniV3Dex];
-
-    await feeForwarder.configureLiquidation(path, dexes, { from: governance });
   });
 
   describe("Happy path", function () {

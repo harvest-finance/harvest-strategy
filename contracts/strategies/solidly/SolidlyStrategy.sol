@@ -40,7 +40,7 @@ contract SolidlyStrategy is IStrategy, BaseUpgradeableStrategyUL {
       _vault,
       _rewardPool,
       _rewardToken,
-      300, // profit sharing numerator
+      150, // profit sharing numerator
       1000, // profit sharing denominator
       true, // sell
       1e18, // sell floor
@@ -149,6 +149,9 @@ contract SolidlyStrategy is IStrategy, BaseUpgradeableStrategyUL {
   }
 
   function addRewardToken(address _token) public onlyGovernance {
+    if (_token != solid) {
+      require(storedLiquidationDexes[_token][weth].length > 0, "Liquidation path should exist");
+    }
     rewardTokens.push(_token);
   }
 
