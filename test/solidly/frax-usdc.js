@@ -12,19 +12,21 @@ const IERC20 = artifacts.require(
   "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20"
 );
 
-const Strategy = artifacts.require("SolidlyStrategyMainnet_USDC_WETH");
+const Strategy = artifacts.require("SolidlyStrategyMainnet_FRAX_USDC");
 
-//This test was developed at blockNumber 16233370
+//This test was developed at blockNumber 16993444
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("SolidlyStrategyMainnet_USDC_WETH", function () {
+describe("SolidlyStrategyMainnet_FRAX_USDC", function () {
   let accounts;
 
   // external contracts
   let underlying;
+  let frax = "0x853d955aCEf822Db058eb8505911ED77F175b99e";
+  let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
   // external setup
-  let underlyingWhale = "0xA8c24C16ad11D008eba1695D37417b47aB461a98";
+  let underlyingWhale = "0xA1eED1566F5ec6c1b3985B6fC9f101a68fDb7071";
 
   // parties in the protocol
   let governance;
@@ -39,7 +41,7 @@ describe("SolidlyStrategyMainnet_USDC_WETH", function () {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0xcD452c162dA7761f08F656B8e5eDe3A385981378");
+    underlying = await IERC20.at("0x7d8311F7E0C1D19C1096E43E8B6C17b67Fb6AA2e");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -83,6 +85,7 @@ describe("SolidlyStrategyMainnet_USDC_WETH", function () {
       strategyArtifactIsUpgradable: true,
       underlying: underlying,
       governance: governance,
+      liquidation: [{ uniV3: [weth, frax] }],
     });
   });
 
