@@ -11,8 +11,7 @@ const { web3 } = require("@openzeppelin/test-helpers/src/setup.js");
 const IERC20 = artifacts.require(
   "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20"
 );
-const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarderV6");
-
+const IUniV3Dex = artifacts.require("IUniV3Dex");
 const Strategy = artifacts.require("SolidlyStrategyMainnet_frxETH_WETH");
 
 //This test was developed at blockNumber 16993444
@@ -25,6 +24,7 @@ describe("SolidlyStrategyMainnet_frxETH_WETH", function () {
   let underlying;
   let frxETH = "0x5E8422345238F34275888049021821E8E08CAa1f";
   let weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  let uniV3DexAddr = "0x1D35ba854575B576B3C0aB4e64E27Bf2D2c1D48A";
 
   // external setup
   let underlyingWhale = "0x5fCE877719ADc1Bf9A472CA4D27F130cA60Bda6D";
@@ -88,6 +88,9 @@ describe("SolidlyStrategyMainnet_frxETH_WETH", function () {
       governance: governance,
       liquidation: [{ uniV3: [weth, frxETH] }],
     });
+
+    uniV3Dex = await IUniV3Dex.at(uniV3DexAddr);
+    await uniV3Dex.setFee(frxETH, weth, 500, { from: governance });
   });
 
   describe("Happy path", function () {
